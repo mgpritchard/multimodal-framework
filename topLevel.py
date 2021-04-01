@@ -16,11 +16,19 @@ import csv
 from tkinter import Tk
 from tkinter.filedialog import askopenfilename, askopenfilenames
 from queue import Queue
+import logging
 from threading import Thread
 from time import time
 import handleEMG
+import handleML
 
 def liveclassify():
+    threadEMG=Thread(target=handleEMG.read_emg(),daemon=True)
+    threadEEG=Thread(target=handleEMG.read_emg(),daemon=True)
+    threadML=Thread(target=handleML.classify_continuous(),daemon=True)
+    threadEMG.start()
+    threadEEG.start()
+    threadML.start()
     return
 
 def offlineclassify():

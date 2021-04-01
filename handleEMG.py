@@ -13,3 +13,8 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import csv
+
+def read_emg():
+    while True:
+        emg_window='do_something_with_pyoconnect'
+        yield emg_window

@@ -20,6 +20,7 @@ from generate_training_matrix import gen_training_matrix
 from labelstoClass import numtoClass
 import time
 import scipy
+from handleML import *
 
 def split_datasets(toggle='single'):
     homepath=os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
@@ -165,45 +166,4 @@ def slice_and_predict(data,offset,period,model,verbose):
     current_feats=get_feats(current_slice[:,1:])
     current_pred = predict_from_array(model,current_feats)
     current_distro = prob_dist(model,current_feats)
-    return current_slice,current_pred,current_distro
-
-def prob_dist(model,values):
-    distro = model.predict_proba(values)
-    return distro
-
-def predict_from_array(model,values):
-	prediction = model.predict(values)
-	return prediction
-
-def pred_from_distro(labels,distro):
-    pred=int(np.argmax(distro))
-    label=labels[pred]
-    return label
-
-def pred_gesture(prediction,toggle_print):
-
-    if isinstance(prediction,int):
-        if prediction == 2: #typically 0
-            gesture='open'
-        elif prediction == 1:
-            gesture='neutral'
-        elif prediction == 0: #typically 2
-            gesture='close'
-    else:
-        gesture=prediction
-
-    '''
-    if prediction == 0:
-        gesture='open'
-    elif prediction == 1:
-        gesture='neutral'
-    elif prediction == 2:
-        gesture='close'
-    '''
-        
-    if toggle_print:
-        print(time.time())
-        print(gesture)
-        print('-------------')
-
-    return gesture   
+    return current_slice,current_pred,current_distro 

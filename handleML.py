@@ -19,6 +19,7 @@ from sklearn.metrics import accuracy_score
 import pickle
 from tkinter import Tk
 from tkinter.filedialog import askopenfilename, askopenfilenames, askdirectory, asksaveasfilename
+import time
 
 def eval_acc(results,state):
     count=results.count(state)
@@ -30,6 +31,12 @@ def eval_fusion(mode1,mode2,fusion,state):
     acc2=eval_acc(mode2,state)
     accF=eval_acc(fusion,state)
     return [acc1,acc2,accF]
+
+def eval_multi(results,state):
+    acc=[]
+    for result in results:
+        acc.append(eval_acc(result,state))
+    return acc
 
 def load_model(name,path):
     title='select saved model for '+name
@@ -82,6 +89,47 @@ def train_model(model,data):
     results=model.predict(test1)
     acc=accuracy_score(targetstest,results)
     return model, acc
+
+def prob_dist(model,values):
+    distro = model.predict_proba(values)
+    return distro
+
+def predict_from_array(model,values):
+	prediction = model.predict(values)
+	return prediction
+
+def pred_from_distro(labels,distro):
+    pred=int(np.argmax(distro))
+    label=labels[pred]
+    return label
+
+def pred_gesture(prediction,toggle_print):
+
+    if isinstance(prediction,int):
+        if prediction == 2: #typically 0
+            gesture='open'
+        elif prediction == 1:
+            gesture='neutral'
+        elif prediction == 0: #typically 2
+            gesture='close'
+    else:
+        gesture=prediction
+
+    '''
+    if prediction == 0:
+        gesture='open'
+    elif prediction == 1:
+        gesture='neutral'
+    elif prediction == 2:
+        gesture='close'
+    '''
+        
+    if toggle_print:
+        print(time.time())
+        print(gesture)
+        print('-------------')
+
+    return gesture  
 
 def classify_instance(frame,model):
     prediction=frame

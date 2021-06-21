@@ -15,6 +15,9 @@ import matplotlib.pyplot as plt
 import csv
 import sklearn as skl
 from sklearn.naive_bayes import GaussianNB
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.model_selection import cross_val_score
+from sklearn.model_selection import RepeatedStratifiedKFold
 from sklearn.metrics import accuracy_score
 import pickle
 from tkinter import Tk
@@ -54,17 +57,18 @@ def matrix_from_csv_file(file):
 	#print ('HDR', (headers.shape))
     return matrix, headers
 
-def train_offline():
+def train_offline(modeltype='gaussNB'):
     path=os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
     title='select training dataset'
     Tk().withdraw()
     train_set=askopenfilename(initialdir=path,title=title,filetypes = (("csv files","*.csv"),("all files","*.*")))
     title_sav='location for trained model'
     modeldest=askdirectory(initialdir=path,title=title_sav)
-    modeltype='gaussNB'
     modelname=modeldest+'/'+os.path.basename(train_set)[:-4]+'_'+modeltype+'.sav'
     if modeltype=='gaussNB':
         train_nb(train_set,modelname)
+    elif modeltype=='RF':
+        train_rf(train_set,modelname)
 
 def train_nb(train_dat,model_path):
     data=matrix_from_csv_file(train_dat)[0]
@@ -75,6 +79,27 @@ def train_nb(train_dat,model_path):
         pickle.dump(naivb,savepath)
     return
 
+def train_rf(train_dat,model_path):
+    data=matrix_from_csv_file(train_dat)[0]
+    randfs = dict()
+	# define number of trees to consider
+    n_trees = [10, 50, 100, 500, 1000]
+    results=[]
+    randfs=[]
+    for n in n_trees:
+        randf = RandomForestClassifier(n_estimators=n)
+        randf,acc=train_model(randf,data)
+        print('# trees: ',n,'\naccuracy: ',acc)
+        randfs.append(randf)
+        results.append(acc)
+    winInd=np.argmax(results)
+    winner=randf[winInd]
+    model_path=model_path[:-4]+'_'+str(n_trees[winInd])+'trees.sav'
+    with open(model_path,'wb') as savepath:
+        pickle.dump(winner,savepath)
+    return
+    
+    
 def train_model(model,data):
     train=data[:,:-1]
     targets=data[:,-1]
@@ -92,6 +117,7 @@ def train_model(model,data):
 
 def prob_dist(model,values):
     distro = model.predict_proba(values)
+    distro[distro==0]=0.00001
     return distro
 
 def predict_from_array(model,values):

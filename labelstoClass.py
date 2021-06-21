@@ -37,6 +37,15 @@ def numtoClass(input_file, output_file):
             elif x==2:
                 Class.append('Close') #Close
                 writerow.append('Close')
+            elif x==3:
+                Class.append('Grasp')
+                writerow.append('Grasp')
+            elif x==4:
+                Class.append('Lateral')
+                writerow.append('Lateral')
+            elif x==5:
+                Class.append('Tripod')
+                writerow.append('Tripod')
             else:
                 Class.append('Undefined')
             writerow=tuple(writerow)

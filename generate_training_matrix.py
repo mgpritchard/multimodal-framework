@@ -65,6 +65,12 @@ def gen_training_matrix(directory_path, output_file, cols_to_ignore, singleFrame
             state = 1.
         elif state.lower() == 'close':
             state = 2.
+        elif state.lower() == 'grasp':
+            state = 3.
+        elif state.lower() == 'lateral':
+            state = 4.
+        elif state.lower() == 'tripod':
+            state = 5.
         else:
             print ('Wrong file name', x)
             print(state.lower())
@@ -83,7 +89,8 @@ def gen_training_matrix(directory_path, output_file, cols_to_ignore, singleFrame
         else:
             vectors, header = generate_feature_vectors_from_samples_single(file_path = full_file_path, 
                                                                 nsamples = 150, 
-                                                                period = 1,
+                                                                #period = 1,
+                                                                period=1000,
                                                                 state = state,
                                                                 remove_redundant = False,
                                                                 cols_to_ignore = cols_to_ignore)

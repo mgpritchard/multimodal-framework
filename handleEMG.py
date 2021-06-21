@@ -16,7 +16,211 @@ import csv
 from myo_live import *
 from handleML import *
 from handleOffline import get_feats
+from handleFusion import *
 import time
+
+def pyoc_dupe_JS(model_mode1,model_mode2):
+
+    m = MyoRaw(sys.argv[1] if len(sys.argv) >= 2 else None)
+
+    def proc_emg(emg, moving, times=[]):
+        ## print framerate of received data
+        times.append(time.time())
+        if len(times) > 20:
+            #print((len(times) - 1) / (times[-1] - times[0]))
+            times.pop(0)
+                 
+    global currentemg
+    currentemg=np.zeros((1,8),dtype=int)
+    global emgarr
+    emgarr=np.zeros((1,8),dtype=int)
+    
+    m.add_emg_handler(proc_emg)
+    m.connect()
+
+    period=1
+    loud=0
+    classlabels=model_mode1.classes_
+    mode1arr=[]
+    mode2arr=[]
+    fusionarr=[]
+    try:
+        tstart=time.time()
+        setUpDone=False
+        while 1:
+            currentemg=m.run_report(1)
+            if currentemg is not None:
+                if loud:
+                    print(currentemg)
+                temparr=np.array(list(currentemg))
+            else:
+                continue
+            emgarr=np.concatenate((emgarr,temparr),axis=0)
+
+            if time.time()-tstart >= (period/2):
+                if loud:
+                    print('start: ',tstart,'\nend: ',time.time(),'\nperiod: ',period)                                                         
+                #values=get_feats(emgarr)
+                #values_1=get_feats(emgarr[:,:4])
+                #values_2=get_feats(emgarr[:,4:])
+                values_1=get_feats(emgarr)
+                values_2=get_feats(emgarr)
+                emgarr=[emgarr[-(int(len(emgarr)/2))]]
+                
+                distro1= prob_dist(model_mode1,values_1)
+                distro2= prob_dist(model_mode2,values_2)
+                mode1arr.append(distro1)
+                mode2arr.append(distro2)
+                gesture1=pred_from_distro(classlabels, distro1)
+                gesture2=pred_from_distro(classlabels, distro2)
+                
+                print(time.time(),'\n','Mode 1: ',gesture1,'\n','Mode 2: ',gesture2)
+                 
+                if setUpDone==False:
+                    mean_distro=fuse_mean(distro1,distro2)
+                    fusionarr.append(mean_distro)
+                    gesture_mean=pred_from_distro(classlabels,mean_distro)
+                    print(time.time(),'\n','Mean: ',gesture_mean)
+                   
+                    if len(mode1arr)>=10:
+                        wjs1,wjs2=get_initial_js(np.stack(mode1arr,axis=1)[0], np.stack(mode2arr,axis=1)[0])
+                        js_distro=fusionarr[-1]
+                        setUpDone=True
+                        
+                elif setUpDone==True:
+                    js_distro=fuse_js_single(distro1,distro2,wjs1,wjs2,js_distro,loud)
+                    fusionarr.append(js_distro)
+                    gesture_js=pred_from_distro(classlabels,js_distro)
+                    print(time.time(),'\n','JS: ',gesture_js)
+                    
+                    if len(mode1arr)%10==0:
+                        wjs1,wjs2=get_initial_js(np.stack(mode1arr,axis=1)[0], np.stack(mode2arr,axis=1)[0],loud)
+                        js_distro=fusionarr[-1]
+                        
+                print('-------------')
+                tstart=time.time()
+                 
+    except KeyboardInterrupt:
+        m.disconnect()
+        return mode1arr,mode2arr,fusionarr
+        pass
+    finally:
+        print()
+
+def pyoc_split_JS(model_mode1,model_mode2):
+
+    m = MyoRaw(sys.argv[1] if len(sys.argv) >= 2 else None)
+
+    def proc_emg(emg, moving, times=[]):
+        ## print framerate of received data
+        times.append(time.time())
+        if len(times) > 20:
+            #print((len(times) - 1) / (times[-1] - times[0]))
+            times.pop(0)
+                 
+    global currentemg
+    currentemg=np.zeros((1,8),dtype=int)
+    global emgarr
+    emgarr=np.zeros((1,8),dtype=int)
+    
+    m.add_emg_handler(proc_emg)
+    m.connect()
+
+    try:
+        tstart=time.time()
+        period=1
+        loud=0
+        classlabels=model_mode1.classes_
+        mode1arr=[]
+        mode2arr=[]
+        fusionarr=[]
+        mainloop=False
+        while mainloop==False:
+            currentemg=m.run_report(1)
+            if currentemg is not None:
+                if loud:
+                    print(currentemg)
+                temparr=np.array(list(currentemg))
+            else:
+                continue
+            emgarr=np.concatenate((emgarr,temparr),axis=0)
+
+            #if len(emgarr)==150:
+            if time.time()-tstart >= (period/2):
+                print('start: ',tstart,'\nend: ',time.time(),'\nperiod: ',period)                                                         
+ 
+                #values=get_feats(emgarr)
+                values_1=get_feats(emgarr[:,:4])
+                values_2=get_feats(emgarr[:,4:])
+                #emgarr=[emgarr[-1]]
+                emgarr=[emgarr[-(int(len(emgarr)/2))]]
+                
+                distro1= prob_dist(model_mode1,values_1)
+                distro2= prob_dist(model_mode2,values_2)
+                mode1arr.append(distro1)
+                mode2arr.append(distro2)
+                mean_distro=fuse_mean(distro1,distro2)
+                fusionarr.append(mean_distro)
+                gesture1=pred_from_distro(classlabels, distro1)
+                gesture2=pred_from_distro(classlabels, distro2)
+                gesture_mean=pred_from_distro(classlabels,mean_distro)
+                
+                print(time.time(),'\n','Mode 1: ',gesture1,'\n','Mode 2: ',gesture2)
+                print('Mean: ',gesture_mean)#,'\n-------------')
+                print('-------------')
+                
+                if len(mode1arr)>=10:
+                    wjs1,wjs2=get_initial_js(np.stack(mode1arr,axis=1)[0], np.stack(mode2arr,axis=1)[0])
+                    js_distro=fusionarr[-1]
+                    mainloop=True
+        
+                tstart=time.time()
+                
+        while mainloop==True:
+            currentemg=m.run_report(1)
+            if currentemg is not None:
+                if loud:
+                    print(currentemg)
+                temparr=np.array(list(currentemg))
+            else:
+                continue
+            emgarr=np.concatenate((emgarr,temparr),axis=0)
+            
+            if time.time()-tstart >= (period/2):
+                print('start: ',tstart,'\nend: ',time.time(),'\nperiod: ',period)                                                         
+ 
+                #values=get_feats(emgarr)
+                values_1=get_feats(emgarr[:,:4])
+                values_2=get_feats(emgarr[:,4:])
+                #emgarr=[emgarr[-1]]
+                emgarr=[emgarr[-(int(len(emgarr)/2))]]
+                
+                distro1= prob_dist(model_mode1,values_1)
+                distro2= prob_dist(model_mode2,values_2)
+                mode1arr.append(distro1)
+                mode2arr.append(distro2)
+                js_distro=fuse_js_single(distro1,distro2,wjs1,wjs2,js_distro)
+                fusionarr.append(js_distro)
+                gesture1=pred_from_distro(classlabels, distro1)
+                gesture2=pred_from_distro(classlabels, distro2)
+                gesture_js=pred_from_distro(classlabels,js_distro)
+                
+                print(time.time(),'\n','Mode 1: ',gesture1,'\n','Mode 2: ',gesture2)
+                print('JS: ',gesture_js)#,'\n-------------')
+                print('-------------')
+                
+                if len(mode1arr)%10==0:
+                    wjs1,wjs2=get_initial_js(np.stack(mode1arr,axis=1)[0], np.stack(mode2arr,axis=1)[0])
+                    js_distro=fusionarr[-1]
+                    mainloop=True
+        
+                tstart=time.time()            
+ 
+    except KeyboardInterrupt:
+        m.disconnect()
+        pass
+    finally:
+        print()
 
 def pyoc_run_split(model_mode1,model_mode2):
 

@@ -35,7 +35,7 @@ def fuse_linweight(mode1,mode2,weight1,weight2):
     weighted_1=(mode1*weight1)/total_weight
     weighted_2=(mode2*weight2)/total_weight
     fused=weighted_1+weighted_2
-    return fused
+    return np.asarray(fused)
 
 def fuse_mean(mode1,mode2):
     mean=fuse_linweight(mode1,mode2,50,50)
@@ -71,11 +71,12 @@ def fuse_js_single(mode1,mode2,w1,w2,prior,loud=0):
         print('fus dist: ',np.around(fused,3))
     #temporal: it's needed to absorb transitions
     ind = np.argmax(fused);
-    if (fused[0,ind] > 0.99):
+    if (fused[0,ind] > 0.999):
         _,c = np.shape(mode1);
-        fused = [0.01/(c-1)]*c;
-        fused[ind] = 0.99;
-    return fused
+        fused = [0.001/(c-1)]*c;
+        fused[ind] = 0.999;
+    width=prior.shape[1]
+    return np.reshape(np.asarray(fused),(1,width))
 
 def fuse_js_loop(mode1,mode2,w1,w2):
     fusion = [];
@@ -88,12 +89,27 @@ def fuse_js_loop(mode1,mode2,w1,w2):
         i+=1
     return fusion
 
+def calc_entropy(probs):
+    probs=np.asarray(probs)
+    probsq=np.square(probs[probs!=0])
+    ents=probsq*np.log(probsq)
+    entrop=-sum(ents)
+    return entrop
+#signal entropy as per the matlab shannon wavelet entropy implementation:
+#https://uk.mathworks.com/help/wavelet/ref/wentropy.html#mw_de3a1d48-6b30-49dd-95d1-1e9a01414d75   
+#see also:
+#https://raphaelvallat.com/entropy/build/html/_modules/entropy/entropy.html
+
 def get_initial_js(mode1,mode2,loud=0):
     ind_train1 = np.argmax(mode1.sum(axis=0))
     ind_train2 = np.argmax(mode2.sum(axis=0))
     # Learning the uncertainty: compute the entropy given the training
-    hmode1 = sp.stats.entropy(mode1[:,ind_train1])
-    hmode2 = sp.stats.entropy(mode2[:,ind_train2])
+    #hmode1_old = sp.stats.entropy(mode1[:,ind_train1])
+    #hmode2_old = sp.stats.entropy(mode2[:,ind_train2])
+    hmode1 = calc_entropy(mode1[:,ind_train1])
+    hmode2 = calc_entropy(mode2[:,ind_train2])
+    #print('scipy: ',hmode1_old,'\nmatlab: ',hmode1)
+    #print('scipy: ',hmode2_old,'\nmatlab: ',hmode2)
     htot = hmode1+hmode2;
     # weights: normalization/distribution of entropy values
     w1 = 1 - (hmode1 / htot);

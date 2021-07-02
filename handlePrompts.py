@@ -60,3 +60,79 @@ def display_setup(gestlist):
     figwin.update()
     time.sleep(1)
     return figwin
+
+def display_predictions_setup():
+    predwin=Tk()
+    predwin.title('Predicted gesture')
+    width=225*2
+    height=175*2
+    predwin.canvas=Canvas(predwin,width=width,height=height)
+    predwin.canvas.pack()
+    startfile = "/home/michael/Documents/Aston/MultimodalFW/prompts/space.jpg"
+    startimg=ImageTk.PhotoImage(Image.open(startfile),master=predwin.canvas)
+    predwin.img1=predwin.canvas.create_image(20,20,anchor=NW,image=startimg)
+    predwin.w1=predwin.canvas.create_text(20,int(height/2),anchor=NW,text="No weight yet")
+    predwin.img2=predwin.canvas.create_image(width-20,20,anchor=NE,image=startimg)
+    predwin.w2=predwin.canvas.create_text(width-20,int(height/2),anchor=NE,text="No weight yet")
+    predwin.imgfusion=predwin.canvas.create_image(int(width/2),height-20,anchor=S,image=startimg)
+    predwin.update_idletasks()
+    predwin.update()
+    time.sleep(1)
+    return predwin
+
+def fetch_img(gesture):
+    imgsource="/home/michael/Documents/Aston/MultimodalFW/prompts/"
+    if gesture=='neutral':
+        gesture='space'
+    if gesture.lower() in ['open','close','space']:
+        ext='.jpg'
+    elif gesture.lower() in ['grasp','lateral','tripod']:
+        ext='.png'
+    else:
+        gesture='space';ext='.jpg'
+    file=imgsource+gesture.lower()+ext
+    return file
+
+def display_predictions(predwin,gesture1,gesture2,gesturef):
+    predwin.title('Predicted gesture:'+gesturef)
+    file1=fetch_img(gesture1)
+    file2=fetch_img(gesture2)
+    filef=fetch_img(gesturef)
+    img1=ImageTk.PhotoImage(Image.open(file1),master=predwin.canvas)
+    img2=ImageTk.PhotoImage(Image.open(file2),master=predwin.canvas)
+    imgf=ImageTk.PhotoImage(Image.open(filef),master=predwin.canvas)
+    predwin.canvas.itemconfig(predwin.img1, image=img1)
+    predwin.canvas.itemconfig(predwin.img2, image=img2)
+    predwin.canvas.itemconfig(predwin.imgfusion, image=imgf)
+    predwin.update_idletasks()
+    predwin.update()
+
+def display_preds_and_weights(predwin,gesture1,gesture2,gesturef,w1,w2):
+    predwin.title('Predicted gesture:'+gesturef)
+    file1=fetch_img(gesture1)
+    file2=fetch_img(gesture2)
+    filef=fetch_img(gesturef)
+    img1=ImageTk.PhotoImage(Image.open(file1),master=predwin.canvas)
+    img2=ImageTk.PhotoImage(Image.open(file2),master=predwin.canvas)
+    imgf=ImageTk.PhotoImage(Image.open(filef),master=predwin.canvas)
+    predwin.canvas.itemconfig(predwin.img1, image=img1)
+    predwin.canvas.itemconfig(predwin.img2, image=img2)
+    predwin.canvas.itemconfig(predwin.imgfusion, image=imgf)
+    label1="Weight for mode 1: "+format(w1,'.3f')
+    label2="Weight for mode 2: "+format(w2,'.3f')
+    predwin.canvas.itemconfig(predwin.w1,text=label1)
+    predwin.canvas.itemconfig(predwin.w2,text=label2)
+    predwin.update_idletasks()
+    predwin.update()
+    
+def display_weights(predwin,w1,w2):
+    label1="Weight for mode 1: "+format(w1,'.3f')
+    label2="Weight for mode 2: "+format(w2,'.3f')
+    predwin.canvas.itemconfig(predwin.w1,text=label1)
+    predwin.canvas.itemconfig(predwin.w2,text=label2)
+    img1=predwin.canvas.itemcget(predwin.img1,"image")
+    predwin.canvas.itemconfig(predwin.img1,image=img1.filename)
+    predwin.canvas.itemconfig(predwin.img2)
+    predwin.canvas.itemconfig(predwin.imgfusion)
+    predwin.update_idletasks()
+    predwin.update()

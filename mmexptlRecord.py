@@ -65,7 +65,13 @@ def record_exptl(pptid,path,duration,numreps,resttime):
     count=0
     for gesture in gestlist:
         count+=1
+        duration=random.randint(400,500)/100
+        resttime=random.randint(1000,1200)/100
         show_and_record(gesture,pptid,path,duration,figwin,gestlist,count,boardEEG)
+        '''tstart=time.time()      #swap out with above if testing timing
+        tend=tstart+duration
+        print('start: ',tstart,'\n end: ',tend)
+        time.sleep(duration)'''
         display_prompt(figwin,rest,gestlist,count)
         time.sleep(resttime)
     figwin.destroy()

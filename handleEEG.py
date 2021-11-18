@@ -72,6 +72,16 @@ def setup_bf(mode="synth"):
     board.prepare_session()
     return board
 
+def kill_bf(mode="synth"):
+    BoardShim.enable_dev_board_logger()
+    if mode=="unicorn":
+        board_id=8
+    else:
+        board_id=-1
+    params = BrainFlowInputParams()
+    board=BoardShim(board_id,params)
+    board.release_session()
+
 def save_EEG(dataEEG,path,gesture,pptid):
     filename=path+'/'+pptid+'-'+gesture.label+'-'+str(gesture.rep)+'-'+'_EEG.csv'
     #pd.DataFrame(np.transpose(dataEEG)).to_csv(filename,header=None,index=None)

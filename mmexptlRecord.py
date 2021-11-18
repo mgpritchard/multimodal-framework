@@ -54,36 +54,40 @@ def show_and_record(gesture,pptid,path,duration,figwin,gestlist,count,boardEEG):
 
 
 def record_exptl(pptid,path,duration,numreps,resttime):
-    boardEEG=setup_bf()
-    gestlist=[]
-    gests=setup_default_gests()
-    rest = Gesture("rest","/home/michael/Documents/Aston/MultimodalFW/prompts/space.jpg")
-    for gest in gests:
-        gestlist.extend(gest for i in range(numreps))
-    random.shuffle(gestlist)
-    figwin=display_setup(gestlist)
-    count=0
-    for gesture in gestlist:
-        count+=1
-        duration=random.randint(400,500)/100
-        resttime=random.randint(1000,1200)/100
-        try:
+    try:
+        boardEEG=setup_bf()
+    except Exception:
+        kill_bf()
+        boardEEG=setup_bf()
+        
+    try:
+        gestlist=[]
+        gests=setup_default_gests()
+        rest = Gesture("rest","/home/michael/Documents/Aston/MultimodalFW/prompts/space.jpg")
+        for gest in gests:
+            gestlist.extend(gest for i in range(numreps))
+        random.shuffle(gestlist)
+        figwin=display_setup(gestlist)
+        count=0
+        for gesture in gestlist:
+            count+=1
+            duration=random.randint(400,500)/100
+            resttime=random.randint(1000,1200)/100
             show_and_record(gesture,pptid,path,duration,figwin,gestlist,count,boardEEG)
-        except Exception as e:
-            boardEEG.release_session()
-            figwin.destroy()
-            print(e)
-            break
-        else:
             '''tstart=time.time()      #swap out with above if testing timing
             tend=tstart+duration
             print('start: ',tstart,'\n end: ',tend)
             time.sleep(duration)'''
             display_prompt(figwin,rest,gestlist,count)
             time.sleep(resttime)
-    figwin.destroy()
-    boardEEG.release_session()  #NEEDS TO REACH TO AVOID KERNEL RESTART!
-    print('All done! Thanks for your contribution')
+    except Exception as e:
+        boardEEG.release_session()
+        figwin.destroy()
+        print(e)
+    else:
+        figwin.destroy()
+        boardEEG.release_session()  #NEEDS TO REACH TO AVOID KERNEL RESTART!
+        print('All done! Thanks for your contribution')
     
 
 def quickplot(data,label):

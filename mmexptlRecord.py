@@ -67,15 +67,22 @@ def record_exptl(pptid,path,duration,numreps,resttime):
         count+=1
         duration=random.randint(400,500)/100
         resttime=random.randint(1000,1200)/100
-        show_and_record(gesture,pptid,path,duration,figwin,gestlist,count,boardEEG)
-        '''tstart=time.time()      #swap out with above if testing timing
-        tend=tstart+duration
-        print('start: ',tstart,'\n end: ',tend)
-        time.sleep(duration)'''
-        display_prompt(figwin,rest,gestlist,count)
-        time.sleep(resttime)
+        try:
+            show_and_record(gesture,pptid,path,duration,figwin,gestlist,count,boardEEG)
+        except Exception as e:
+            boardEEG.release_session()
+            figwin.destroy()
+            print(e)
+            break
+        else:
+            '''tstart=time.time()      #swap out with above if testing timing
+            tend=tstart+duration
+            print('start: ',tstart,'\n end: ',tend)
+            time.sleep(duration)'''
+            display_prompt(figwin,rest,gestlist,count)
+            time.sleep(resttime)
     figwin.destroy()
-    boardEEG.release_session()
+    boardEEG.release_session()  #NEEDS TO REACH TO AVOID KERNEL RESTART!
     print('All done! Thanks for your contribution')
     
 

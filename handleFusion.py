@@ -228,3 +228,10 @@ def js_div_w(trainmod1, trainmod2, testmod1, testmod2):
  #   try_some
   #  pick_best_strat
     #report strat to top level and then call this again after a while??
+  
+if __name__=='__main__':
+    if 1:
+        mode1=np.asarray([[0.25, 0.25, 0.5],[0.2, 0.2, 0.6],[0, 0.3, 0.7],[0.1, 0.5, 0.4]])
+        mode2=np.asarray([[0.2, 0.35, 0.45],[0.2, 0.2, 0.6],[0, 0.45, 0.55],[0.1, 0.5, 0.4]])
+        #w1,w2=get_initial_js(mode1, mode2,1)
+        w1,w2=get_w_autocorr(mode1, mode2)

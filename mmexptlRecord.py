@@ -29,7 +29,7 @@ from handlePrompts import *
 import pickle
 import random
 import brainflow
-
+import traceback
 
 def record_gesture(path,gesture,duration,pptid,rep):
     pyoc_record_fixed_time(path, duration)
@@ -84,6 +84,7 @@ def record_exptl(pptid,path,duration,numreps,resttime):
         boardEEG.release_session()
         figwin.destroy()
         print(e)
+        print(traceback.format_exc())
     else:
         figwin.destroy()
         boardEEG.release_session()  #NEEDS TO REACH TO AVOID KERNEL RESTART!

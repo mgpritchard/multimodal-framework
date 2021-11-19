@@ -39,10 +39,12 @@ def fuse_conf(mode1,mode2):
     return fused
 
 def fuse_linweight(mode1,mode2,weight1,weight2):
-    total_weight=weight1+weight2
-    weighted_1=(mode1*weight1)/total_weight
-    weighted_2=(mode2*weight2)/total_weight
-    fused=weighted_1+weighted_2
+    #total_weight=weight1+weight2
+    #weighted_1=(mode1*weight1)/total_weight
+    #weighted_2=(mode2*weight2)/total_weight
+    #fused=weighted_1+weighted_2
+    weight1,weight2=normalise_weights(weight1, weight2)
+    fused=(mode1*weight1)+(mode2*weight2)
     return np.asarray(fused)
 
 def fuse_mean(mode1,mode2):
@@ -56,18 +58,11 @@ def fuse_js_offline(mode1,mode2):
     prior=fuse_linweight(mode1,mode2,wjs1,wjs2)
     fused.append(prior)
     for instance in range(len(mode1)):
-        fusedinstance,wjs1,wjs2=fuse_js_single(mode1,mode2,wjs1,wjs2,prior)
+        fusedinstance,wjs1,wjs2=fuse_single(mode1,mode2,wjs1,wjs2,prior)
         fused.append(fusedinstance)
     return fused
     
-def incorporate_prior(fused,prior):
-    read_the_matlab="please"
-    return fused
-
-def update_weights(w1,w2,fused):
-    return w1,w2
-    
-def fuse_js_single(mode1,mode2,w1,w2,prior,loud=0):
+def fuse_single(mode1,mode2,w1,w2,prior,loud=0):
     fused=prior*((mode1*w1) + (mode2*w2))
     #following line is uncommented for non-temporal
     #fusion(i,:) =  ( testmod1(i,:).*js_w1 ) + ( testmod2(i,:).*js_w2 );
@@ -76,7 +71,7 @@ def fuse_js_single(mode1,mode2,w1,w2,prior,loud=0):
         print('m1 dist: ',np.around(mode1,3))
         print('m2 dist: ',np.around(mode2,3))
         print('prior dist: ',np.around(prior,3))
-        print('fus dist: ',np.around(fused,3))
+        print('fused dist: ',np.around(fused,3))
     #temporal: it's needed to absorb transitions
     ind = np.argmax(fused);
     if (fused[0,ind] > 0.999):
@@ -85,6 +80,9 @@ def fuse_js_single(mode1,mode2,w1,w2,prior,loud=0):
         fused[ind] = 0.999;
     width=prior.shape[1]
     return np.reshape(np.asarray(fused),(1,width))
+    '''if (fused[0,ind] == 1):
+        fused[0,ind]=0.99999
+    return fused'''
 
 def fuse_js_loop(mode1,mode2,w1,w2):
     fusion = [];
@@ -92,7 +90,7 @@ def fuse_js_loop(mode1,mode2,w1,w2):
     prior=[1/3]*c;
     i=1
     while i<=r:
-        prior = fuse_js_single(mode1[i,:],mode2[i,:],w1,w2,prior)
+        prior = fuse_single(mode1[i,:],mode2[i,:],w1,w2,prior)
         fusion.append(prior)
         i+=1
     return fusion
@@ -100,7 +98,7 @@ def fuse_js_loop(mode1,mode2,w1,w2):
 def calc_entropy(probs):
     probs=np.asarray(probs)
     probsq=np.square(probs[probs!=0])
-    ents=probsq*np.log(probsq)
+    ents=probsq[probsq!=0]*np.log(probsq[probsq!=0])
     entrop=-sum(ents)
     return entrop
 #signal entropy as per the matlab shannon wavelet entropy implementation:

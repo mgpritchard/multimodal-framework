@@ -879,6 +879,8 @@ def generate_feature_vectors_from_samples_single(file_path, nsamples, period,
          #   previous_vector = previous_vector[:-1] 
 
     feat_names = headers#["lag1_" + s for s in headers[:-1]] + headers
+    '''catch UboundLocalError headers referenced before assignment and
+    skip that emg file?'''
     
     if remove_redundant:
         # Remove redundant lag window features

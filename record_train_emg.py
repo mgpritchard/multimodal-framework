@@ -74,8 +74,9 @@ def quickplot(data,label):
 
 if __name__ == '__main__':
     
-    recording=0
+    recording=1
     genset=0
+    train=0
     if recording:
     
         pptid=input('particpant id: ')
@@ -92,5 +93,5 @@ if __name__ == '__main__':
         record_exptl(pptid,path,duration,numreps,resttime)
     elif genset:
         gen_train_set()
-    else:
-        train_offline('gaussNB')
+    elif train:
+        train_offline('LDA')

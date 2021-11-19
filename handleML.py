@@ -16,6 +16,7 @@ import csv
 import sklearn as skl
 from sklearn.naive_bayes import GaussianNB
 from sklearn.ensemble import RandomForestClassifier
+from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
 from sklearn.model_selection import cross_val_score
 from sklearn.model_selection import RepeatedStratifiedKFold
 from sklearn.metrics import accuracy_score
@@ -23,6 +24,8 @@ import pickle
 from tkinter import Tk
 from tkinter.filedialog import askopenfilename, askopenfilenames, askdirectory, asksaveasfilename
 import time
+'''look into adding logistic regression classifier?
+https://scikit-learn.org/stable/modules/generated/sklearn.linear_model.LogisticRegression.html'''
 
 def eval_acc(results,state):
     count=results.count(state)
@@ -69,6 +72,8 @@ def train_offline(modeltype='gaussNB'):
         train_nb(train_set,modelname)
     elif modeltype=='RF':
         train_rf(train_set,modelname)
+    elif modeltype=='LDA':
+        train_lda(train_set,modelname)
 
 def train_nb(train_dat,model_path):
     data=matrix_from_csv_file(train_dat)[0]
@@ -98,7 +103,15 @@ def train_rf(train_dat,model_path):
     with open(model_path,'wb') as savepath:
         pickle.dump(winner,savepath)
     return
-    
+
+def train_lda(train_dat,model_path):
+    data=matrix_from_csv_file(train_dat)[0]
+    lda=LinearDiscriminantAnalysis()
+    lda,acc=train_model(lda,data)
+    print('accuracy: ',acc)
+    with open(model_path,'wb') as savepath:
+        pickle.dump(lda,savepath)
+    return
     
 def train_model(model,data):
     train=data[:,:-1]
@@ -113,12 +126,15 @@ def train_model(model,data):
     model.fit(traindat,targetsdat)
     results=model.predict(test1)
     acc=accuracy_score(targetstest,results)
+    model.fit(train.astype(np.float64),targets)
     return model, acc
 
 def prob_dist(model,values):
     distro = model.predict_proba(values)
     distro[distro==0]=0.00001
     return distro
+#https://github.com/scikit-learn-contrib/forest-confidence-interval#readme
+#for RF prediction? maybe even get conf val for all models?
 
 def predict_from_array(model,values):
 	prediction = model.predict(values)

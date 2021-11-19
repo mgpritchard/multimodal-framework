@@ -21,13 +21,21 @@ def normalise_weights(w1,w2):
     w2 = w2 / wtot
     return w1,w2
 
+def fuse_max(mode1,mode2):
+    if max(mode1)>=max(mode2):
+        fused=mode1
+    else:
+        fused=max(mode2)
+    return fused
+
 def fuse_conf(mode1,mode2):
     fused=[]
     for instance in range(len(mode1)):
-        if max(mode1[instance,:])>max(mode2[instance,:]):
+        '''if max(mode1[instance,:])>max(mode2[instance,:]):
             fused.append(mode1)
         else:
-            fused.append(mode2)
+            fused.append(mode2)'''
+        fused.append(fuse_max(mode1[instance,:],mode2[instance,:]))
     return fused
 
 def fuse_linweight(mode1,mode2,weight1,weight2):

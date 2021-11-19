@@ -24,6 +24,7 @@ from handleML import *
 from handleOffline import *
 from handleFusion import *
 import pickle
+import plot_dists as proto_plot
 
 def liveclassify():
     threadEMG=Thread(target=handleEMG.read_emg(),daemon=True)
@@ -38,8 +39,27 @@ def onlineclassify():
     path=os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
     model1=load_model('mode 1',path)
     model2=load_model('mode 2',path)
+    #RF model might be less erratic with conf interval?
+    #https://github.com/scikit-learn-contrib/forest-confidence-interval#readme
+    #seems like it cna help it to get a better prob dist? investigate
+    
     time.sleep(1)
-    pyoc_run_split(model1,model2)
+    mode1arr,mode2arr,fusionarr=pyoc_fuse_emgonly(model1,model2,'dupe',outp='window',limit=105)
+    #mode1arr,mode2arr,fusionarr=pyoc_fuse_adapt_autocorr(model1,model2,'dupe',outp='window',limit=105,autocorr_lag=10)
+    return mode1arr,mode2arr,fusionarr,model1.classes_
+
+    #maybe every x predictions do a full recalibrate. prompt them with
+    #the gestures, measure how accurate the weightings are for *each* gesture
+    #with JS (as it measures stability over time), compute an averaged weight
+    #from the reliability measures of all gestures, update weights accordingly
+    #could even retrain classifiers in background after the calib
+    
+    #as in it goes "emg was very stable over close, and tripod, but wobbled
+    #with open, so it's avg reliabilty is x. meanwhile eeg is unstable on
+    #lateral but very stable on grasp and close, so its avg reliability...
+    
+    #fuck you could theoretically have a neural net continually learnig the
+    #best weighting scheme
 
 def offlineclassify(toggle_report):
     #model_name = 'EMG-GNB-SYNTH-CALIB.sav'  #load GPT2-augmented model
@@ -141,12 +161,22 @@ if __name__ == '__main__':
         #train_offline()
     
     else:
-        #onlineclassify()
+        mode1arr,mode2arr,fusionarr,classlist=onlineclassify()
+        proto_plot.plotdist(fusionarr,classlist)
+        proto_plot.plotdist(mode1arr,classlist)
+        proto_plot.plotdist(mode2arr,classlist)
+        plt.show()
+        
+        '''should start to actually measure accuracy and use ROC extended
+        to multiclass with one-vs-rest as per
+        https://scikit-learn.org/0.15/auto_examples/plot_roc.html'''
+       
         #liveclassify()
+        '''
         path=os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
         model1=load_model('mode 1',path)
         results=pyoc_slicetester(model1)
-        
+        '''
         #class labels might be wrong?
 
     #https://stackoverflow.com/questions/47096507/reducing-the-number-of-arguments-in-function-in-python

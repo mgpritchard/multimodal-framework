@@ -489,9 +489,11 @@ def pyoc_record_fixed_time(path,duration):
     
         except KeyboardInterrupt:
             m.disconnect()
+            print('myo disconnected successfully')
             pass
         finally:
             m.disconnect()
+            print('myo disconnected successfully')
             print()
 
 def rename_latest_emg(path,pptid,gesture,rep):

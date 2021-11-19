@@ -36,16 +36,16 @@ def record_gesture(path,gesture,duration,pptid,rep):
     rename_latest_emg(path, pptid, gesture.label, gesture.rep)
 
 def show_and_record(gesture,pptid,path,duration,figwin,gestlist,count,boardEEG):
-    boardEEG.start_stream()
+    '''boardEEG.start_stream()'''
     time.sleep(1) #ensure eeg is recording before prompt is shown
     display_prompt(figwin,gesture,gestlist,count)
-    boardEEG.insert_marker(1) #marker in eegstream to denote prompt being shown
+    '''boardEEG.insert_marker(1) #marker in eegstream to denote prompt being shown'''
     pyoc_record_fixed_time(path, duration) #emg recording has to start after
             #prompt as it is a blocking method; thread not released until end
     rename_latest_emg(path,pptid,gesture.label,gesture.rep)
-    dataEEG = boardEEG.get_board_data()  # get all data and remove it from internal buffer
+    '''dataEEG = boardEEG.get_board_data()  # get all data and remove it from internal buffer
     boardEEG.stop_stream()
-    save_EEG(dataEEG,path,gesture,pptid)
+    save_EEG(dataEEG,path,gesture,pptid)'''
     gesture.rep+=1
     
     #would be good to rewrite such that recording carries on for x seconds

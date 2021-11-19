@@ -31,12 +31,12 @@ def new_gest():
     return gesture
 
 def setup_default_gests():
-    Close = Gesture("close","/home/michael/Documents/Aston/MultimodalFW/prompts/close.jpg")
-    Open = Gesture("open","/home/michael/Documents/Aston/MultimodalFW/prompts/open.jpg")
-    Neutral = Gesture("neutral","/home/michael/Documents/Aston/MultimodalFW/prompts/space.jpg")
-    Grasp = Gesture("grasp","/home/michael/Documents/Aston/MultimodalFW/prompts/grasp.png")
-    Lateral = Gesture("lateral","/home/michael/Documents/Aston/MultimodalFW/prompts/lateral.png")
-    Tripod = Gesture("tripod","/home/michael/Documents/Aston/MultimodalFW/prompts/tripod.png")
+    Close = Gesture("close","C:/Users/pritcham/Documents/python/mm-prompts/multimodal-prompts/close.jpg")
+    Open = Gesture("open","C:/Users/pritcham/Documents/python/mm-prompts/multimodal-prompts/open.jpg")
+    Neutral = Gesture("neutral","C:/Users/pritcham/Documents/python/mm-prompts/multimodal-prompts/space.jpg")
+    Grasp = Gesture("grasp","C:/Users/pritcham/Documents/python/mm-prompts/multimodal-prompts/grasp.png")
+    Lateral = Gesture("lateral","C:/Users/pritcham/Documents/python/mm-prompts/multimodal-prompts/lateral.png")
+    Tripod = Gesture("tripod","C:/Users/pritcham/Documents/python/mm-prompts/multimodal-prompts/tripod.png")
     return [Close,Open,Neutral,Grasp,Lateral,Tripod]
     
 def display_prompt(figwin,gesture,gestlist,count):
@@ -53,7 +53,7 @@ def display_setup(gestlist):
     figwin.title('Gesture #'+str(0)+' of '+str(len(gestlist)))
     figwin.canvas=Canvas(figwin,width=225,height=175)
     figwin.canvas.pack()
-    startfile = "/home/michael/Documents/Aston/MultimodalFW/prompts/space.jpg"
+    startfile = "C:/Users/pritcham/Documents/python/mm-prompts/multimodal-prompts/space.jpg"
     startimg=ImageTk.PhotoImage(Image.open(startfile),master=figwin.canvas)
     figwin.img=figwin.canvas.create_image(20,20,anchor=NW,image=startimg)
     figwin.update_idletasks()
@@ -68,7 +68,7 @@ def display_predictions_setup():
     height=175*2
     predwin.canvas=Canvas(predwin,width=width,height=height)
     predwin.canvas.pack()
-    startfile = "/home/michael/Documents/Aston/MultimodalFW/prompts/space.jpg"
+    startfile = "C:/Users/pritcham/Documents/python/mm-prompts/multimodal-prompts/space.jpg"
     startimg=ImageTk.PhotoImage(Image.open(startfile),master=predwin.canvas)
     predwin.img1=predwin.canvas.create_image(20,20,anchor=NW,image=startimg)
     predwin.w1=predwin.canvas.create_text(20,int(height/2),anchor=NW,text="No weight yet")
@@ -81,7 +81,7 @@ def display_predictions_setup():
     return predwin
 
 def fetch_img(gesture):
-    imgsource="/home/michael/Documents/Aston/MultimodalFW/prompts/"
+    imgsource="C:/Users/pritcham/Documents/python/mm-prompts/multimodal-prompts"
     if gesture=='neutral':
         gesture='space'
     if gesture.lower() in ['open','close','space']:

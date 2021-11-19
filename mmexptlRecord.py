@@ -63,7 +63,7 @@ def record_exptl(pptid,path,duration,numreps,resttime):
     try:
         gestlist=[]
         gests=setup_default_gests()
-        rest = Gesture("rest","/home/michael/Documents/Aston/MultimodalFW/prompts/space.jpg")
+    rest = Gesture("rest","C:/Users/pritcham/Documents/python/mm-prompts/multimodal-prompts/space.jpg")
         for gest in gests:
             gestlist.extend(gest for i in range(numreps))
         random.shuffle(gestlist)
@@ -79,7 +79,9 @@ def record_exptl(pptid,path,duration,numreps,resttime):
             print('start: ',tstart,'\n end: ',tend)
             time.sleep(duration)'''
             display_prompt(figwin,rest,gestlist,count)
+        print('rest now')
             time.sleep(resttime)
+        print('rested')
     except Exception as e:
         boardEEG.release_session()
         figwin.destroy()

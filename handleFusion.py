@@ -14,6 +14,22 @@ import pandas as pd
 import scipy as sp
 import matplotlib.pyplot as plt
 import csv
+#try divergence BETWEEN the two modes?? how to distribute this across them?
+
+def reward_pattern_match():
+    pass
+    #assess trace of class probability. reward static high or low or
+    #clear binary decisions (i.e. goes high to low and stays there)
+    #essentially measuring goodness of fit of pre-prepped 'pattern' curves
+    #against the data.
+    #could to RMSError or Sum of Sq Errors, all based on residuals
+    #http://www.math.utah.edu/~palais/pcr/spike/Evaluating%20the%20Goodness%20of%20Fit%20--%20Fitting%20Data%20(Curve%20Fitting%20Toolbox)%20copy.html
+    #wold need both rising and falling edge patters but ALSO the same shifted
+    #horizontally as we don't know when in the frame the class has changed
+    #i think we assume that in a one-frame space it won't genuinely change
+    #class twice!
+    #each rising/falling edge is functionally a sigmoid
+
 
 def normalise_weights(w1,w2):
     wtot = w1+w2
@@ -51,7 +67,69 @@ def fuse_mean(mode1,mode2):
     mean=fuse_linweight(mode1,mode2,50,50)
     return mean
 
+def fuse_single_autocorr(mode1,mode2,priorarr,lag):
+    '''selects a lin weighting to maximise autocorreletion of the fused sig'''
+    ind_train1 = np.argmax(mode1.sum(axis=0))
+    ind_train2 = np.argmax(mode2.sum(axis=0))
+    mode1=mode1[:,ind_train1]
+    mode2=mode2[:,ind_train2]
+    weights=np.linspace(0,1,num=110)
+    poss_fuse=[]
+    corrs=[]
+    for i in range(len(weights)):
+        w1=weights[i]
+        w2=1-w1
+        poss_fuse.append(fuse_linweight(mode1,mode2,w1,w2))
+        corrs.append(calc_autocorr(np.append(priorarr,poss_fuse[i]),lag))
+    ind=np.argmax(corrs)
+    opt_fused=poss_fuse[ind]
+    w1_sel=weights[ind]
+    w2_sel=1-w1_sel
+    return w1_sel,w2_sel
 
+def calc_autocorr(probs,k):
+    avg=np.mean(probs)
+    numer=0.0
+    denom=0.0
+    for i in range(len(probs)-k):
+        meandiff=probs[i]-k
+        numer+=meandiff*(probs[i+k]-avg)
+        denom+=(meandiff**2)
+    autocorr=numer/denom
+    return autocorr
+
+def calc_autocorr_lag(probs,lagfactor):
+    autocorrs=[]
+    for i in range(lagfactor):
+        autocorrs.append(abs(calc_autocorr(probs,i+1)))
+    autocorr=sum(autocorrs)/lagfactor
+    return autocorr
+
+def get_w_autocorr(mode1,mode2):
+    lagfactor=2
+    ind_train1 = np.argmax(mode1.sum(axis=0))
+    ind_train2 = np.argmax(mode2.sum(axis=0))
+    autocorr_m1 = calc_autocorr_lag(mode1[:,ind_train1],lagfactor)
+    autocorr_m2 = calc_autocorr_lag(mode2[:,ind_train2],lagfactor)
+    w1=autocorr_m1/(autocorr_m1+autocorr_m2)
+    w2=autocorr_m2/(autocorr_m1+autocorr_m2)
+    print('w1: ',w1)
+    print('w2: ',w2)
+    return w1,w2
+
+def get_weights(mode1,mode2,method,loud=0):
+    if method=='JS':
+        #w1,w2=get_initial_js(mode1,mode2,loud)
+        #trialling alt js strat... sometimes trips nan?
+        w1,w2=get_js_weightedprob(mode1, mode2)
+    elif method=='autocorr' or method == 'autocov':
+        w1,w2=get_w_autocorr(mode1, mode2)
+    else:
+        print('no method chosen, assigning mean')
+        w1=0.5
+        w2=0.5
+    return w1,w2
+    
 def fuse_js_offline(mode1,mode2):
     wjs1,wjs2=get_initial_js(mode1,mode2)
     fused=[]
@@ -155,6 +233,63 @@ def get_initial_js(mode1,mode2,loud=0):
     if np.isnan(wjs2):
         nan_weight_report(2,w1,w2,JS_mod1,JS_mod2)
     return wjs1,wjs2
+
+def get_js_weightedprob(mode1,mode2,loud=0):
+    ind_train1 = np.argmax(mode1.sum(axis=0))
+    ind_train2 = np.argmax(mode2.sum(axis=0))
+    # Learning the uncertainty: compute the entropy given the training
+    #hmode1_old = sp.stats.entropy(mode1[:,ind_train1])
+    #hmode2_old = sp.stats.entropy(mode2[:,ind_train2])
+    hmode1 = calc_entropy(mode1[:,ind_train1])
+    hmode2 = calc_entropy(mode2[:,ind_train2])
+    #print('scipy: ',hmode1_old,'\nmatlab: ',hmode1)
+    #print('scipy: ',hmode2_old,'\nmatlab: ',hmode2)
+    htot = hmode1+hmode2;
+    # weights: normalization/distribution of entropy values
+    w1 = 1 - (hmode1 / htot);
+    w2 = 1 - (hmode2 / htot);
+    w1,w2=normalise_weights(w1,w2)
+    #weight the probs
+    weighted=(mode1*w1)+(mode2*w2)
+    #KL divergence P(y|w) and P(w|y)
+    # modality1
+    KLpyw_m1 = sum(mode1[:,ind_train1]*(mode1[:,ind_train1]/weighted[:,ind_train1]));
+    KLpwy_m1 = sum(weighted[:,ind_train1]*(weighted[:,ind_train1]/mode1[:,ind_train1])); 
+    # modality2
+    KLpyw_m2 = sum(mode2[:,ind_train2]*(mode2[:,ind_train2]/weighted[:,ind_train1]));
+    KLpwy_m2 = sum(weighted[:,ind_train1]*(weighted[:,ind_train1]/mode2[:,ind_train2]));
+    #JS divergence
+    JS_mod1 = (KLpyw_m1 + KLpwy_m1) * 0.5;
+    JS_mod2 = (KLpyw_m2 + KLpwy_m2) * 0.5; 
+    if np.isinf(JS_mod1):
+        JS_mod1=1
+    if np.isinf(JS_mod2):
+        JS_mod2=1
+    # JS weights: normalization
+    #tot = (JS_mod1 + JS_mod2);
+    #wjs1 = JS_mod1 / tot;
+    #wjs2 = JS_mod2 / tot;
+    wjs1,wjs2=normalise_weights(JS_mod1,JS_mod2);
+    #should the above be 1-w, to reward Low divergence rather than High?
+    if loud:
+        print('w1: ',w1)
+        print('w2: ',w2)
+        print('JS_mod1: ',JS_mod1)
+        print('JS_mod2: ',JS_mod2)
+    print('wjs1: ',wjs1)
+    print('wjs2: ',wjs2)
+    if wjs1<0.00001:
+        wjs1=0
+    if wjs2<0.00001:
+        wjs2=0
+    if np.isnan(wjs1):
+        nan_weight_report(1,w1,w2,JS_mod1,JS_mod2)
+    if np.isnan(wjs2):
+        nan_weight_report(2,w1,w2,JS_mod1,JS_mod2)
+    return wjs1,wjs2
+
+#def w_sanity_check(w):
+    
 
 def nan_weight_report(mode,w1,w2,JS_mod1,JS_mod2):
     print('w',mode,' is nan')

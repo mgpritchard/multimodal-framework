@@ -446,6 +446,59 @@ def pyoc_slicetester(model):
     m.disconnect()
     return gesture_array
 
+def pyoc_init():
+    m = MyoRaw(sys.argv[1] if len(sys.argv) >= 2 else None)
+    global currentemg
+    currentemg=np.zeros((1,8),dtype=int)
+    global emgarr
+    emgarr=np.zeros((1,8),dtype=int)
+    return m
+
+def pyoc_record_no_init(path,duration,m):
+    destfile=(path+"/emg_data"+time.strftime("%Y%m%d-%H%M%S")+'.csv')
+    with open(destfile,'w',newline='') as csvfile:
+        emgwriter=csv.writer(csvfile, delimiter=',',quotechar='"',quoting=csv.QUOTE_MINIMAL)
+        
+        tstart=time.time()
+        tend=tstart+duration
+        #print('start: ',tstart,'\n end: ',tend)
+        #last_vals = None
+        #timestamps=[]
+        
+        def proc_emg(emg, moving, times=[]):
+            #print(emg)
+            times.append(time.time())
+            if len(times) > 20:
+                #print((len(times) - 1) / (times[-1] - times[0]))
+                times.pop(0)
+            emgwrite=list(emg)
+            emgwrite.insert(0,(int(round(time.time() * 1000))))
+            emgwrite=tuple(emgwrite)
+            emgwriter.writerow(emgwrite)
+        
+        m.add_emg_handler(proc_emg)
+        m.connect(quiet=True)
+        print('recording...')
+    
+        try:
+            while True:
+                m.run(1)
+                if time.time()>=tend:
+                    #print('now: ',time.time())
+                    print('...recording finished')
+                    raise KeyboardInterrupt()
+    
+        except KeyboardInterrupt:
+            m.disconnect()
+            m.remove_emg_handler(proc_emg)
+            print('myo disconnected successfully')
+            pass
+        finally:
+            m.disconnect()
+            m.remove_emg_handler(proc_emg)
+            print('myo disconnected successfully')
+            print()
+
 def pyoc_record_fixed_time(path,duration):
     destfile=(path+"/emg_data"+time.strftime("%Y%m%d-%H%M%S")+'.csv')
     with open(destfile,'w',newline='') as csvfile:

@@ -19,6 +19,7 @@ if platform =='win32':
     prompt_grasp="C:/Users/pritcham/Documents/python/mm-prompts/multimodal-prompts/grasp.png"
     prompt_lateral="C:/Users/pritcham/Documents/python/mm-prompts/multimodal-prompts/lateral.png"
     prompt_tripod="C:/Users/pritcham/Documents/python/mm-prompts/multimodal-prompts/tripod.png"
+    gen_trainmat_spec_SpellLoc="C:/Users/pritcham/Documents/python/labelstoClass/labelstoClassEMGSpell.py"
 elif platform == 'darwin':
     #mac
     path='macpath'
@@ -32,3 +33,4 @@ elif platform == 'linux' or 'linux32':
     prompt_grasp="/home/michael/Documents/Aston/MultimodalFW/prompts/grasp.png"
     prompt_lateral="/home/michael/Documents/Aston/MultimodalFW/prompts/lateral.png"
     prompt_tripod="/home/michael/Documents/Aston/MultimodalFW/prompts/tripod.png"
+    gen_trainmat_spec_SpellLoc="/home/michael/github/labelstoClass/labelstoClassEMGSpell.py"

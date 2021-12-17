@@ -16,7 +16,7 @@ import os, sys
 import numpy as np
 from live_feature_extraction import generate_feature_vectors_from_samples, generate_feature_vectors_from_samples_single
 import importlib.util
-spec = importlib.util.spec_from_file_location("toClass", "C:/Users/pritcham/Documents/python/labelstoClass/labelstoClassEMGSpell.py")
+spec = importlib.util.spec_from_file_location("toClass", params.gen_trainmat_spec_SpellLoc)
 toClass = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(toClass)
 #foo.MyClass()

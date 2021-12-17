@@ -58,7 +58,9 @@ def show_and_record(gesture,pptid,path,duration,figwin,gestlist,count,boardEEG,m
 def record_exptl(pptid,path,duration,numreps,resttime):
     try:
         boardEEG=setup_bf()
-    except Exception:
+    except Exception as e:
+        print(e)
+        print(traceback.format_exc())
         kill_bf()
         boardEEG=setup_bf()
         
@@ -103,7 +105,6 @@ def quickplot(data,label):
     plt.show()
 
 if __name__ == '__main__':
-    
     pptid=input('particpant id: ')
     startpath=os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
     #myo_connect_setup()

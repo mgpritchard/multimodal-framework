@@ -38,7 +38,9 @@ def main():
     #UNICORN: ID = 8
     #SYNTHETIC: ID = -1
     '''
-    board_id=-1
+    #board_id=-1
+    board_id=8
+    '''TEST THE UNICORN CONNECTION INDEPEDENTLY'''
     params = BrainFlowInputParams()
     #params.serial_number = args.serial_number
     #params.file = args.file #only for playback
@@ -93,12 +95,13 @@ def save_EEG(dataEEG,path,gesture,pptid):
 if __name__ == "__main__":
     #main()
     duration=3
-    board=setup_bf()
+    board=setup_bf("unicorn")
     tstart=time.time()
     tend=tstart+duration
     board.start_stream()
     while time.time()<tend:
-        print('\b+',end=' ') #this might crash it lol
+        #print('\b+',end=' ') #this might crash it lol
+        pass
     data = board.get_board_data()  # get all data and remove it from internal buffer
     board.stop_stream()
     board.release_session()

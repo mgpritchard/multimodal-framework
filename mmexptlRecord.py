@@ -30,6 +30,7 @@ import pickle
 import random
 import brainflow
 import traceback
+import params
 
 def record_gesture(path,gesture,duration,pptid,rep):
     pyoc_record_fixed_time(path, duration)
@@ -64,7 +65,7 @@ def record_exptl(pptid,path,duration,numreps,resttime):
     try:
         gestlist=[]
         gests=setup_default_gests()
-        rest = Gesture("rest","C:/Users/pritcham/Documents/python/mm-prompts/multimodal-prompts/space.jpg")
+        rest = Gesture("rest",params.prompt_neut)
         for gest in gests:
             gestlist.extend(gest for i in range(numreps))
         random.shuffle(gestlist)
@@ -111,7 +112,8 @@ if __name__ == '__main__':
     Tk().withdraw()
     path=askdirectory(initialdir=startpath,title='where to dump EMG?')
     '''
-    path='C:\AstonApps\Solidworks2019SP3'
+    #path='C:\AstonApps\Solidworks2019SP3'
+    path=params.path
     duration=5
     numreps=1
     resttime=1  #randomised 10-12

@@ -57,7 +57,7 @@ def show_and_record(gesture,pptid,path,duration,figwin,gestlist,count,boardEEG,m
 
 def record_exptl(pptid,path,duration,numreps,resttime):
     try:
-        boardEEG=setup_bf()
+        boardEEG=setup_bf("unicorn")
     except Exception as e:
         print(e)
         print(traceback.format_exc())
@@ -85,6 +85,7 @@ def record_exptl(pptid,path,duration,numreps,resttime):
             time.sleep(duration)'''
             display_prompt(figwin,rest,gestlist,count)
             print('rest now')
+            print('rested')
             time.sleep(resttime)
             print('rested')
     except Exception as e:

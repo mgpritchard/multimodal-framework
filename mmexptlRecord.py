@@ -116,7 +116,7 @@ if __name__ == '__main__':
     #path='C:\AstonApps\Solidworks2019SP3'
     path=params.path
     duration=5
-    numreps=1
+    numreps=5
     resttime=1  #randomised 10-12
     gesture='testing'
 

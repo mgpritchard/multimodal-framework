@@ -56,6 +56,21 @@ def plot_prompt(gesture):
     img=mpimg.imread(gesture.img)
     imgplot=plt.imshow(img)
     plt.show()
+    return imgplot
+    
+def plot_init(gesture):
+    print(gesture.label)
+    fig,ax = plt.subplots(1,1)
+    img=mpimg.imread(gesture.img)
+    imgplot=ax.imshow(img)
+    return imgplot,fig,ax
+    
+def plot_update(plot,fig,gesture):
+    print(gesture.label)
+    img=mpimg.imread(gesture.img)
+    plot.set_data(img)
+    fig.canvas.draw_idle()
+    plt.pause(1)
 
 def display_setup(gestlist):
     figwin=Tk()
@@ -148,8 +163,12 @@ def display_weights(predwin,w1,w2):
     
 if __name__=='__main__':
     gestlist=setup_default_gests()
-    plot_prompt(gestlist[1])
+    [plot,fig,ax]=plot_init(gestlist[1])
     time.sleep(3)
-    plot_prompt(gestlist[2])
+    print('first')
+    plot_update(plot,fig,gestlist[2])
     time.sleep(3)
-    plot_prompt(gestlist[3])
+    print('second')
+    plot_update(plot,fig,gestlist[3])
+    time.sleep(3)
+    print('third')

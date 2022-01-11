@@ -57,11 +57,11 @@ def show_and_record(gesture,pptid,path,duration,figwin,gestlist,count,boardEEG,m
 
 def record_exptl(pptid,path,duration,numreps,resttime):
     try:
-        boardEEG=setup_bf()
+        boardEEG=setup_bf("unicorn") #"unicorn"
     except Exception as e:
         print(e)
         print(traceback.format_exc())
-        kill_bf()
+        kill_bf("unicorn")
         boardEEG=setup_bf()
         
     try:

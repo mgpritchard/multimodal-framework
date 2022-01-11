@@ -13,6 +13,8 @@ from tkinter.filedialog import askopenfilename, askopenfilenames, askdirectory
 from PIL import ImageTk,Image
 import time
 import params
+import matplotlib.pyplot as plt
+import matplotlib.image as mpimg
 
 class Gesture:
     def __init__(self,label,img):
@@ -48,6 +50,12 @@ def display_prompt(figwin,gesture,gestlist,count):
     figwin.canvas.itemconfig(figwin.img, image=img)
     figwin.update_idletasks()
     figwin.update()
+    
+def plot_prompt(gesture):
+    print(gesture.label)
+    img=mpimg.imread(gesture.img)
+    imgplot=plt.imshow(img)
+    plt.show()
 
 def display_setup(gestlist):
     figwin=Tk()
@@ -137,3 +145,11 @@ def display_weights(predwin,w1,w2):
     predwin.canvas.itemconfig(predwin.imgfusion)
     predwin.update_idletasks()
     predwin.update()
+    
+if __name__=='__main__':
+    gestlist=setup_default_gests()
+    plot_prompt(gestlist[1])
+    time.sleep(3)
+    plot_prompt(gestlist[2])
+    time.sleep(3)
+    plot_prompt(gestlist[3])

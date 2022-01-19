@@ -462,11 +462,7 @@ def pyoc_record_no_init(path,duration,m):
     with open(destfile,'w',newline='') as csvfile:
         emgwriter=csv.writer(csvfile, delimiter=',',quotechar='"',quoting=csv.QUOTE_MINIMAL)
         
-        tstart=time.time()
-        tend=tstart+duration
-        #print('start: ',tstart,'\n end: ',tend)
-        #last_vals = None
-        #timestamps=[]
+        
         
         def proc_emg(emg, moving, times=[]):
             #print(emg)
@@ -482,6 +478,11 @@ def pyoc_record_no_init(path,duration,m):
         #m.clear_emg_handlers()
         m.add_emg_handler(proc_emg)
         m.connect(quiet=True)
+        tstart=time.time()
+        tend=tstart+duration
+        #print('start: ',tstart,'\n end: ',tend)
+        #last_vals = None
+        #timestamps=[]
         print('recording...')
     
         try:

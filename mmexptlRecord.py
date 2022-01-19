@@ -37,7 +37,7 @@ def record_gesture(path,gesture,duration,pptid,rep):
     pyoc_record_fixed_time(path, duration)
     rename_latest_emg(path, pptid, gesture.label, gesture.rep)
 
-def show_and_record(gesture,pptid,path,duration,figwin,gestlist,count,boardEEG,m):
+def show_and_record(gesture,pptid,path,duration,figwin,gestlist,count,boardEEG,m,rest):
     boardEEG.start_stream()
     time.sleep(1) #ensure eeg is recording before prompt is shown
     display_prompt(figwin,gesture,gestlist,count)#
@@ -86,7 +86,8 @@ def record_exptl(pptid,path,duration,numreps,resttime):
             count+=1
             duration=random.randint(400,500)/100
             resttime=random.randint(1000,1200)/100
-            show_and_record(gesture,pptid,path,duration,figwin,gestlist,count,boardEEG,m)
+            print('dur: ',duration)
+            show_and_record(gesture,pptid,path,duration,figwin,gestlist,count,boardEEG,m,rest)
             '''tstart=time.time()      #swap out with above if testing timing
             tend=tstart+duration
             print('start: ',tstart,'\n end: ',tend)
@@ -94,6 +95,11 @@ def record_exptl(pptid,path,duration,numreps,resttime):
             display_prompt(figwin,rest,gestlist,count)#
             #plot_update(figwin[0],figwin[1],rest)
             print('rest now')
+            '''trest=resttime/2
+            while trest>0:
+                #print('+',end="")
+                time.sleep(1)
+                trest=trest-1'''
             time.sleep(resttime)
             print('rested')
             #plt.close()
@@ -126,7 +132,7 @@ if __name__ == '__main__':
     #path='C:\AstonApps\Solidworks2019SP3'
     path=params.path
     duration=5
-    numreps=1
+    numreps=5
     resttime=1  #randomised 10-12
     gesture='testing'
 

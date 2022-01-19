@@ -15,6 +15,7 @@ import time
 import params
 import matplotlib.pyplot as plt
 import matplotlib.image as mpimg
+from scipy import ndimage
 
 class Gesture:
     def __init__(self,label,img):
@@ -55,22 +56,38 @@ def plot_prompt(gesture):
     print(gesture.label)
     img=mpimg.imread(gesture.img)
     imgplot=plt.imshow(img)
-    plt.show()
+    plt.pause(0.001)
     return imgplot
     
 def plot_init(gesture):
     print(gesture.label)
+    plt.ion()
     fig,ax = plt.subplots(1,1)
     img=mpimg.imread(gesture.img)
-    imgplot=ax.imshow(img)
+    imgplot=ax.imshow(img,aspect=1.5)
+    plt.axis('off')
+    plt.pause(0.01)
     return imgplot,fig,ax
     
 def plot_update(plot,fig,gesture):
     print(gesture.label)
     img=mpimg.imread(gesture.img)
-    plot.set_data(img)
-    fig.canvas.draw_idle()
-    plt.pause(1)
+    rot_img=ndimage.rotate(img,270)
+    plot.set_data(rot_img)
+    #fig.canvas.draw_idle()
+    #print('data set')
+    plt.pause(0.001)
+    #print('done pausing')
+    return plot
+    
+def plot_rest(plot,fig):
+    print('rest')
+    img=mpimg.imread(params.prompt_neut)
+    rot_img=ndimage.rotate(img,270)
+    plot.set_data(rot_img)
+    #fig.canvas.draw_idle()
+    plt.pause(0.001)
+    return plot
 
 def display_setup(gestlist):
     figwin=Tk()

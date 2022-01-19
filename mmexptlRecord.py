@@ -31,6 +31,7 @@ import random
 import brainflow
 import traceback
 import params
+import matplotlib.pyplot as plt
 
 def record_gesture(path,gesture,duration,pptid,rep):
     pyoc_record_fixed_time(path, duration)
@@ -40,6 +41,8 @@ def show_and_record(gesture,pptid,path,duration,figwin,gestlist,count,boardEEG,m
     boardEEG.start_stream()
     time.sleep(1) #ensure eeg is recording before prompt is shown
     display_prompt(figwin,gesture,gestlist,count)
+    #plot_prompt(gesture)
+    '''plot_update(figwin[0],figwin[1],gesture)'''
     boardEEG.insert_marker(1) #marker in eegstream to denote prompt being shown
     #pyoc_record_fixed_time(path, duration) #emg recording has to start after
             #prompt as it is a blocking method; thread not released until end
@@ -49,6 +52,8 @@ def show_and_record(gesture,pptid,path,duration,figwin,gestlist,count,boardEEG,m
     boardEEG.stop_stream()
     save_EEG(dataEEG,path,gesture,pptid)
     gesture.rep+=1
+    '''plot_rest(figwin[0],figwin[1])'''
+    #plt.close()
     
     #would be good to rewrite such that recording carries on for x seconds
     #following the rest prompt, with another marker... but again emg recording
@@ -72,6 +77,8 @@ def record_exptl(pptid,path,duration,numreps,resttime):
             gestlist.extend(gest for i in range(numreps))
         random.shuffle(gestlist)
         figwin=display_setup(gestlist)
+        '''[plt,fig,ax]=plot_init(rest)
+        figwin=[plt,fig,ax]'''
         count=0
         m=pyoc_init()
         for gesture in gestlist:
@@ -84,9 +91,11 @@ def record_exptl(pptid,path,duration,numreps,resttime):
             print('start: ',tstart,'\n end: ',tend)
             time.sleep(duration)'''
             display_prompt(figwin,rest,gestlist,count)
+            #plot_update(figwin[0],figwin[1],rest)
             print('rest now')
             time.sleep(resttime)
             print('rested')
+            #plt.close()
     except Exception as e:
         boardEEG.release_session()
         figwin.destroy()

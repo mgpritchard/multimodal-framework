@@ -47,7 +47,10 @@ def display_prompt(figwin,gesture,gestlist,count):
     print(gesture.label)
     figwin.title('Gesture #'+str(count)+' of '+str(len(gestlist)))
     file=gesture.img
-    img=ImageTk.PhotoImage(Image.open(file),master=figwin.canvas)
+    loadimage=Image.open(file)
+    shrunk=loadimage.resize((500,650))
+    shrunk=shrunk.rotate(270)
+    img=ImageTk.PhotoImage(shrunk,master=figwin.canvas)
     figwin.canvas.itemconfig(figwin.img, image=img)
     figwin.update_idletasks()
     figwin.update()
@@ -92,10 +95,14 @@ def plot_rest(plot,fig):
 def display_setup(gestlist):
     figwin=Tk()
     figwin.title('Gesture #'+str(0)+' of '+str(len(gestlist)))
-    figwin.canvas=Canvas(figwin,width=225,height=175)
+    #figwin.canvas=Canvas(figwin,width=225,height=175)
+    figwin.canvas=Canvas(figwin,width=800,height=800)
     figwin.canvas.pack()
     startfile = params.prompt_neut
-    startimg=ImageTk.PhotoImage(Image.open(startfile),master=figwin.canvas)
+    loadimage=Image.open(startfile)
+    shrunk=loadimage.resize((500,650))
+    shrunk=shrunk.rotate(270)
+    startimg=ImageTk.PhotoImage(shrunk,master=figwin.canvas)
     figwin.img=figwin.canvas.create_image(20,20,anchor=NW,image=startimg)
     figwin.update_idletasks()
     figwin.update()

@@ -40,7 +40,7 @@ def record_gesture(path,gesture,duration,pptid,rep):
 def show_and_record(gesture,pptid,path,duration,figwin,gestlist,count,boardEEG,m):
     boardEEG.start_stream()
     time.sleep(1) #ensure eeg is recording before prompt is shown
-    display_prompt(figwin,gesture,gestlist,count)
+    display_prompt(figwin,gesture,gestlist,count)#
     #plot_prompt(gesture)
     '''plot_update(figwin[0],figwin[1],gesture)'''
     boardEEG.insert_marker(1) #marker in eegstream to denote prompt being shown
@@ -76,7 +76,7 @@ def record_exptl(pptid,path,duration,numreps,resttime):
         for gest in gests:
             gestlist.extend(gest for i in range(numreps))
         random.shuffle(gestlist)
-        figwin=display_setup(gestlist)
+        figwin=display_setup(gestlist)#
         '''[plt,fig,ax]=plot_init(rest)
         figwin=[plt,fig,ax]'''
         count=0
@@ -90,7 +90,7 @@ def record_exptl(pptid,path,duration,numreps,resttime):
             tend=tstart+duration
             print('start: ',tstart,'\n end: ',tend)
             time.sleep(duration)'''
-            display_prompt(figwin,rest,gestlist,count)
+            display_prompt(figwin,rest,gestlist,count)#
             #plot_update(figwin[0],figwin[1],rest)
             print('rest now')
             time.sleep(resttime)
@@ -102,9 +102,9 @@ def record_exptl(pptid,path,duration,numreps,resttime):
         print(e)
         print(traceback.format_exc())
     else:
-        figwin.destroy()
         boardEEG.release_session()  #NEEDS TO REACH TO AVOID KERNEL RESTART!
         print('All done! Thanks for your contribution')
+        figwin.destroy()
     
 
 def quickplot(data,label):

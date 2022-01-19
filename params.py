@@ -13,12 +13,12 @@ if platform =='win32':
     #windows
     path=r'C:\Users\pritcham\Documents\python\data-dump'
     prompts_dir="C:/Users/pritcham/Documents/python/mm-prompts/multimodal-prompts"
-    prompt_neut="C:/Users/pritcham/Documents/python/mm-prompts/multimodal-prompts/space.jpg"
+    prompt_neut="C:/Users/pritcham/Documents/python/mm-prompts/multimodal-prompts/neutral.jpg"
     prompt_close="C:/Users/pritcham/Documents/python/mm-prompts/multimodal-prompts/close.jpg"
     prompt_open="C:/Users/pritcham/Documents/python/mm-prompts/multimodal-prompts/open.jpg"
-    prompt_grasp="C:/Users/pritcham/Documents/python/mm-prompts/multimodal-prompts/grasp.png"
-    prompt_lateral="C:/Users/pritcham/Documents/python/mm-prompts/multimodal-prompts/lateral.png"
-    prompt_tripod="C:/Users/pritcham/Documents/python/mm-prompts/multimodal-prompts/tripod.png"
+    prompt_grasp="C:/Users/pritcham/Documents/python/mm-prompts/multimodal-prompts/grasp.jpg"
+    prompt_lateral="C:/Users/pritcham/Documents/python/mm-prompts/multimodal-prompts/lateral.jpg"
+    prompt_tripod="C:/Users/pritcham/Documents/python/mm-prompts/multimodal-prompts/tripod.jpg"
     gen_trainmat_spec_SpellLoc="C:/Users/pritcham/Documents/python/labelstoClass/labelstoClassEMGSpell.py"
 elif platform == 'darwin':
     #mac

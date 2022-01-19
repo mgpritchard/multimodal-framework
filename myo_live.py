@@ -458,6 +458,10 @@ class MyoRaw(object):
     def remove_emg_handler(self, h):
         try: self.emg_handlers.remove(h)
         except ValueError: pass
+        
+    def clear_emg_handlers(self):
+        try: self.emg_handlers.clear()
+        except ValueError: pass
 
     def add_imu_handler(self, h):
         self.imu_handlers.append(h)

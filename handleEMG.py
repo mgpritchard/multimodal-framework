@@ -479,6 +479,7 @@ def pyoc_record_no_init(path,duration,m):
             emgwrite=tuple(emgwrite)
             emgwriter.writerow(emgwrite)
         
+        #m.clear_emg_handlers()
         m.add_emg_handler(proc_emg)
         m.connect(quiet=True)
         print('recording...')

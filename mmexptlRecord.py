@@ -70,6 +70,7 @@ def record_exptl(pptid,path,duration,numreps,resttime):
         boardEEG=setup_bf()
         
     try:
+        delete_latest_emg(path)
         gestlist=[]
         gests=setup_default_gests()
         rest = Gesture("rest",params.prompt_neut)

@@ -558,6 +558,12 @@ def rename_latest_emg(path,pptid,gesture,rep):
         for filename in files:
             if filename.lower().startswith('emg_data'):
                 os.rename(os.path.join(root, filename),os.path.join(root,(str(pptid)+'-'+gesture+'-'+str(rep)+'.csv')))
+                
+def delete_latest_emg(path):
+    for root, dirs, files in os.walk(path):
+        for filename in files:
+            if filename.lower().startswith('emg_data'):
+                os.remove(os.path.join(root, filename))
 '''-------------------------------------------------'''
 def quick_train_splitemg():  #this but in real
     setup_myo

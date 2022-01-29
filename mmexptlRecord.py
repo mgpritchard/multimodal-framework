@@ -32,6 +32,7 @@ import brainflow
 import traceback
 import params
 import matplotlib.pyplot as plt
+from serial import SerialException
 
 def record_gesture(path,gesture,duration,pptid,rep):
     pyoc_record_fixed_time(path, duration)
@@ -46,7 +47,32 @@ def show_and_record(gesture,pptid,path,duration,figwin,gestlist,count,boardEEG,m
     boardEEG.insert_marker(1) #marker in eegstream to denote prompt being shown
     #pyoc_record_fixed_time(path, duration) #emg recording has to start after
             #prompt as it is a blocking method; thread not released until end
-    pyoc_record_no_init(path, duration, m)
+    try:
+        pyoc_record_no_init(path, duration, m)
+    except SerialException as e:
+        print(e)
+        print(traceback.format_exc())
+        m.disconnect()
+        delete_latest_emg(path)
+        print("\n\n*****Retrying...*****\n\n") 
+        #garbage=boardEEG.get_board_data()
+        #boardEEG.stop_stream()
+        time.sleep(1)
+        #boardEEG.start_stream()
+        boardEEG.insert_marker(1)
+        pyoc_record_no_init(path,duration,m)
+    except PermissionError as e:
+        print(e)
+        print(traceback.format_exc())
+        m.disconnect()
+        delete_latest_emg(path)
+        print("\n\n*****Retrying...*****\n\n") 
+        #garbage=boardEEG.get_board_data()
+        #boardEEG.stop_stream()
+        time.sleep(1)
+        #boardEEG.start_stream()
+        boardEEG.insert_marker(1)
+        pyoc_record_no_init(path,duration,m)
     rename_latest_emg(path,pptid,gesture.label,gesture.rep)
     dataEEG = boardEEG.get_board_data()  # get all data and remove it from internal buffer
     boardEEG.stop_stream()

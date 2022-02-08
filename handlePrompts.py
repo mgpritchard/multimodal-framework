@@ -96,8 +96,8 @@ def display_setup(gestlist):
     figwin=Tk()
     w=800
     h=800
-    y=0
-    x=-1920 #DEPENDENT ON RESULT OF GETmONITORsIZES.PY
+    y=-20
+    x=-960 #DEPENDENT ON RESULT OF getMonitorSizes.py , currently set for AIMLab old Dell
     figwin.geometry('%dx%d+%d+%d' % (w,h,x,y))
     figwin.title('Gesture #'+str(0)+' of '+str(len(gestlist)))
     #figwin.canvas=Canvas(figwin,width=225,height=175)

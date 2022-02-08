@@ -476,6 +476,19 @@ def pyoc_record_no_init(path,duration,m):
             emgwriter.writerow(emgwrite)
         
         #m.clear_emg_handlers()
+        try:
+            m.wipe_handlers()
+        except Exception as e:
+            print(e)
+            print(traceback.format_exc())
+            print("failed to wipe handlers")
+            try:
+                handlers=m.get_handlers()
+                for h in handlers:
+                    m.remove_emg_handler(h)
+            except Exception as e:
+                print("failed to kill individual handlers")
+                raise e
         m.add_emg_handler(proc_emg)
         m.connect(quiet=True)
         tstart=time.time()

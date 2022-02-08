@@ -142,6 +142,12 @@ class BT(object):
     def remove_handler(self, h):
         try: self.handlers.remove(h)
         except ValueError: pass
+        
+    def get_handlers(self):
+        return self.handlers
+        
+    def wipe_handlers(self):
+        self.handlers = []
 
     def wait_event(self, cls, cmd):
         res = [None]

@@ -19,6 +19,7 @@ from handleOffline import get_feats
 from handleFusion import *
 from handlePrompts import *
 import time
+import traceback
 
 def pyoc_fuse_emgonly(model_mode1,model_mode2,method='dupe',fusion=True,outp='print',limit=0):
 
@@ -477,16 +478,18 @@ def pyoc_record_no_init(path,duration,m):
         
         #m.clear_emg_handlers()
         try:
-            m.wipe_handlers()
+            m.wipe_emg_handlers()
         except Exception as e:
             print(e)
             print(traceback.format_exc())
             print("failed to wipe handlers")
             try:
-                handlers=m.get_handlers()
+                handlers=m.get_emg_handlers()
                 for h in handlers:
                     m.remove_emg_handler(h)
             except Exception as e:
+                print(e)
+                print(traceback.format_exc())
                 print("failed to kill individual handlers")
                 raise e
         m.add_emg_handler(proc_emg)

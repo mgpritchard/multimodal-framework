@@ -143,11 +143,6 @@ class BT(object):
         try: self.handlers.remove(h)
         except ValueError: pass
         
-    def get_handlers(self):
-        return self.handlers
-        
-    def wipe_handlers(self):
-        self.handlers = []
 
     def wait_event(self, cls, cmd):
         res = [None]
@@ -468,6 +463,12 @@ class MyoRaw(object):
     def clear_emg_handlers(self):
         try: self.emg_handlers.clear()
         except ValueError: pass
+        
+    def wipe_emg_handlers(self):
+        self.emg_handlers = []
+    
+    def get_emg_handlers(self):
+        return self.emg_handlers
 
     def add_imu_handler(self, h):
         self.imu_handlers.append(h)

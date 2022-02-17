@@ -120,7 +120,7 @@ def record_exptl(pptid,path,duration,numreps,resttime):
             time.sleep(duration)'''
             display_prompt(figwin,rest,gestlist,count)#
             #plot_update(figwin[0],figwin[1],rest)
-            print('rest now')
+            print('rest now',' #',count)
             '''trest=resttime/2
             while trest>0:
                 #print('+',end="")

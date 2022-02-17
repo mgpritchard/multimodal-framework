@@ -107,6 +107,9 @@ def record_exptl(pptid,path,duration,numreps,resttime):
         '''[plt,fig,ax]=plot_init(rest)
         figwin=[plt,fig,ax]'''
         count=0
+        saveloc="temp_gestlist"
+        with open(saveloc,"wb") as savelist:
+            pickle.dump(gestlist,savelist)
         m=pyoc_init()
         for gesture in gestlist:
             count+=1
@@ -138,6 +141,54 @@ def record_exptl(pptid,path,duration,numreps,resttime):
         boardEEG.release_session()  #NEEDS TO REACH TO AVOID KERNEL RESTART!
         print('All done! Thanks for your contribution')
         figwin.destroy()
+  
+
+
+  
+def resume_exptl(pptid,path,duration,numreps,resttime,idx):
+    try:
+        boardEEG=setup_bf("unicorn") #"unicorn"
+    except Exception as e:
+        print(e)
+        print(traceback.format_exc())
+        kill_bf("unicorn")
+        boardEEG=setup_bf()
+        
+    try:
+        delete_latest_emg(path)
+        rest = Gesture("rest",params.prompt_neut)
+        count=idx
+        saveloc="temp_gestlist"
+        with open(saveloc,"rb") as savelist:            #This version picks up where you left off!
+            gestlist=pickle.load(savelist)
+        figwin=display_setup(gestlist)#
+            
+        m=pyoc_init()
+        while count < len(gestlist):
+            gesture = gestlist[count]
+            count+=1
+            duration=random.randint(400,500)/100
+            resttime=random.randint(1000,1200)/100
+            print('dur: ',duration)
+            show_and_record(gesture,pptid,path,duration,figwin,gestlist,count,boardEEG,m,rest)
+            
+            display_prompt(figwin,rest,gestlist,count)#
+            #plot_update(figwin[0],figwin[1],rest)
+            print('rest now',' #',count)
+            
+            time.sleep(resttime)
+            print('rested')
+            #plt.close()
+    except Exception as e:
+        boardEEG.release_session()
+        figwin.destroy()
+        print(e)
+        print(traceback.format_exc())
+    else:
+        boardEEG.release_session()  #NEEDS TO REACH TO AVOID KERNEL RESTART!
+        print('All done! Thanks for your contribution')
+        '''something_to_delete_savedlist'''
+        figwin.destroy()
     
 
 def quickplot(data,label):
@@ -147,6 +198,7 @@ def quickplot(data,label):
     plt.show()
 
 if __name__ == '__main__':
+    resuming=input("resuming after a crash? [y/n] ")
     pptid=input('particpant id: ')
     startpath=os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
     #myo_connect_setup()
@@ -162,7 +214,11 @@ if __name__ == '__main__':
     resttime=1  #randomised 10-12
     gesture='testing'
 
-    record_exptl(pptid,path,duration,numreps,resttime)
+    if resuming is not "y" and resuming is not "Y":
+        record_exptl(pptid,path,duration,numreps,resttime)
+    elif resuming is "y" or resuming is "Y":
+        lastind=int(input("last successful gesture #: "))
+        resume_exptl(pptid,path,duration,numreps,resttime,idx=lastind+1)
 
     #for i in range(3):
      #   record_gesture(path, gesture, duration, pptid, (i+1))

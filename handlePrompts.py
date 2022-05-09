@@ -13,6 +13,9 @@ from tkinter.filedialog import askopenfilename, askopenfilenames, askdirectory
 from PIL import ImageTk,Image
 import time
 import params
+import matplotlib.pyplot as plt
+import matplotlib.image as mpimg
+from scipy import ndimage
 
 class Gesture:
     def __init__(self,label,img):
@@ -44,18 +47,62 @@ def display_prompt(figwin,gesture,gestlist,count):
     print(gesture.label)
     figwin.title('Gesture #'+str(count)+' of '+str(len(gestlist)))
     file=gesture.img
-    img=ImageTk.PhotoImage(Image.open(file),master=figwin.canvas)
+    loadimage=Image.open(file)
+    shrunk=loadimage.resize((500,650))
+    shrunk=shrunk.rotate(270)
+    img=ImageTk.PhotoImage(shrunk,master=figwin.canvas)
     figwin.canvas.itemconfig(figwin.img, image=img)
     figwin.update_idletasks()
     figwin.update()
+    
+def plot_prompt(gesture):
+    print(gesture.label)
+    img=mpimg.imread(gesture.img)
+    imgplot=plt.imshow(img)
+    plt.pause(0.001)
+    return imgplot
+    
+def plot_init(gesture):
+    print(gesture.label)
+    plt.ion()
+    fig,ax = plt.subplots(1,1)
+    img=mpimg.imread(gesture.img)
+    imgplot=ax.imshow(img,aspect=1.5)
+    plt.axis('off')
+    plt.pause(0.01)
+    return imgplot,fig,ax
+    
+def plot_update(plot,fig,gesture):
+    print(gesture.label)
+    img=mpimg.imread(gesture.img)
+    rot_img=ndimage.rotate(img,270)
+    plot.set_data(rot_img)
+    #fig.canvas.draw_idle()
+    #print('data set')
+    plt.pause(0.001)
+    #print('done pausing')
+    return plot
+    
+def plot_rest(plot,fig):
+    print('rest')
+    img=mpimg.imread(params.prompt_neut)
+    rot_img=ndimage.rotate(img,270)
+    plot.set_data(rot_img)
+    #fig.canvas.draw_idle()
+    plt.pause(0.001)
+    return plot
 
 def display_setup(gestlist):
     figwin=Tk()
     figwin.title('Gesture #'+str(0)+' of '+str(len(gestlist)))
-    figwin.canvas=Canvas(figwin,width=225,height=175)
+    #figwin.canvas=Canvas(figwin,width=225,height=175)
+    figwin.canvas=Canvas(figwin,width=800,height=800)
     figwin.canvas.pack()
     startfile = params.prompt_neut
-    startimg=ImageTk.PhotoImage(Image.open(startfile),master=figwin.canvas)
+    loadimage=Image.open(startfile)
+    shrunk=loadimage.resize((500,650))
+    shrunk=shrunk.rotate(270)
+    startimg=ImageTk.PhotoImage(shrunk,master=figwin.canvas)
     figwin.img=figwin.canvas.create_image(20,20,anchor=NW,image=startimg)
     figwin.update_idletasks()
     figwin.update()
@@ -137,3 +184,15 @@ def display_weights(predwin,w1,w2):
     predwin.canvas.itemconfig(predwin.imgfusion)
     predwin.update_idletasks()
     predwin.update()
+    
+if __name__=='__main__':
+    gestlist=setup_default_gests()
+    [plot,fig,ax]=plot_init(gestlist[1])
+    time.sleep(3)
+    print('first')
+    plot_update(plot,fig,gestlist[2])
+    time.sleep(3)
+    print('second')
+    plot_update(plot,fig,gestlist[3])
+    time.sleep(3)
+    print('third')

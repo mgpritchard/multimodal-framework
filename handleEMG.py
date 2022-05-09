@@ -462,11 +462,7 @@ def pyoc_record_no_init(path,duration,m):
     with open(destfile,'w',newline='') as csvfile:
         emgwriter=csv.writer(csvfile, delimiter=',',quotechar='"',quoting=csv.QUOTE_MINIMAL)
         
-        tstart=time.time()
-        tend=tstart+duration
-        #print('start: ',tstart,'\n end: ',tend)
-        #last_vals = None
-        #timestamps=[]
+        
         
         def proc_emg(emg, moving, times=[]):
             #print(emg)
@@ -479,8 +475,14 @@ def pyoc_record_no_init(path,duration,m):
             emgwrite=tuple(emgwrite)
             emgwriter.writerow(emgwrite)
         
+        #m.clear_emg_handlers()
         m.add_emg_handler(proc_emg)
         m.connect(quiet=True)
+        tstart=time.time()
+        tend=tstart+duration
+        #print('start: ',tstart,'\n end: ',tend)
+        #last_vals = None
+        #timestamps=[]
         print('recording...')
     
         try:
@@ -557,6 +559,12 @@ def rename_latest_emg(path,pptid,gesture,rep):
         for filename in files:
             if filename.lower().startswith('emg_data'):
                 os.rename(os.path.join(root, filename),os.path.join(root,(str(pptid)+'-'+gesture+'-'+str(rep)+'.csv')))
+                
+def delete_latest_emg(path):
+    for root, dirs, files in os.walk(path):
+        for filename in files:
+            if filename.lower().startswith('emg_data'):
+                os.remove(os.path.join(root, filename))
 '''-------------------------------------------------'''
 def quick_train_splitemg():  #this but in real
     setup_myo

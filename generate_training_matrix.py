@@ -14,6 +14,7 @@
 
 import os, sys
 import numpy as np
+import params
 from live_feature_extraction import generate_feature_vectors_from_samples, generate_feature_vectors_from_samples_single
 import importlib.util
 spec = importlib.util.spec_from_file_location("toClass", params.gen_trainmat_spec_SpellLoc)

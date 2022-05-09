@@ -82,7 +82,7 @@ def display_predictions_setup():
     return predwin
 
 def fetch_img(gesture):
-    imgsource=param.prompts_dir
+    imgsource=params.prompts_dir
     if gesture=='neutral':
         gesture='space'
     if gesture.lower() in ['open','close','space']:

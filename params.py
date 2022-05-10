@@ -8,11 +8,14 @@ module for OS-dependent parameters
 """
 
 from sys import platform
+#import glob    #unused approach that allows us to be extension-agnostic if we have mixed jpgs and pngs
 
 if platform =='win32':
     #windows
     path=r'C:\Users\pritcham\Documents\python\data-dump'
     prompts_dir="C:/Users/pritcham/Documents/python/mm-prompts/multimodal-prompts"
+    #prompt_neut=glob.glob("C:/Users/pritcham/Documents/python/mm-prompts/multimodal-prompts/neutral.*")[0]
+    #stackoverflow.com/questions/19824598/open-existing-file-of-unknown-extension/19824624
     prompt_neut="C:/Users/pritcham/Documents/python/mm-prompts/multimodal-prompts/neutral.jpg"
     prompt_close="C:/Users/pritcham/Documents/python/mm-prompts/multimodal-prompts/close.jpg"
     prompt_open="C:/Users/pritcham/Documents/python/mm-prompts/multimodal-prompts/open.jpg"

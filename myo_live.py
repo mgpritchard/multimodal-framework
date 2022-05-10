@@ -225,7 +225,15 @@ class MyoRaw(object):
     def run_report(self, timeout=None):
         emgframe = None
         emgpack=self.bt.recv_packet(timeout)
-        if (emgpack.cls, emgpack.cmd) != (4, 5): return
+        try:
+            if (emgpack.cls, emgpack.cmd) != (4, 5): return
+        except AttributeError:              #attempting to grab "NoneType has no attribute cls"
+            try:
+                emgpack=self.bt.recv_packet(timeout*2)
+                if (emgpack.cls, emgpack.cmd) !=(4,5): return
+            except AttributeError:
+                return
+            #return
         _, attr, _ = unpack('BHB', emgpack.payload[:4])
         emgpayload = emgpack.payload[5:]
 

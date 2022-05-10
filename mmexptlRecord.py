@@ -92,7 +92,7 @@ def record_exptl(pptid,path,duration,numreps,resttime):
     except Exception as e:
         print(e)
         print(traceback.format_exc())
-        kill_bf("unicorn")
+        kill_bf("unicorn")#unicorn
         boardEEG=setup_bf()
         
     try:

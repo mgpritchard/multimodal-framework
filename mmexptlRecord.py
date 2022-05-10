@@ -132,11 +132,17 @@ def record_exptl(pptid,path,duration,numreps,resttime):
             time.sleep(resttime)
             print('rested')
             #plt.close()
+            #if count>=3:#
+            #    raise ValueError#
     except Exception as e:
         boardEEG.release_session()
         figwin.destroy()
         print(e)
         print(traceback.format_exc())
+        print('\nfound an error, lets retry\n')#
+        m.bt.ser.close() #
+        del m#
+        raise e
     else:
         boardEEG.release_session()  #NEEDS TO REACH TO AVOID KERNEL RESTART!
         print('All done! Thanks for your contribution')
@@ -145,7 +151,7 @@ def record_exptl(pptid,path,duration,numreps,resttime):
 
 
   
-def resume_exptl(pptid,path,duration,numreps,resttime,idx):
+def resume_exptl(pptid,path,duration,numreps,resttime,idx,m=0):
     try:
         boardEEG=setup_bf("unicorn") #"unicorn"
     except Exception as e:
@@ -162,8 +168,9 @@ def resume_exptl(pptid,path,duration,numreps,resttime,idx):
         with open(saveloc,"rb") as savelist:            #This version picks up where you left off!
             gestlist=pickle.load(savelist)
         figwin=display_setup(gestlist)#
-            
-        m=pyoc_init()
+        
+        if m is 0:
+            m=pyoc_init()
         while count < len(gestlist):
             gesture = gestlist[count]
             count+=1
@@ -179,11 +186,16 @@ def resume_exptl(pptid,path,duration,numreps,resttime,idx):
             time.sleep(resttime)
             print('rested')
             #plt.close()
+            #if count==6:#
+            #    raise ValueError#
     except Exception as e:
         boardEEG.release_session()
         figwin.destroy()
         print(e)
         print(traceback.format_exc())
+        m.bt.ser.close() #
+        del m#
+        raise e
     else:
         boardEEG.release_session()  #NEEDS TO REACH TO AVOID KERNEL RESTART!
         print('All done! Thanks for your contribution')
@@ -212,10 +224,22 @@ if __name__ == '__main__':
     duration=5
     numreps=5
     resttime=1  #randomised 10-12
-    gesture='testing'
+    gesture='testing'       
 
     if resuming is not "y" and resuming is not "Y":
-        record_exptl(pptid,path,duration,numreps,resttime)
+        try:
+            record_exptl(pptid,path,duration,numreps,resttime)
+        except Exception as e:
+            print("\nattempting to auto-resume\n")
+            try:
+                pptid=input('participant id: ')
+                lastind=int(input("last successful gesture #: "))
+                resume_exptl(pptid,path,duration,numreps,resttime,idx=lastind+1)#,m=m)
+            except Exception as e:
+                print("\nattempting to auto-resume again\n")
+                pptid=input('participant id: ')
+                lastind=int(input("last successful gesture #: "))
+                resume_exptl(pptid,path,duration,numreps,resttime,idx=lastind+1)#,m=m)
     elif resuming is "y" or resuming is "Y":
         lastind=int(input("last successful gesture #: "))
         resume_exptl(pptid,path,duration,numreps,resttime,idx=lastind+1)

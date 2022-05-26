@@ -580,7 +580,7 @@ def feature_logcov(covM):
     indx = np.triu_indices(log_cov.shape[0])
     ret  = np.abs(log_cov[indx])
     
-    ret=ret.real #forcing output to not be complex as thats a shit idea
+    ret=ret.real #forcing output to not be complex as thats annoying
     log_cov=log_cov.real
     
     names = []

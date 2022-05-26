@@ -13,7 +13,7 @@ import numpy as np
 #import matplotlib.pyplot as plt
 import csv
 from tkinter import Tk
-from tkinter.filedialog import askopenfilename, askopenfilenames, askdirectory
+from tkinter.filedialog import askopenfilename, askopenfilenames, askdirectory, asksaveasfile
 #from queue import Queue
 #import logging
 #from threading import Thread
@@ -24,6 +24,7 @@ from handleOffline import sync_crop
 from handleFusion import *
 from topLevel import quickplot
 import pickle
+import generate_training_matrix as feats
 
 def get_dir(datatype='',stage=''):
     homepath=os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
@@ -144,6 +145,27 @@ def process_eeg(dataINdir,dataOUTdir):
         eeg=do_something_brainflow(eeg)
         eeg=ditch_bad_columns(eeg)
         np.savetxt(build_path(dataOUTdir,eegfile),eeg,delimiter=',')
+
+def ask_for_dir(datatype=""):
+    homepath=os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
+    Tk().withdraw()
+    title='directory of '+datatype+' data for feature extraction' 
+    set_dir=askdirectory(title=title,initialdir=homepath)
+    return set_dir
+
+def ask_for_savefile(datatype=""):
+    homepath=os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
+    Tk().withdraw()
+    title='save '+datatype+' featureset as' 
+    savefile=asksaveasfile(title=title,initialdir=homepath)
+    return savefile
+
+def make_feats(directory_path=None, output_file=None, datatype=""):
+    if directory_path is None:
+        directory_path=ask_for_dir(datatype)
+    if output_file is None:
+        output_file=ask_for_savefile()
+    feats.gen_training_matrix(directory_path, output_file, cols_to_ignore=None, singleFrame=0)
     
 def whole_pipeline():
     raw_emg_dir=get_dir('emg','raw')
@@ -156,3 +178,5 @@ def whole_pipeline():
     raw_eeg_list=list_raw_files(raw_eeg_dir)
     sync_raw_files(raw_emg_list,raw_eeg_list,crop_emg_dir,crop_eeg_dir,approval_required=0)
     process_eeg(crop_eeg_dir,proc_eeg_dir)
+    make_feats(datatype='emg')
+        

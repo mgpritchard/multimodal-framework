@@ -45,7 +45,7 @@ def highpass(data,channels,samplerate,cutoff,order,filtertype,ripple=0):
     
 def notch(data,channels,samplerate,notchfreq,bandwith,order,filtertype,ripple=0):
     for count, channel in enumerate(channels):
-        DataFilter.perform_bandstop(data[channel], samplerate, notchfreq, bandwith, order, filtertype)
+        DataFilter.perform_bandstop(data[channel], samplerate, notchfreq, bandwith, order, filtertype,ripple)
 
 def eeg_filt_pipeline(datafile=None):
     
@@ -75,3 +75,6 @@ def eeg_filt_pipeline(datafile=None):
     plot_eeg(data,eeg_channels)
     
     return data
+
+if __name__ == '__main__':
+    eeg_filt_pipeline()

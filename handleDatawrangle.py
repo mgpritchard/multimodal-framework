@@ -147,28 +147,8 @@ def process_eeg(dataINdir,dataOUTdir):
         eeg=do_something_brainflow(eeg)
         eeg=ditch_bad_columns(eeg)
         np.savetxt(build_path(dataOUTdir,eegfile),eeg,delimiter=',')
-
-def data_pipeline():
-    homepath=os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
-    Tk().withdraw()
-    title='directory of '+datatype+' data for feature extraction' 
-    set_dir=askdirectory(title=title,initialdir=homepath)
-    return set_dir
-
-def ask_for_savefile(datatype=""):
-    homepath=os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
-    Tk().withdraw()
-    title='save '+datatype+' featureset as' 
-    savefile=asksaveasfile(title=title,initialdir=homepath)
-    return savefile
-
-def make_feats(directory_path=None, output_file=None, datatype=""):
-    if directory_path is None:
-        directory_path=ask_for_dir(datatype)
-    if output_file is None:
-        output_file=ask_for_savefile()
-    feats.gen_training_matrix(directory_path, output_file, cols_to_ignore=None, singleFrame=0)
     
+def data_pipeline():
     raw_emg_dir=get_dir('emg','raw')
     crop_emg_dir=get_dir('emg','crop')
     proc_emg_dir=get_dir('emg','proc')
@@ -179,5 +159,5 @@ def make_feats(directory_path=None, output_file=None, datatype=""):
     raw_eeg_list=list_raw_files(raw_eeg_dir)
     sync_raw_files(raw_emg_list,raw_eeg_list,crop_emg_dir,crop_eeg_dir,approval_required=0)
     process_eeg(crop_eeg_dir,proc_eeg_dir)
-    make_feats(datatype='emg')
+    
         

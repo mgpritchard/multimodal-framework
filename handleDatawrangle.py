@@ -25,6 +25,7 @@ from handleFusion import *
 from topLevel import quickplot
 import pickle
 import generate_training_matrix as feats
+import handleBFSigProc as bfsig
 
 def get_dir(datatype='',stage=''):
     homepath=os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
@@ -131,22 +132,23 @@ def move_unicorn_time(unicorndata):
 
 def do_something_brainflow(eeg):
     print ("\nITS NOT FINISHED YET\n")
+    print('reference to average (spatial)')
     return eeg
 
-def ditch_bad_colums(eeg):
+def ditch_bad_columns(eeg):
     print ("\nITS NOT FINISHED YET\n")
     return eeg
 
 def process_eeg(dataINdir,dataOUTdir):
     eeglist=list_raw_files(dataINdir)
     for eegfile in eeglist:
-        print('processing '+repr(emgfile))
-        eeg=matrix_from_csv_file(eegfile.filepath)
+        print('processing '+repr(eegfile))
+        eeg=bfsig.eeg_filt_pipeline(eegfile.filepath)
         eeg=do_something_brainflow(eeg)
         eeg=ditch_bad_columns(eeg)
         np.savetxt(build_path(dataOUTdir,eegfile),eeg,delimiter=',')
 
-def ask_for_dir(datatype=""):
+def data_pipeline():
     homepath=os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
     Tk().withdraw()
     title='directory of '+datatype+' data for feature extraction' 
@@ -167,7 +169,6 @@ def make_feats(directory_path=None, output_file=None, datatype=""):
         output_file=ask_for_savefile()
     feats.gen_training_matrix(directory_path, output_file, cols_to_ignore=None, singleFrame=0)
     
-def whole_pipeline():
     raw_emg_dir=get_dir('emg','raw')
     crop_emg_dir=get_dir('emg','crop')
     proc_emg_dir=get_dir('emg','proc')

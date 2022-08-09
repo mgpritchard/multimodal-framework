@@ -60,32 +60,34 @@ def matrix_from_csv_file(file):
 	#print ('HDR', (headers.shape))
     return matrix, headers
 
-def train_offline(modeltype='gaussNB'):
-    path=os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
-    title='select training dataset'
-    Tk().withdraw()
-    train_set=askopenfilename(initialdir=path,title=title,filetypes = (("csv files","*.csv"),("all files","*.*")))
+def train_offline(modeltype='gaussNB',train_set=None):
+    if train_set is None:
+        path=os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
+        title='select training dataset'
+        Tk().withdraw()
+        train_set=askopenfilename(initialdir=path,title=title,filetypes = (("csv files","*.csv"),("all files","*.*")))
     title_sav='location for trained model'
     modeldest=askdirectory(initialdir=path,title=title_sav)
     modelname=modeldest+'/'+os.path.basename(train_set)[:-4]+'_'+modeltype+'.sav'
+    train_dat=matrix_from_csv_file(train_set)[0]
     if modeltype=='gaussNB':
-        train_nb(train_set,modelname)
+        train_nb(train_dat,modelname)
     elif modeltype=='RF':
-        train_rf(train_set,modelname)
+        train_rf(train_dat,modelname)
     elif modeltype=='LDA':
-        train_lda(train_set,modelname)
+        train_lda(train_dat,modelname)
 
 def train_nb(train_dat,model_path):
-    data=matrix_from_csv_file(train_dat)[0]
+    #data=matrix_from_csv_file(train_dat)[0] #move this up a level or 2
     naivb=GaussianNB()
-    naivb,acc=train_model(naivb,data)
+    naivb,acc=train_model(naivb,train_dat)
     print('accuracy: ',acc)
     with open(model_path,'wb') as savepath:
         pickle.dump(naivb,savepath)
     return
 
 def train_rf(train_dat,model_path):
-    data=matrix_from_csv_file(train_dat)[0]
+    #data=matrix_from_csv_file(train_dat)[0]
     randfs = dict()
 	# define number of trees to consider
     n_trees = [10, 50, 100, 500, 1000]
@@ -93,7 +95,7 @@ def train_rf(train_dat,model_path):
     randfs=[]
     for n in n_trees:
         randf = RandomForestClassifier(n_estimators=n)
-        randf,acc=train_model(randf,data)
+        randf,acc=train_model(randf,train_dat)
         print('# trees: ',n,'\naccuracy: ',acc)
         randfs.append(randf)
         results.append(acc)
@@ -105,9 +107,9 @@ def train_rf(train_dat,model_path):
     return
 
 def train_lda(train_dat,model_path):
-    data=matrix_from_csv_file(train_dat)[0]
+    #data=matrix_from_csv_file(train_dat)[0]
     lda=LinearDiscriminantAnalysis()
-    lda,acc=train_model(lda,data)
+    lda,acc=train_model(lda,train_dat)
     print('accuracy: ',acc)
     with open(model_path,'wb') as savepath:
         pickle.dump(lda,savepath)

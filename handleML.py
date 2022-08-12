@@ -61,10 +61,10 @@ def matrix_from_csv_file(file):
     return matrix, headers
 
 def train_offline(modeltype='gaussNB',train_set=None):
+    path=os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
+    Tk().withdraw()
     if train_set is None:
-        path=os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
         title='select training dataset'
-        Tk().withdraw()
         train_set=askopenfilename(initialdir=path,title=title,filetypes = (("csv files","*.csv"),("all files","*.*")))
     title_sav='location for trained model'
     modeldest=askdirectory(initialdir=path,title=title_sav)

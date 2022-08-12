@@ -23,6 +23,12 @@
 import numpy as np
 import scipy
 import scipy.signal
+'''    import scipy.fftpack
+import time    
+import csv    
+import os.path    
+import scipy.io    
+import json'''
 
 def matrix_from_csv_file(file_path):
     """
@@ -580,11 +586,11 @@ def feature_logcov(covM):
     if (np.any(covM)):
         log_cov = scipy.linalg.logm(covM)
     else:
-        log_cov=covM
+        log_cov=covM    #letting it handle cases where it cant validly log a nonexistant cov mat, pritcham
     indx = np.triu_indices(log_cov.shape[0])
     ret  = np.abs(log_cov[indx])
     
-    ret=ret.real #forcing output to not be complex as thats annoying
+    ret=ret.real    #forcing output to not be complex as thats annoying, pritcham
     log_cov=log_cov.real
     
     names = []
@@ -642,7 +648,7 @@ def feature_fft(matrix, period = 1., mains_f = 50.,
     # Compute the (absolute values of the) FFT
     # Extract only the first half of each FFT vector, since all the information
     # is contained there (by construction the FFT returns a symmetric vector).
-    fft_values = np.abs(scipy.fft.fft(matrix, axis = 0))[0:N//2] * 2 / N
+    fft_values = np.abs(scipy.fft.fft(matrix, axis = 0))[0:N//2] * 2 / N    #or possible scipy.fftpack.fft
     
     # Compute the corresponding frequencies of the FFT components
     freqs = np.linspace(0.0, 1.0 / (2.0 * T), N//2)
@@ -667,7 +673,7 @@ def feature_fft(matrix, period = 1., mains_f = 50.,
     # Make feature names
     names = []
     for i in np.arange(fft_values.shape[1]):
-        names.extend(['topFreq_' + str(j) + "_" + str(i) for j in np.arange(1,11)])
+        names.extend(['topFreq_' + str(j) + "_" + str(i) for j in np.arange(1,ntop+1)])
     
     if (get_power_spectrum):
         ret = np.hstack([ret, fft_values.flatten(order = 'F')])
@@ -1009,7 +1015,8 @@ def generate_feature_vectors_from_samples_single(file_path, nsamples, period,
 def generate_feature_vectors_from_samples(file_path, nsamples, period, 
                                           state = None, 
                                           remove_redundant = True,
-                                          cols_to_ignore = None):
+                                          cols_to_ignore = None,
+                                          output_file = None):
     """
     Reads data from CSV file in "file_path" and extracts statistical features 
     for each time window of width "period". 
@@ -1089,8 +1096,7 @@ def generate_feature_vectors_from_samples(file_path, nsamples, period,
         
         # Slide the slice by 1/2 period
         t += 0.5 * period
-        
-        
+
         # Compute the feature vector. We will be appending the features of the 
         # current time slice and those of the previous one.
         # If there was no previous vector we just set it and continue 
@@ -1128,6 +1134,16 @@ def generate_feature_vectors_from_samples(file_path, nsamples, period,
                 idx = feat_names.index(rm_str)
                 feat_names.pop(idx)
                 ret = np.delete(ret, idx, axis = 1)
+                
+    '''if os.path.isfile(output_file):    
+        with open(output_file, 'a', newline='') as data_file:    
+            writer = csv.writer(data_file)    
+            writer.writerow(feature_vector)    
+    else:    
+        with open(output_file, 'w', newline='') as data_file:    
+            writer = csv.writer(data_file)    
+            writer.writerow(feat_names)    
+            writer.writerow(feature_vector)'''
 
     # Return
     return ret, feat_names

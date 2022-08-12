@@ -147,6 +147,28 @@ def process_eeg(dataINdir,dataOUTdir):
         eeg=do_something_brainflow(eeg)
         eeg=ditch_bad_columns(eeg)
         np.savetxt(build_path(dataOUTdir,eegfile),eeg,delimiter=',')
+
+def remove_dupe_rows(data):
+    idx=0
+    while idx < len(data[:-2,-1]):
+        if np.array_equal(data[idx+1,:] , data[idx,:]):
+            data=np.delete(data,idx+1,0)
+            idx=idx-1
+            if idx+1 > len(data[:-2,-1]):
+                break
+        idx+=1
+    return data
+    #seems to work but needs more thorough real data test eg compare plots
+    #https://stackoverflow.com/questions/15637336/numpy-unique-with-order-preserved
+        
+def process_emg(dataINdir,dataOUTdir):
+    emglist=list_raw_files(dataINdir)
+    for emgfile in emglist:
+        print('fixing '+repr(emgfile))
+        emg=matrix_from_csv_file(emgfile.filepath)
+        emg=remove_dupe_rows(emg)
+        np.savetxt(build_path(dataOUTdir,emgfile),emg.astype(int),fmt='%i',delimiter=',')
+        
     
 def data_pipeline():
     raw_emg_dir=get_dir('emg','raw')
@@ -158,6 +180,11 @@ def data_pipeline():
     raw_emg_list=list_raw_files(raw_emg_dir)
     raw_eeg_list=list_raw_files(raw_eeg_dir)
     sync_raw_files(raw_emg_list,raw_eeg_list,crop_emg_dir,crop_eeg_dir,approval_required=0)
+    process_emg(crop_emg_dir,proc_emg_dir)
     process_eeg(crop_eeg_dir,proc_eeg_dir)
     
+if __name__ == '__main__':
+    datain='/home/michael/Documents/Aston/MultimodalFW/repo/multimodal-framework/testbench/emg/data_with_dupes'
+    dataout='/home/michael/Documents/Aston/MultimodalFW/repo/multimodal-framework/testbench/emg/dupes_removed'
+    process_emg(datain,dataout)
         

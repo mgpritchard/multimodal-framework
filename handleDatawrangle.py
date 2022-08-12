@@ -74,8 +74,15 @@ def list_raw_files(raw_dir):
         try:
             name, state, count = x[:-4].split('-')
         except:
-            print ('Wrong file name', x)
-            sys.exit(-1)   
+            if x[-7:-4]=='EEG':
+                try:
+                    name, state, count = x[:-9].split('-')
+                except:
+                    print ('Wrong file name', x)
+                    sys.exit(-1)
+            else:
+                print ('Wrong file name', x)
+                sys.exit(-1)   
         print ('Using file', x)
         full_file_path = raw_dir + '/' + x
         rawfile = Rawfile(full_file_path,name,state,count)

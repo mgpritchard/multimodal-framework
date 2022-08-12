@@ -96,8 +96,8 @@ def gen_training_matrix(directory_path, output_file, cols_to_ignore, singleFrame
         if not singleFrame:
             vectors, header = generate_feature_vectors_from_samples(file_path = full_file_path, 
                                                                 nsamples = 150, 
-                                                                period = 1,
-                                                                #period=1000
+                                                                #period = 1, #it would be 1 for unicorn eeg which is 1234567890.123456
+                                                                period=1000, #it would be 1000 for myo emg which is  1234567890123.4
                                                                 state = state,
                                                                 remove_redundant = True,
                                                                 cols_to_ignore = cols_to_ignore)
@@ -130,7 +130,20 @@ def gen_training_matrix(directory_path, output_file, cols_to_ignore, singleFrame
     np.savetxt(output_file, FINAL_MATRIX, delimiter = ',',
             header = ','.join(header), 
             comments = '')
+    
+    #Labelled_FINAL_MAT = FINAL_MATRIX.copy()[:,:-1]
+    row_labels=[]
+    for count, label in enumerate(FINAL_MATRIX[:,-1]):
+        row_labels.append(params.idx_to_gestures[label])
+    #Labelled_FINAL_MAT=np.concatenate((Labelled_FINAL_MAT,np.transpose(np.array([row_labels]))),axis=1)
+    MatFrame=pd.DataFrame(FINAL_MATRIX.copy()[:,:-1],columns=header[:-1])
+    MatFrame['Label']=row_labels
+    MatFrame.to_csv((output_file[:-4] + '_Labelled.csv'),sep=',',index=False,float_format="%.18e")
 
+    #https://phychai.wordpress.com/2016/10/27/pandas-to_csv-precision-loss/
+
+    print (time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(time.time())),'Done.')
+    
     return None
 
 
@@ -140,7 +153,8 @@ if __name__ == '__main__':
         [1] directory_path: The directory where the script will look for the files to process.
         [2] output_file: The filename of the generated output file.
     
-    ATTENTION: It will ignore the last column of the CSV file. 
+    ATTENTION: It will ignore the last column of the CSV file by default
+            (ie if cols_to_ignore remains -1). 
     
     Author:
         Original by [lmanso]

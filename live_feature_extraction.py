@@ -1084,10 +1084,13 @@ def generate_feature_vectors_from_samples(file_path, nsamples, period,
             if cols_to_ignore is not None:
                 s = np.delete(s, cols_to_ignore, axis = 1)
         except IndexError:
+            print('index error')
             break
         if len(s) == 0:
+            print('slicelength 0')
             break
-        if dur < 0.9 * period:
+        if dur < 0.75 * period:
+            print('slice duration '+str(dur)+' less than 75% of T '+str(period))
             break
         
         # Perform the resampling of the vector

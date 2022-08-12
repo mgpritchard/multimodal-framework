@@ -10,7 +10,7 @@ module to contain functionality related to wrangling & processing of data
 """
 import os
 from tkinter import Tk
-from tkinter.filedialog import askopenfilename, askopenfilenames, askdirectory, asksaveasfile
+from tkinter.filedialog import askopenfilename, askopenfilenames, askdirectory, asksaveasfilename
 import generate_training_matrix as feats
 
 def ask_for_dir(datatype=""):
@@ -24,16 +24,21 @@ def ask_for_savefile(datatype=""):
     homepath=os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
     Tk().withdraw()
     title='save '+datatype+' featureset as' 
-    savefile=asksaveasfile(title=title,initialdir=homepath)
+    savefile=asksaveasfilename(title=title,initialdir=homepath)
     return savefile
 
 def make_feats(directory_path=None, output_file=None, datatype=""):
     if directory_path is None:
         directory_path=ask_for_dir(datatype)
     if output_file is None:
-        output_file=ask_for_savefile()
+        output_file=ask_for_savefile(datatype)
     feats.gen_training_matrix(directory_path, output_file, cols_to_ignore=None, singleFrame=0)
     
 def feats_pipeline():
     make_feats(datatype='emg')
     make_feats(datatype='eeg')
+    
+if __name__ == '__main__':
+    emg_data_path='/home/michael/Documents/Aston/MultimodalFW/repo/multimodal-framework/testbench/emg/dupes_removed'
+    emg_feats_file='/home/michael/Documents/Aston/MultimodalFW/repo/multimodal-framework/testbench/emg/emg_test_feats.csv'
+    make_feats(directory_path=emg_data_path,output_file=emg_feats_file,datatype='emg')

@@ -116,10 +116,13 @@ def gen_training_matrix(directory_path, output_file, cols_to_ignore, singleFrame
         if FINAL_MATRIX is None:
             FINAL_MATRIX = vectors
         else:
-            FINAL_MATRIX = np.vstack( [ FINAL_MATRIX, vectors ] )
+            if np.any(vectors):
+                FINAL_MATRIX = np.vstack( [ FINAL_MATRIX, vectors ] )
+            else:
+                print('got nothing back for '+x+', skipping')
 
     print ('FINAL_MATRIX', FINAL_MATRIX.shape)
-    
+        
     # Shuffle rows
     np.random.shuffle(FINAL_MATRIX)
     

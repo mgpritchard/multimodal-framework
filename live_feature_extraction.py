@@ -10,6 +10,10 @@
 2019, June:
     Revised, commented and updated by Dr. Felipe Campelo [fcampelo], Aston University
     (f.campelo@aston.ac.uk / fcampelo@gmail.com)
+    
+2020 - 2021: tweaks made by Michael Pritchard [pritcham]
+
+2022, June: incorporating feature_freq_bands() added 2020, June by Solange Cerny [scerny], Aston University (https://github.com/fcampelo/EEG_Classification_)
 """
 
 # Commented since not used. [fcampelo]
@@ -673,6 +677,92 @@ def feature_fft(matrix, period = 1., mains_f = 50.,
     
     return ret, names
 
+def feature_freq_bands(ffts, names, bins = {    
+        'delta_l': 0.5,    'delta_h': 4.0,    
+        'theta_l': 4.0,    'theta_h': 8.0,    
+        'alpha_l': 8.0,    'alpha_h': 12.0,    
+        'beta_l': 12.0, 'beta_h':  35.0,    
+        'gamma_l': 35.0    
+    }):    
+    """    
+    Calculates bucket sums for all frequency *bands*  (delta, theta, alpha, beta and gamma)     
+    in that order e.g. lowest frequency first.    
+        
+    Parameters:    
+        ffts (numpy.ndarray): 1D array containing calculated fft values for all channels    
+        names (list): 1D array containing headers associated wit ffts values in      
+        format freq_<XXx>_<ch> where XX.x is frequency with precision of 1 decimal place    
+        and ch is a channel index. Keeping correct header format is important as it     
+        controls feature extraction logic.    
+        bins (dictionary): dictionary of open interval values for all frequency *bands*    
+    Returns:    
+        numpy.ndarray: 1D array containing bucket sums for all channels    
+        list: list containing feature names for the features    
+    Author:    
+        Original: [scerny]    
+        Minor tidyup 2022 June: [pritcham]
+    """    
+    current_ch_idx = '0'    
+    channels = []    
+    current_ch_x = []    
+    current_ch_y = []    
+    current_ch_bins = {    
+        'delta': [],'theta': [],'alpha': [], 'beta': [], 'gamma': [] }    
+    for idx, sample in enumerate(names):    
+        splt_sample = sample.split('_')    
+        if splt_sample[2] != current_ch_idx:    
+            channels.append([    
+                current_ch_x,     
+                current_ch_y,     
+                current_ch_bins,    
+                {    
+                    'delta': sum(current_ch_bins['delta']),    
+                    'theta': sum(current_ch_bins['theta']),    
+                    'alpha': sum(current_ch_bins['alpha']),    
+                    'beta':  sum(current_ch_bins['beta']),    
+                    'gamma': sum(current_ch_bins['gamma'])    
+                }    
+            ])    
+            current_ch_x = []    
+            current_ch_y = []    
+            current_ch_bins = {    
+                'delta': [], 'theta': [], 'alpha': [], 'beta':  [],    'gamma': [] }    
+            current_ch_idx = splt_sample[2]    
+        x = float(splt_sample[1])/10    
+        y = ffts[idx]    
+        current_ch_x.append(x)    
+        current_ch_y.append(y)    
+        # binning    
+        if x > bins['delta_l'] and x <= bins['delta_h']:    
+            current_ch_bins['delta'].append(y)    
+        if x > bins['theta_l'] and x <= bins['theta_h']:    
+            current_ch_bins['theta'].append(y)    
+        if x > bins['alpha_l'] and x <= bins['alpha_h']:    
+            current_ch_bins['alpha'].append(y)    
+        if x > bins['beta_l'] and x <= bins['beta_h']:    
+            current_ch_bins['beta'].append(y)    
+        if x > bins['gamma_l']:    
+            current_ch_bins['gamma'].append(y)    
+    channels.append([    
+        current_ch_x,     
+        current_ch_y,     
+        current_ch_bins,    
+        {    
+            'delta': sum(current_ch_bins['delta']),    
+            'theta': sum(current_ch_bins['theta']),    
+            'alpha': sum(current_ch_bins['alpha']),    
+            'beta':  sum(current_ch_bins['beta']),    
+            'gamma': sum(current_ch_bins['gamma'])    
+        }    
+    ])    
+    bands = [] # values    
+    names = [] # sum_alpha_0    
+    for idx, channel in enumerate(channels):    
+        for key, value in channel[3].items():    
+            bands.append(value)    
+            names.append('sum_' + key + '_' + str(idx))    
+            
+    return np.asarray(bands), names
 
 def calc_feature_vector(matrix, state):
     """
@@ -763,10 +853,25 @@ def calc_feature_vector(matrix, state):
     var_names += v
     var_values = np.hstack([var_values, x])
     
+    # excluded on 21-Jun-2020 by [scerny] as per advise of [fcampelo]:    
+    '''   Features calculated by feature_fft() should be excluded from the pool of attributes.     
+       This function should instead be used as a basis to calculate the power distribution of the     
+       five frequency *bands* (alpha, beta, gamma, delta and theta) by binning all frequency     
+       components into these five bands.    '''
+    ''' 
     x, v = feature_fft(matrix)
     var_names += v
     var_values = np.hstack([var_values, x])
-    
+    '''    
+    fft_ret, fft_names = feature_fft(matrix, period = 1., mains_f = 50.,     
+                            filter_mains = True, filter_DC = True,    
+                            normalise_signals = True,    
+                            ntop = 0, get_power_spectrum = True)        
+
+    x, v = feature_freq_bands(fft_ret, fft_names)     
+    var_names += v    
+    var_values = np.hstack([var_values, x])
+   
     if state != None:
         var_values = np.hstack([var_values, np.array([state])])
         var_names += ['Label']

@@ -10,6 +10,10 @@
 2019, June:
     Revised, commented and updated by Dr. Felipe Campelo [fcampelo], Aston University
     (f.campelo@aston.ac.uk / fcampelo@gmail.com)
+    
+2020 - 2021: tweaks made by Michael Pritchard [pritcham]
+
+2022, June: incorporating feature_freq_bands() added 2020, June by Solange Cerny [scerny], Aston University (https://github.com/fcampelo/EEG_Classification_)
 """
 
 # Commented since not used. [fcampelo]
@@ -19,6 +23,12 @@
 import numpy as np
 import scipy
 import scipy.signal
+'''    import scipy.fftpack
+import time    
+import csv    
+import os.path    
+import scipy.io    
+import json'''
 
 def matrix_from_csv_file(file_path):
     """
@@ -576,11 +586,11 @@ def feature_logcov(covM):
     if (np.any(covM)):
         log_cov = scipy.linalg.logm(covM)
     else:
-        log_cov=covM
+        log_cov=covM    #letting it handle cases where it cant validly log a nonexistant cov mat, pritcham
     indx = np.triu_indices(log_cov.shape[0])
     ret  = np.abs(log_cov[indx])
     
-    ret=ret.real #forcing output to not be complex as thats annoying
+    ret=ret.real    #forcing output to not be complex as thats annoying, pritcham
     log_cov=log_cov.real
     
     names = []
@@ -638,7 +648,7 @@ def feature_fft(matrix, period = 1., mains_f = 50.,
     # Compute the (absolute values of the) FFT
     # Extract only the first half of each FFT vector, since all the information
     # is contained there (by construction the FFT returns a symmetric vector).
-    fft_values = np.abs(scipy.fft.fft(matrix, axis = 0))[0:N//2] * 2 / N
+    fft_values = np.abs(scipy.fft.fft(matrix, axis = 0))[0:N//2] * 2 / N    #or possible scipy.fftpack.fft
     
     # Compute the corresponding frequencies of the FFT components
     freqs = np.linspace(0.0, 1.0 / (2.0 * T), N//2)
@@ -663,7 +673,7 @@ def feature_fft(matrix, period = 1., mains_f = 50.,
     # Make feature names
     names = []
     for i in np.arange(fft_values.shape[1]):
-        names.extend(['topFreq_' + str(j) + "_" + str(i) for j in np.arange(1,11)])
+        names.extend(['topFreq_' + str(j) + "_" + str(i) for j in np.arange(1,ntop+1)])
     
     if (get_power_spectrum):
         ret = np.hstack([ret, fft_values.flatten(order = 'F')])
@@ -673,6 +683,92 @@ def feature_fft(matrix, period = 1., mains_f = 50.,
     
     return ret, names
 
+def feature_freq_bands(ffts, names, bins = {    
+        'delta_l': 0.5,    'delta_h': 4.0,    
+        'theta_l': 4.0,    'theta_h': 8.0,    
+        'alpha_l': 8.0,    'alpha_h': 12.0,    
+        'beta_l': 12.0, 'beta_h':  35.0,    
+        'gamma_l': 35.0    
+    }):    
+    """    
+    Calculates bucket sums for all frequency *bands*  (delta, theta, alpha, beta and gamma)     
+    in that order e.g. lowest frequency first.    
+        
+    Parameters:    
+        ffts (numpy.ndarray): 1D array containing calculated fft values for all channels    
+        names (list): 1D array containing headers associated wit ffts values in      
+        format freq_<XXx>_<ch> where XX.x is frequency with precision of 1 decimal place    
+        and ch is a channel index. Keeping correct header format is important as it     
+        controls feature extraction logic.    
+        bins (dictionary): dictionary of open interval values for all frequency *bands*    
+    Returns:    
+        numpy.ndarray: 1D array containing bucket sums for all channels    
+        list: list containing feature names for the features    
+    Author:    
+        Original: [scerny]    
+        Minor tidyup 2022 June: [pritcham]
+    """    
+    current_ch_idx = '0'    
+    channels = []    
+    current_ch_x = []    
+    current_ch_y = []    
+    current_ch_bins = {    
+        'delta': [],'theta': [],'alpha': [], 'beta': [], 'gamma': [] }    
+    for idx, sample in enumerate(names):    
+        splt_sample = sample.split('_')    
+        if splt_sample[2] != current_ch_idx:    
+            channels.append([    
+                current_ch_x,     
+                current_ch_y,     
+                current_ch_bins,    
+                {    
+                    'delta': sum(current_ch_bins['delta']),    
+                    'theta': sum(current_ch_bins['theta']),    
+                    'alpha': sum(current_ch_bins['alpha']),    
+                    'beta':  sum(current_ch_bins['beta']),    
+                    'gamma': sum(current_ch_bins['gamma'])    
+                }    
+            ])    
+            current_ch_x = []    
+            current_ch_y = []    
+            current_ch_bins = {    
+                'delta': [], 'theta': [], 'alpha': [], 'beta':  [],    'gamma': [] }    
+            current_ch_idx = splt_sample[2]    
+        x = float(splt_sample[1])/10    
+        y = ffts[idx]    
+        current_ch_x.append(x)    
+        current_ch_y.append(y)    
+        # binning    
+        if x > bins['delta_l'] and x <= bins['delta_h']:    
+            current_ch_bins['delta'].append(y)    
+        if x > bins['theta_l'] and x <= bins['theta_h']:    
+            current_ch_bins['theta'].append(y)    
+        if x > bins['alpha_l'] and x <= bins['alpha_h']:    
+            current_ch_bins['alpha'].append(y)    
+        if x > bins['beta_l'] and x <= bins['beta_h']:    
+            current_ch_bins['beta'].append(y)    
+        if x > bins['gamma_l']:    
+            current_ch_bins['gamma'].append(y)    
+    channels.append([    
+        current_ch_x,     
+        current_ch_y,     
+        current_ch_bins,    
+        {    
+            'delta': sum(current_ch_bins['delta']),    
+            'theta': sum(current_ch_bins['theta']),    
+            'alpha': sum(current_ch_bins['alpha']),    
+            'beta':  sum(current_ch_bins['beta']),    
+            'gamma': sum(current_ch_bins['gamma'])    
+        }    
+    ])    
+    bands = [] # values    
+    names = [] # sum_alpha_0    
+    for idx, channel in enumerate(channels):    
+        for key, value in channel[3].items():    
+            bands.append(value)    
+            names.append('sum_' + key + '_' + str(idx))    
+            
+    return np.asarray(bands), names
 
 def calc_feature_vector(matrix, state):
     """
@@ -763,10 +859,25 @@ def calc_feature_vector(matrix, state):
     var_names += v
     var_values = np.hstack([var_values, x])
     
+    # excluded on 21-Jun-2020 by [scerny] as per advise of [fcampelo]:    
+    '''   Features calculated by feature_fft() should be excluded from the pool of attributes.     
+       This function should instead be used as a basis to calculate the power distribution of the     
+       five frequency *bands* (alpha, beta, gamma, delta and theta) by binning all frequency     
+       components into these five bands.    '''
+    ''' 
     x, v = feature_fft(matrix)
     var_names += v
     var_values = np.hstack([var_values, x])
-    
+    '''    
+    fft_ret, fft_names = feature_fft(matrix, period = 1., mains_f = 50.,     
+                            filter_mains = True, filter_DC = True,    
+                            normalise_signals = True,    
+                            ntop = 0, get_power_spectrum = True)        
+
+    x, v = feature_freq_bands(fft_ret, fft_names)     
+    var_names += v    
+    var_values = np.hstack([var_values, x])
+   
     if state != None:
         var_values = np.hstack([var_values, np.array([state])])
         var_names += ['Label']
@@ -904,7 +1015,8 @@ def generate_feature_vectors_from_samples_single(file_path, nsamples, period,
 def generate_feature_vectors_from_samples(file_path, nsamples, period, 
                                           state = None, 
                                           remove_redundant = True,
-                                          cols_to_ignore = None):
+                                          cols_to_ignore = None,
+                                          output_file = None):
     """
     Reads data from CSV file in "file_path" and extracts statistical features 
     for each time window of width "period". 
@@ -972,10 +1084,13 @@ def generate_feature_vectors_from_samples(file_path, nsamples, period,
             if cols_to_ignore is not None:
                 s = np.delete(s, cols_to_ignore, axis = 1)
         except IndexError:
+            print('index error')
             break
         if len(s) == 0:
+            print('slicelength 0')
             break
-        if dur < 0.9 * period:
+        if dur < 0.75 * period:
+            print('slice duration '+str(dur)+' less than 75% of T '+str(period))
             break
         
         # Perform the resampling of the vector
@@ -984,8 +1099,7 @@ def generate_feature_vectors_from_samples(file_path, nsamples, period,
         
         # Slide the slice by 1/2 period
         t += 0.5 * period
-        
-        
+
         # Compute the feature vector. We will be appending the features of the 
         # current time slice and those of the previous one.
         # If there was no previous vector we just set it and continue 
@@ -1023,6 +1137,16 @@ def generate_feature_vectors_from_samples(file_path, nsamples, period,
                 idx = feat_names.index(rm_str)
                 feat_names.pop(idx)
                 ret = np.delete(ret, idx, axis = 1)
+                
+    '''if os.path.isfile(output_file):    
+        with open(output_file, 'a', newline='') as data_file:    
+            writer = csv.writer(data_file)    
+            writer.writerow(feature_vector)    
+    else:    
+        with open(output_file, 'w', newline='') as data_file:    
+            writer = csv.writer(data_file)    
+            writer.writerow(feat_names)    
+            writer.writerow(feature_vector)'''
 
     # Return
     return ret, feat_names

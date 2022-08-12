@@ -10,6 +10,10 @@ module for OS-dependent parameters
 from sys import platform
 #import glob    #unused approach that allows us to be extension-agnostic if we have mixed jpgs and pngs
 
+gestures_to_idx = {'close':1.,'open':2.,'grasp':3.,'lateral':4.,'tripod':5.,'neutral':0.}
+idx_to_gestures = {1.:'close',2.:'open',3.:'grasp',4.:'lateral',5.:'tripod',0.:'neutral'}
+
+
 if platform =='win32':
     #windows
     path=r'C:\Users\pritcham\Documents\python\data-dump'

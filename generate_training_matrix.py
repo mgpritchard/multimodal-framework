@@ -10,16 +10,22 @@
 2019, June:
     Revised, commented and updated by Dr. Felipe Campelo [fcampelo], Aston University
     (f.campelo@aston.ac.uk / fcampelo@gmail.com)
+    
+2020 - 2022: tweaks made by Michael Pritchard [pritcham]
+
 """
 
 import os, sys
+import time
 import numpy as np
+import pandas as pd
 import params
 from live_feature_extraction import generate_feature_vectors_from_samples, generate_feature_vectors_from_samples_single
 import importlib.util
 spec = importlib.util.spec_from_file_location("toClass", params.gen_trainmat_spec_SpellLoc)
 toClass = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(toClass)
+'''INVESTIGATE IF THIS IS THE RIGHT TOCLASS VER. SHOULD PROB HAVE ONE IN HERE?'''
 #foo.MyClass()
 
 
@@ -60,6 +66,7 @@ def gen_training_matrix(directory_path, output_file, cols_to_ignore, singleFrame
         except:
             print ('Wrong file name', x)
             sys.exit(-1)
+        '''
         if state.lower() == 'open':
             state = 0.
         elif state.lower() == 'neutral':
@@ -73,6 +80,13 @@ def gen_training_matrix(directory_path, output_file, cols_to_ignore, singleFrame
         elif state.lower() == 'tripod':
             state = 5.
         else:
+            print ('Wrong file name', x)
+            print(state.lower())
+            sys.exit(-1)
+        '''
+        try:
+            state = params.gestures_to_idx[state.lower()]
+        except KeyError:
             print ('Wrong file name', x)
             print(state.lower())
             sys.exit(-1)

@@ -29,7 +29,7 @@ spec.loader.exec_module(toClass)
 #foo.MyClass()
 
 
-def gen_training_matrix(directory_path, output_file, cols_to_ignore, singleFrame=1):
+def gen_training_matrix(directory_path, output_file, cols_to_ignore, singleFrame=1,period=1000):
     """
     Reads the csv files in directory_path and assembles the training matrix with 
     the features extracted using the functions from EEG_feature_extraction.
@@ -62,10 +62,17 @@ def gen_training_matrix(directory_path, output_file, cols_to_ignore, singleFrame
         if 'test' in x.lower():
             continue
         try:
-            name, state, _ = x[:-4].split('-')
+            name, state, count = x[:-4].split('-')
         except:
-            print ('Wrong file name', x)
-            sys.exit(-1)
+            if x[-7:-4]=='EEG':
+                try:
+                    name, state, count = x[:-9].split('-')
+                except:
+                    print ('Wrong file name', x)
+                    sys.exit(-1)
+            else:
+                print ('Wrong file name', x)
+                sys.exit(-1)
         '''
         if state.lower() == 'open':
             state = 0.
@@ -97,7 +104,7 @@ def gen_training_matrix(directory_path, output_file, cols_to_ignore, singleFrame
             vectors, header = generate_feature_vectors_from_samples(file_path = full_file_path, 
                                                                 nsamples = 150, 
                                                                 #period = 1, #it would be 1 for unicorn eeg which is 1234567890.123456
-                                                                period=1000, #it would be 1000 for myo emg which is  1234567890123.4
+                                                                period=period, #it would be 1000 for myo emg which is  1234567890123.4
                                                                 state = state,
                                                                 remove_redundant = True,
                                                                 cols_to_ignore = cols_to_ignore)

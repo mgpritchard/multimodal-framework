@@ -27,12 +27,12 @@ def ask_for_savefile(datatype=""):
     savefile=asksaveasfilename(title=title,initialdir=homepath)
     return savefile
 
-def make_feats(directory_path=None, output_file=None, datatype=""):
+def make_feats(directory_path=None, output_file=None, datatype="",period=1000):
     if directory_path is None:
         directory_path=ask_for_dir(datatype)
     if output_file is None:
         output_file=ask_for_savefile(datatype)
-    feats.gen_training_matrix(directory_path, output_file, cols_to_ignore=None, singleFrame=0)
+    feats.gen_training_matrix(directory_path, output_file, cols_to_ignore=None, singleFrame=0,period=period)
     
 def feats_pipeline():
     make_feats(datatype='emg')

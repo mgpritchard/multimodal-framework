@@ -60,6 +60,14 @@ def matrix_from_csv_file(file):
 	#print ('HDR', (headers.shape))
     return matrix, headers
 
+def matrix_from_csv_file_drop_ID(file):
+    csv_data=pd.read_csv(file,delimiter=",").values
+    matrix = csv_data[1:,3:]
+    headers = csv_data[0]
+    print ('MAT', (matrix.shape))
+	#print ('HDR', (headers.shape))
+    return matrix, headers
+
 def train_offline(modeltype='gaussNB',train_set=None):
     path=os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
     Tk().withdraw()
@@ -69,7 +77,7 @@ def train_offline(modeltype='gaussNB',train_set=None):
     title_sav='location for trained model'
     modeldest=askdirectory(initialdir=path,title=title_sav)
     modelname=modeldest+'/'+os.path.basename(train_set)[:-4]+'_'+modeltype+'.sav'
-    train_dat=matrix_from_csv_file(train_set)[0]
+    train_dat=matrix_from_csv_file_drop_ID(train_set)[0]
     if modeltype=='gaussNB':
         train_nb(train_dat,modelname)
     elif modeltype=='RF':

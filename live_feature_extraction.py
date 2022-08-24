@@ -23,6 +23,7 @@
 import numpy as np
 import scipy
 import scipy.signal
+import params
 '''    import scipy.fftpack
 import time    
 import csv    
@@ -971,7 +972,7 @@ def generate_feature_vectors_from_samples_single(file_path, nsamples, period,
         # current time slice and those of the previous one.
         # If there was no previous vector we just set it and continue 
         # with the next vector.
-        r, headers = calc_feature_vector(ry, state)
+        r, headers = calc_feature_vector(ry, state)  
         
         #if previous_vector is not None:
             # If there is a previous vector, the script concatenates the two 
@@ -1064,6 +1065,11 @@ def generate_feature_vectors_from_samples(file_path, nsamples, period,
     # Read the matrix from file
     matrix = matrix_from_csv_file(file_path)
     
+    pptID,_,rep=((file_path.split('/')[-1])[:-4]).split('-')
+    
+    run=0 if pptID[-1].isdigit() else params.runletter_to_num[pptID[-1]]
+    pptID=int(pptID) if pptID[-1].isdigit() else int(pptID[:-1])
+    
     # We will start at the very begining of the file
     t = 0.
     
@@ -1106,10 +1112,26 @@ def generate_feature_vectors_from_samples(file_path, nsamples, period,
         # with the next vector.
         r, headers = calc_feature_vector(ry, state)
         
+        '''
+        run=0 if isinstance(pptID,int) else params.runletter_to_num[pptID[-1]]
+        pptID=int(pptID) if pptID[-1].isdigit() else int(pptID[:-1])
+        
+        if isinstance(pptID,int):
+            run=0
+        else:
+            run=params.runletter_to_num[pptID[-1]]
+            if pptID[-1].isdigit():
+                pptID=int(pptID)
+            else:
+                pptID=int(pptID[:-1])    
+        '''
+        
+        
         if previous_vector is not None:
             # If there is a previous vector, the script concatenates the two 
             # vectors and adds the result to the output matrix
             feature_vector = np.hstack([previous_vector, r])
+            feature_vector=np.hstack([pptID,run,int(rep),feature_vector])
             
             if ret is None:
                 ret = feature_vector
@@ -1122,7 +1144,7 @@ def generate_feature_vectors_from_samples(file_path, nsamples, period,
              # Remove the label (last column) of previous vector
             previous_vector = previous_vector[:-1] 
 
-    feat_names = ["lag1_" + s for s in headers[:-1]] + headers
+    feat_names = ['ID_pptID','ID_run','ID_gestrep']+["lag1_" + s for s in headers[:-1]] + headers #catch unboundlocal error headers before assignment and skip somehow?
     
     if remove_redundant:
         # Remove redundant lag window features
@@ -1136,7 +1158,7 @@ def generate_feature_vectors_from_samples(file_path, nsamples, period,
                 rm_str = to_rm[i] + str(j)
                 idx = feat_names.index(rm_str)
                 feat_names.pop(idx)
-                ret = np.delete(ret, idx, axis = 1)
+                ret = np.delete(ret, idx, axis = 1) #catch AxisError, 1 is occasionally out of bounds as array occasionally has dimension 1. maybe also record which ones were skipped
                 
     '''if os.path.isfile(output_file):    
         with open(output_file, 'a', newline='') as data_file:    

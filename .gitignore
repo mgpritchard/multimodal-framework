@@ -1,3 +1,10 @@
+# Ignore real data files within the testbench folders
+testbench/emg/data_with_dupes/
+testbench/emg/dupes_removed/
+testbench/eeg/data_from_brainflow/
+testbench/eeg/data_rearranged_cols/
+testbench/eeg/data_after_sigproc/
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]

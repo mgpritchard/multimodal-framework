@@ -1131,7 +1131,7 @@ def generate_feature_vectors_from_samples(file_path, nsamples, period,
             # If there is a previous vector, the script concatenates the two 
             # vectors and adds the result to the output matrix
             feature_vector = np.hstack([previous_vector, r])
-            feature_vector=np.hstack([pptID,run,int(rep),feature_vector])
+            feature_vector=np.hstack([pptID,run,int(rep),t-0.5*period,t,feature_vector])
             
             if ret is None:
                 ret = feature_vector
@@ -1144,7 +1144,7 @@ def generate_feature_vectors_from_samples(file_path, nsamples, period,
              # Remove the label (last column) of previous vector
             previous_vector = previous_vector[:-1] 
 
-    feat_names = ['ID_pptID','ID_run','ID_gestrep']+["lag1_" + s for s in headers[:-1]] + headers #catch unboundlocal error headers before assignment and skip somehow?
+    feat_names = ['ID_pptID','ID_run','ID_gestrep','ID_tstart','ID_tend']+["lag1_" + s for s in headers[:-1]] + headers #catch unboundlocal error headers before assignment and skip somehow?
     
     if remove_redundant:
         # Remove redundant lag window features

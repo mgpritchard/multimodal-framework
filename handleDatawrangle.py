@@ -62,30 +62,38 @@ class Rawfile:
         return(f'{self.__class__.__name__}('
                f'{self.filepath!r},{self.ppt!r}, {self.label!r}, {self.count!r})')
 
+def build_rawfile_obj(filename,directory):
+    x=filename
+    if not x.lower().endswith('.csv'): # Ignore non-CSV files
+        return None, None, None    
+    # For safety we'll ignore files containing the substring "test". 
+    # [Test files should not be in the dataset directory in the first place]
+    if 'test' in x.lower():
+        return None, None, None
+    try:
+        name, state, count = x[:-4].split('-')
+    except:
+        if x[-7:-4]=='EEG':
+            try:
+                name, state, count = x[:-9].split('-')
+            except:
+                print ('Wrong file name', x)
+                sys.exit(-1)
+        else:
+            print ('Wrong file name', x)
+            sys.exit(-1)
+    full_file_path = os.path.join(directory,x)
+    rawfile = Rawfile(full_file_path,name,state,count)
+    return rawfile
+
 def list_raw_files(raw_dir):
     raw_list = []
     for x in os.listdir(raw_dir):
-        if not x.lower().endswith('.csv'): # Ignore non-CSV files
-            continue    
-        # For safety we'll ignore files containing the substring "test". 
-        # [Test files should not be in the dataset directory in the first place]
-        if 'test' in x.lower():
+        rawfile = build_rawfile_obj(x,raw_dir)
+        if rawfile is None:
+            print('skipping file',x)
             continue
-        try:
-            name, state, count = x[:-4].split('-')
-        except:
-            if x[-7:-4]=='EEG':
-                try:
-                    name, state, count = x[:-9].split('-')
-                except:
-                    print ('Wrong file name', x)
-                    sys.exit(-1)
-            else:
-                print ('Wrong file name', x)
-                sys.exit(-1)   
         print ('Using file', x)
-        full_file_path = raw_dir + '/' + x
-        rawfile = Rawfile(full_file_path,name,state,count)
         raw_list.append(rawfile)
     return raw_list
 
@@ -183,7 +191,7 @@ def process_eeg(dataINdir,dataColsRearrangeddir,dataOUTdir):
 
 def remove_dupe_rows(data):
     idx=0
-    while idx < len(data[:-2,-1]):
+    while idx < len(data[:-2,-1]):  #maybe catch index error and skip (ie if data is empty)
         if np.array_equal(data[idx+1,:] , data[idx,:]):
             data=np.delete(data,idx+1,0)
             idx=idx-1

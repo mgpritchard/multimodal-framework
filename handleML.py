@@ -61,9 +61,11 @@ def matrix_from_csv_file(file):
     return matrix, headers
 
 def matrix_from_csv_file_drop_ID(file):
-    csv_data=pd.read_csv(file,delimiter=",").values
-    matrix = csv_data[1:,3:]
-    headers = csv_data[0]
+    csv_dframe=pd.read_csv(file,delimiter=",")
+    IDs=csv_dframe.filter(regex='^ID_').columns
+    csv_dframe=csv_dframe.drop(IDs,axis='columns')
+    matrix=csv_dframe.values
+    headers = csv_dframe.columns.values
     print ('MAT', (matrix.shape))
 	#print ('HDR', (headers.shape))
     return matrix, headers

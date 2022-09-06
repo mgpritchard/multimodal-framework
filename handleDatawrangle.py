@@ -137,22 +137,48 @@ def move_unicorn_time(unicorndata):
     moved=unicorndata[:,[17,0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,18]]
     return moved
 
-def do_something_brainflow(eeg):
+def do_something_brainflow(eeg,sampling_rate):
     print ("\nITS NOT FINISHED YET\n")
-    print('reference to average (spatial)')
+    print('reference to average (spatial)\nBut maybe it should be Surface Laplace')
+    #bfsig.plot_eeg(data,1,'raw')
+    eeg[:,1:]=bfsig.ref_to_avg(eeg[:,1:])
+    #bfsig.plot_eeg(data,1,'raw after ref')
+    #---
+    
+    #bfsig.plot_fft(eeg[:,1:],sampling_rate,'FFT pre-filt')
+    hp_filt_type=bfsig.FilterTypes.BUTTERWORTH.value
+    hp_cutoff=0.5
+    hp_order=3
+    eeg=bfsig.highpass(eeg,[1,2,3,4,5,6,7,8],sampling_rate,hp_cutoff,hp_order,hp_filt_type)
+    #bfsig.plot_eeg(eeg,1,'HPF')
+    #bfsig.plot_fft(eeg[:,eeg_channels],sampling_rate,'FFT HPF')
+    #---
+    
+    notch_filt_type=bfsig.FilterTypes.BUTTERWORTH.value
+    notch_freq=50
+    notch_width=1
+    notch_order=3
+    eeg=bfsig.notch(eeg,[1,2,3,4,5,6,7,8],sampling_rate,notch_freq,notch_width,notch_order,notch_filt_type)
+    #bfsig.plot_eeg(data,2,'Notch')
+    #bfsig.plot_fft(data[:,eeg_channels],sampling_rate,'FFT Notch')
+    print('bfsig.notch')
     return eeg
 
 def ditch_bad_columns(eeg):
     print ("\nITS NOT FINISHED YET\n")
+    print ('-Deprecated in favour of achieving this when loading datafile in load_raw_brainflow-')
+    eeg=eeg[0,1,2,3,4,5,6,7,8,]
     return eeg
 
-def process_eeg(dataINdir,dataOUTdir):
+def process_eeg(dataINdir,dataColsRearrangeddir,dataOUTdir):
     eeglist=list_raw_files(dataINdir)
     for eegfile in eeglist:
         print('processing '+repr(eegfile))
-        eeg=bfsig.eeg_filt_pipeline(eegfile.filepath)
-        eeg=do_something_brainflow(eeg)
-        eeg=ditch_bad_columns(eeg)
+       
+        eeg,sampling_rate=bfsig.load_raw_brainflow(eegfile.filepath)
+        np.savetxt(build_path(dataColsRearrangeddir,eegfile),eeg,delimiter=',')
+        
+        eeg=do_something_brainflow(eeg,sampling_rate)
         np.savetxt(build_path(dataOUTdir,eegfile),eeg,delimiter=',')
 
 def remove_dupe_rows(data):

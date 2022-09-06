@@ -12,7 +12,6 @@ import handleDatawrangle as wrangle
 import handleFeats as feats
 import handleML as ml
 import handleComposeDataset as comp
-import handleTrainTestPipeline as tt
 import params
 from tkinter import Tk
 from tkinter.filedialog import askopenfilename, askopenfilenames, askdirectory, asksaveasfilename
@@ -20,23 +19,38 @@ from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay #plot_confu
 import matplotlib.pyplot as plt
 
 
-
-'''def process_eeg(datain=None): #deprecated, now moved to handleTrainTestPipeline as process_data
+def process_data(datatype,datain=None,overwrite=True):
+    '''datatype = 'emg' or 'eeg',
+    datain = directory of raw unprocessed data,
+    overwrite = Modify the data in-place T/F?'''
+    
     if datain is None:
-        datain=askdirectory(initialdir=root,title='Select EEG Directory')
-    dataout=datain
-    datacolsrearr=datain
-    wrangle.process_eeg(datain,datacolsrearr,dataout)
+        datain=askdirectory(initialdir=root,title='Select '+datatype.upper()+' Directory')
+    
+    if overwrite:
+        dataout=datain
+    else:
+        dataout=askdirectory(initialdir=root,title='Select Directory for processed '+datatype.upper())
+    
+    if datatype=='emg':
+        wrangle.process_emg(datain,dataout)        
+    elif datatype=='eeg':
+        datacolsrearr=datain
+        wrangle.process_eeg(datain,datacolsrearr,dataout)
+    else:
+        raise TypeError('Error: Unknown data type: '+str(datatype))
+    
+    print('**processed raw '+datatype+'**')
     #sync_raw_files()    #not yet ready as EEG data not ready
-    print('**processed raw eeg**')
-    return dataout'''
+    return dataout
 
-def make_eeg_feats(data_dir_path):
-    eeg_data_path=data_dir_path
-    eeg_feats_file=asksaveasfilename(initialdir=root,title='Save featureset as')
-    feats.make_feats(directory_path=eeg_data_path,output_file=eeg_feats_file,datatype='eeg')
-    print('**made featureset**')
-    return eeg_feats_file
+
+def make_feats(datatype,data_path):
+    feats_file=asksaveasfilename(initialdir=root,title='Save featureset as')
+    feats.make_feats(directory_path=data_path,output_file=feats_file,datatype=datatype)
+    print('**made '+datatype+' featureset**')
+    return feats_file
+
 
 def split_train_test(featspath):
     featset=ml.matrix_from_csv_file(featspath)[0]
@@ -47,32 +61,35 @@ def split_train_test(featspath):
 
     train_path=featspath[:-4]+'_trainslice.csv'
     test_path=featspath[:-4]+'_testslice.csv'
+    
     np.savetxt(train_path, train, delimiter = ',')
     np.savetxt(test_path, test, delimiter = ',')
     print('**saved train/test splits')
     return train_path, test_path
 
-'''def train(train_path): #deprecated, now moved to handleTrainTestPipeline
-    ml.train_offline('RF',train_path)
-    print('**trained a model**')'''
 
-def test(test_set_path=None):
+def train(train_path):
+    ml.train_offline('RF',train_path)
+    print('**trained a model**')
+
+
+def test(datatype,test_set_path=None):
+    ''' datatype = 'emg' or 'eeg',
+    test_set_path = test slice featureset '''
+    
     root="/home/michael/Documents/Aston/MultimodalFW/"
     if (not 'test' in locals()) and (test_set_path is None):
-        # could this just be set test as a param=None, and then if is None?
-        testset_loc=askopenfilename(initialdir=root,title='Select test set')
-        test=ml.matrix_from_csv_file_drop_ID(testset_loc)[0]
-    else:
-        test=ml.matrix_from_csv_file_drop_ID(test_set_path)[0]
-        
+        test_set_path=askopenfilename(initialdir=root,title='Select test set')
+    test=ml.matrix_from_csv_file(test_set_path)[0]
     testset_values = test[:,0:-1]
     testset_labels = test[:,-1]
-    model = ml.load_model('testing eeg',root)
-    labels=model.classes_
     
+    model = ml.load_model('testing emg',root)
+    labels=model.classes_
     distrolist=[]
     predlist=[]
     correctness=[]
+    
     for inst_count, instance in enumerate(testset_values):
         distro=ml.prob_dist(model, instance.reshape(1,-1))  
         predlabel=ml.pred_from_distro(labels, distro)
@@ -88,15 +105,25 @@ def test(test_set_path=None):
     gest_truth=[params.idx_to_gestures[gest] for gest in testset_labels]
     gest_pred=[params.idx_to_gestures[pred] for pred in predlist]
     gesturelabels=[params.idx_to_gestures[label] for label in labels]
-    confmat(gest_truth,gest_pred,gesturelabels)
+    
+    confmat(gest_truth,gest_pred,gesturelabels,testset=test_set_path)
+    
     return gest_truth,distrolist,gest_pred
+    #return testset_labels,distrolist,predlist
 
-def confmat(y_true,y_pred,labels):
+
+def confmat(y_true,y_pred,labels,modelname="",testset=""):
     conf=confusion_matrix(y_true,y_pred,labels=labels)
-    ConfusionMatrixDisplay(conf,labels).plot()
+    cm=ConfusionMatrixDisplay(conf,labels).plot()
+    cm.figure_.suptitle=(modelname+'\n'+testset)
+    #add the model name and test set as labels?? using suptitle here didnt work lol
     plt.show()
     
-'''def copy_files(filelist,emg_dest,eeg_dest): #deprecated, now moved to handleTrainTestPipeline
+    
+def copy_files(filelist,emg_dest,eeg_dest):
+    '''filelist = list of data files in master dataset directory,
+    emg_dest = destination path for EMG files,
+    eeg_dest = destination path for EEG files'''
     for file in filelist:
         if file[-7:-4]=='EEG':
             dest=os.path.join(eeg_dest,file)
@@ -104,23 +131,11 @@ def confmat(y_true,y_pred,labels):
             dest=os.path.join(emg_dest,file)
         source=os.path.join(path,file)
         if not os.path.exists(dest):
-            comp.copyfile(source,dest)'''
+            comp.copyfile(source,dest)
 
-def ditch_EEG_suffix(eegdir):
-    for file in os.listdir(eegdir):
-        if file.endswith('_EEG',0,-4):
-            os.remove(os.path.join(eegdir,file))
-
-
-## Testing the suspiciously hihgh accuracy:
-#load model with testset,testset_attribs=ml.matrixdropID(testsetfile.csv)
-#attrib_names = list(testset_attribs)
-#plt.figure()
-#tree.plot_tree(model,feature_names=attrib_names,max_depth=2,fontsize=6)    
 
 if __name__ == '__main__':
-    #test(None)
-    #raise
+    raise
     #run handleComposeDataset
     #need some way of doing leave-ppt-out crosseval.
     #maybe just n runs of ComposeDataset but skipping the gui?
@@ -144,7 +159,7 @@ if __name__ == '__main__':
         paths.append(comp.build_path(path_devset,ppt.split(' ')[0]))
     
     trainsize=0.75
-    for path in paths[3:]:
+    for path in paths:
         files=os.listdir(path)
         pptnum=path.split('/')[-1]
         labels=[file.split('-')[1] for file in files]
@@ -163,53 +178,33 @@ if __name__ == '__main__':
         comp.make_path(test_emg)
         comp.make_path(test_eeg)
         
-        tt.copy_files(trainfiles,train_emg,train_eeg)
-        tt.copy_files(testfiles,test_emg,test_eeg)
+        copy_files(trainfiles,train_emg,train_eeg)
+        copy_files(testfiles,test_emg,test_eeg)
         
-        '''ONLY DO THIS IF NOT ALREADY PROCESSED EEG'''
-        if 1:   
-            train_eeg = tt.process_data('eeg',train_eeg)
-            ditch_EEG_suffix(train_eeg)
-            test_eeg = tt.process_data('eeg',test_eeg)
-            ditch_EEG_suffix(test_eeg)
+        train_emg=process_data(train_emg)
+        test_emg=process_data(test_emg)
         
-        train_eeg_featset=working+str(pptnum)+'_eeg_train.csv'
-        test_eeg_featset=working+str(pptnum)+'_eeg_test.csv'
+        train_emg_featset=working+str(pptnum)+'_EMG_train.csv'
+        test_emg_featset=working+str(pptnum)+'_EMG_test.csv'
         
-        feats.make_feats(train_eeg,train_eeg_featset,'eeg',period=1)
-        feats.make_feats(test_eeg,test_eeg_featset,'eeg',period=1)
+        feats.make_feats(train_emg,train_emg_featset,'emg')
+        feats.make_feats(test_emg,test_emg_featset,'emg')
         
-        #eegtrain_labelled=train_eeg_featset[:-4] + '_Labelled.csv'
-        #eegtest_labelled=test_eeg_featset[:-4] + '_Labelled.csv'
-        tt.train(train_eeg_featset)
-        y_true,y_distro,y_pred=test(test_eeg_featset)
-        #conf=confusion_matrix(y_true,y_pred)
-        break #cutting off after 1 ppt for speedier testing
+        train(train_emg_featset)
+        true,distros,preds=test(test_emg_featset)
+        
+        break
     
     
     raise #below is just for a one and done not stratifying
     print('stop')
     Tk().withdraw()
     
-    processed_eeg_path=process_eeg()
-    eeg_feats_filepath=make_eeg_feats(processed_eeg_path)
-    train_set_path, test_set_path = split_train_test(eeg_feats_filepath)
-    tt.train(train_set_path)
+    processed_emg_path=process_data()
+    emg_feats_filepath=make_feats(processed_emg_path)
+    train_set_path, test_set_path = split_train_test(emg_feats_filepath)
+    train(train_set_path)
     test(test_set_path=None)
     
-    '''can do manually with the following steps'''
-    #run script with the __main__ raising error immediately
-    #run lines 94-ish (root dir etc)
-    #train_eeg=process+eeg((working+'dev/EEG/')
-    #eeg_featset=working+'EEG_001009011.csv'
-    #feats.make_feats(train_eeg,eeg_featset,'eeg',period=1)
-    #train_set_path, test_set_path = split_train_test(eeg_featset)
-    #train(train_set_path)
-    #test(test_set_path)
-    y_true,y_distro,y_pred=test(test_set_path)
-    #ConfusionMatrixDisplay.from_predictions(y_true,y_pred) #need to update to sklearn 1.0.x
-    conf=confusion_matrix(y_true,y_pred)
-    ConfusionMatrixDisplay(conf)
-    plt.show()
     
 

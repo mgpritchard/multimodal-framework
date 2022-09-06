@@ -12,6 +12,7 @@ import handleDatawrangle as wrangle
 import handleFeats as feats
 import handleML as ml
 import handleComposeDataset as comp
+import handleTrainTestPipeline as tt
 import params
 from tkinter import Tk
 from tkinter.filedialog import askopenfilename, askopenfilenames, askdirectory, asksaveasfilename
@@ -19,14 +20,14 @@ from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay #plot_confu
 import matplotlib.pyplot as plt
 
 
-def process_emg(datain=None):
+'''def process_emg(datain=None): #deprecated, now moved to handleTrainTestPipeline as process_data
     if datain is None:
         datain=askdirectory(initialdir=root,title='Select EMG Directory')
     dataout=datain
     wrangle.process_emg(datain,dataout)
     #sync_raw_files()    #not yet ready as EEG data not ready
     print('**processed raw emg**')
-    return dataout
+    return dataout'''
 
 def make_emg_feats(data_dir_path):
     emg_data_path=data_dir_path
@@ -49,9 +50,9 @@ def split_train_test(featspath):
     print('**saved train/test splits')
     return train_path, test_path
 
-def train(train_path):
+'''def train(train_path): #deprecated, now moved to handleTrainTestPipeline
     ml.train_offline('RF',train_path)
-    print('**trained a model**')
+    print('**trained a model**')'''
 
 def test(test_set_path=None):
     root="/home/michael/Documents/Aston/MultimodalFW/"
@@ -93,7 +94,7 @@ def confmat(y_true,y_pred,labels,modelname="",testset=""):
     #add the model name and test set as labels?? using suptitle here didnt work lol
     plt.show()
     
-def copy_files(filelist,emg_dest,eeg_dest):
+'''def copy_files(filelist,emg_dest,eeg_dest): #deprecated, now moved to handleTrainTestPipeline
     for file in filelist:
         if file[-7:-4]=='EEG':
             dest=os.path.join(eeg_dest,file)
@@ -101,7 +102,7 @@ def copy_files(filelist,emg_dest,eeg_dest):
             dest=os.path.join(emg_dest,file)
         source=os.path.join(path,file)
         if not os.path.exists(dest):
-            comp.copyfile(source,dest)
+            comp.copyfile(source,dest)'''
 
 if __name__ == '__main__':
     raise
@@ -147,11 +148,11 @@ if __name__ == '__main__':
         comp.make_path(test_emg)
         comp.make_path(test_eeg)
         
-        copy_files(trainfiles,train_emg,train_eeg)
-        copy_files(testfiles,test_emg,test_eeg)
+        tt.copy_files(trainfiles,train_emg,train_eeg)
+        tt.copy_files(testfiles,test_emg,test_eeg)
         
-        train_emg=process_emg(train_emg)
-        test_emg=process_emg(test_emg)
+        train_emg = tt.process_data('emg',train_emg)
+        test_emg = tt.process_data('emg',test_emg)
         
         train_emg_featset=working+str(pptnum)+'_EMG_train.csv'
         test_emg_featset=working+str(pptnum)+'_EMG_test.csv'
@@ -159,7 +160,7 @@ if __name__ == '__main__':
         feats.make_feats(train_emg,train_emg_featset,'emg')
         feats.make_feats(test_emg,test_emg_featset,'emg')
         
-        train(train_emg_featset)
+        tt.train(train_emg_featset)
         true,distros,preds=test(test_emg_featset)
         
         break #cutting off after 1 ppt for speedier testing

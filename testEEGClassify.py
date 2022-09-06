@@ -19,21 +19,23 @@ from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay #plot_confu
 import matplotlib.pyplot as plt
 
 
-def process_emg(datain=None):
+
+def process_eeg(datain=None):
     if datain is None:
-        datain=askdirectory(initialdir=root,title='Select EMG Directory')
+        datain=askdirectory(initialdir=root,title='Select EEG Directory')
     dataout=datain
-    wrangle.process_emg(datain,dataout)
+    datacolsrearr=datain
+    wrangle.process_eeg(datain,datacolsrearr,dataout)
     #sync_raw_files()    #not yet ready as EEG data not ready
-    print('**processed raw emg**')
+    print('**processed raw eeg**')
     return dataout
 
-def make_emg_feats(data_dir_path):
-    emg_data_path=data_dir_path
-    emg_feats_file=asksaveasfilename(initialdir=root,title='Save featureset as')
-    feats.make_feats(directory_path=emg_data_path,output_file=emg_feats_file,datatype='emg')
+def make_eeg_feats(data_dir_path):
+    eeg_data_path=data_dir_path
+    eeg_feats_file=asksaveasfilename(initialdir=root,title='Save featureset as')
+    feats.make_feats(directory_path=eeg_data_path,output_file=eeg_feats_file,datatype='eeg')
     print('**made featureset**')
-    return emg_feats_file
+    return eeg_feats_file
 
 def split_train_test(featspath):
     featset=ml.matrix_from_csv_file(featspath)[0]
@@ -56,14 +58,17 @@ def train(train_path):
 def test(test_set_path=None):
     root="/home/michael/Documents/Aston/MultimodalFW/"
     if (not 'test' in locals()) and (test_set_path is None):
+        # could this just be set test as a param=None, and then if is None?
         testset_loc=askopenfilename(initialdir=root,title='Select test set')
-        test=ml.matrix_from_csv_file(testset_loc)[0]
+        test=ml.matrix_from_csv_file_drop_ID(testset_loc)[0]
     else:
-        test=ml.matrix_from_csv_file(test_set_path)[0]
+        test=ml.matrix_from_csv_file_drop_ID(test_set_path)[0]
+        
     testset_values = test[:,0:-1]
     testset_labels = test[:,-1]
-    model = ml.load_model('testing emg',root)
+    model = ml.load_model('testing eeg',root)
     labels=model.classes_
+    
     distrolist=[]
     predlist=[]
     correctness=[]
@@ -82,15 +87,12 @@ def test(test_set_path=None):
     gest_truth=[params.idx_to_gestures[gest] for gest in testset_labels]
     gest_pred=[params.idx_to_gestures[pred] for pred in predlist]
     gesturelabels=[params.idx_to_gestures[label] for label in labels]
-    confmat(gest_truth,gest_pred,gesturelabels,testset=test_set_path)
+    confmat(gest_truth,gest_pred,gesturelabels)
     return gest_truth,distrolist,gest_pred
-    #return testset_labels,distrolist,predlist
 
-def confmat(y_true,y_pred,labels,modelname="",testset=""):
+def confmat(y_true,y_pred,labels):
     conf=confusion_matrix(y_true,y_pred,labels=labels)
-    cm=ConfusionMatrixDisplay(conf,labels).plot()
-    cm.figure_.suptitle=(modelname+'\n'+testset)
-    #add the model name and test set as labels?? using suptitle here didnt work lol
+    ConfusionMatrixDisplay(conf,labels).plot()
     plt.show()
     
 def copy_files(filelist,emg_dest,eeg_dest):
@@ -103,8 +105,21 @@ def copy_files(filelist,emg_dest,eeg_dest):
         if not os.path.exists(dest):
             comp.copyfile(source,dest)
 
+def ditch_EEG_suffix(eegdir):
+    for file in os.listdir(eegdir):
+        if file.endswith('_EEG',0,-4):
+            os.remove(os.path.join(eegdir,file))
+
+
+## Testing the suspiciously hihgh accuracy:
+#load model with testset,testset_attribs=ml.matrixdropID(testsetfile.csv)
+#attrib_names = list(testset_attribs)
+#plt.figure()
+#tree.plot_tree(model,feature_names=attrib_names,max_depth=2,fontsize=6)    
+
 if __name__ == '__main__':
-    raise
+    #test(None)
+    #raise
     #run handleComposeDataset
     #need some way of doing leave-ppt-out crosseval.
     #maybe just n runs of ComposeDataset but skipping the gui?
@@ -128,7 +143,7 @@ if __name__ == '__main__':
         paths.append(comp.build_path(path_devset,ppt.split(' ')[0]))
     
     trainsize=0.75
-    for path in paths:
+    for path in paths[3:]:
         files=os.listdir(path)
         pptnum=path.split('/')[-1]
         labels=[file.split('-')[1] for file in files]
@@ -150,30 +165,50 @@ if __name__ == '__main__':
         copy_files(trainfiles,train_emg,train_eeg)
         copy_files(testfiles,test_emg,test_eeg)
         
-        train_emg=process_emg(train_emg)
-        test_emg=process_emg(test_emg)
+        '''ONLY DO THIS IF NOT ALREADY PROCESSED EEG'''
+        if 1:   
+            train_eeg=process_eeg(train_eeg)
+            ditch_EEG_suffix(train_eeg)
+            test_eeg=process_eeg(test_eeg)
+            ditch_EEG_suffix(test_eeg)
         
-        train_emg_featset=working+str(pptnum)+'_EMG_train.csv'
-        test_emg_featset=working+str(pptnum)+'_EMG_test.csv'
+        train_eeg_featset=working+str(pptnum)+'_eeg_train.csv'
+        test_eeg_featset=working+str(pptnum)+'_eeg_test.csv'
         
-        feats.make_feats(train_emg,train_emg_featset,'emg')
-        feats.make_feats(test_emg,test_emg_featset,'emg')
+        feats.make_feats(train_eeg,train_eeg_featset,'eeg',period=1)
+        feats.make_feats(test_eeg,test_eeg_featset,'eeg',period=1)
         
-        train(train_emg_featset)
-        true,distros,preds=test(test_emg_featset)
-        
-        break #cutting off after 1 ppt for speedier testing
+        #eegtrain_labelled=train_eeg_featset[:-4] + '_Labelled.csv'
+        #eegtest_labelled=test_eeg_featset[:-4] + '_Labelled.csv'
+        train(train_eeg_featset)
+        y_true,y_distro,y_pred=test(test_eeg_featset)
+        #conf=confusion_matrix(y_true,y_pred)
+        break
     
     
     raise #below is just for a one and done not stratifying
     print('stop')
     Tk().withdraw()
     
-    processed_emg_path=process_emg()
-    emg_feats_filepath=make_emg_feats(processed_emg_path)
-    train_set_path, test_set_path = split_train_test(emg_feats_filepath)
+    processed_eeg_path=process_eeg()
+    eeg_feats_filepath=make_eeg_feats(processed_eeg_path)
+    train_set_path, test_set_path = split_train_test(eeg_feats_filepath)
     train(train_set_path)
     test(test_set_path=None)
     
+    '''can do manually with the following steps'''
+    #run script with the __main__ raising error immediately
+    #run lines 94-ish (root dir etc)
+    #train_eeg=process+eeg((working+'dev/EEG/')
+    #eeg_featset=working+'EEG_001009011.csv'
+    #feats.make_feats(train_eeg,eeg_featset,'eeg',period=1)
+    #train_set_path, test_set_path = split_train_test(eeg_featset)
+    #train(train_set_path)
+    #test(test_set_path)
+    y_true,y_distro,y_pred=test(test_set_path)
+    #ConfusionMatrixDisplay.from_predictions(y_true,y_pred) #need to update to sklearn 1.0.x
+    conf=confusion_matrix(y_true,y_pred)
+    ConfusionMatrixDisplay(conf)
+    plt.show()
     
 

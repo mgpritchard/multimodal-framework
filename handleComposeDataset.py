@@ -8,6 +8,7 @@ Created on Fri Jan 15 19:28:17 2021
 
 import os
 from tkinter import *
+from tkinter.messagebox import askyesno
 #from feature_extraction.EMG_generate_training_matrix import gen_training_matrix
 #from feature_extraction.labelstoClass import numtoClass
 from distutils.dir_util import copy_tree
@@ -40,6 +41,11 @@ def build_path(path,num):
     path=path+num
     return path
 
+def make_path(path,printout=True):
+    if not os.path.exists(path):
+        print(path)
+        os.makedirs(path)
+
 def build_set(paths,destination):
     for path in paths:
         #pathname=os.path.basename(path)
@@ -53,7 +59,7 @@ def build_set(paths,destination):
         #copy_tree(path,dest)
     #open_file(destination)
     
-def build_set_separate_modes(paths,destination):
+def build_set_separate_modes(paths,destination,flush_folders=None):
     emgdest=destination+'EMG/'
     eegdest=destination+'EEG/'
     if not os.path.exists(emgdest):
@@ -62,6 +68,16 @@ def build_set_separate_modes(paths,destination):
     if not os.path.exists(eegdest):
         print(eegdest)
         os.makedirs(eegdest)
+    if flush_folders is not None:
+        Tk().withdraw()
+        flush_folders=askyesno(title='Flush dataset?',message='Do you want '
+                           'to empty the contents of the working dataset '
+                           'directories \n\"'+emgdest+'\" and \"'+eegdest+'\"?'
+                           '\nPlease be CERTAIN this is safe.'
+                           )
+    if flush_folders:
+        flush_folder(emgdest)
+        flush_folder(eegdest)
     for path in paths:
         for file in os.listdir(path):
             if file[-7:-4]=='EEG':
@@ -70,10 +86,38 @@ def build_set_separate_modes(paths,destination):
                 dest=os.path.join(emgdest,file)
             source=os.path.join(path,file)
             copyfile(source,dest)
-
-if __name__ == '__main__':
+            
+            
+def run_selection_window(pptlist):
     root=Tk()
     root.geometry('175x375')
+    ppts = []
+    for i in range(len(pptlist)):
+        ppts.append(IntVar())
+        Checkbutton(root,text=pptlist[i],variable=ppts[i]).grid(row=i,sticky=W,pady=3)
+    #Button(root,text='Quit',command=root.quit).grid(row=3, sticky=W, pady=4)
+    width,height=root.grid_size();
+    Button(root,text='Check',command=listppts).grid(row=height,sticky=W)
+    Button(root,text='Selected',command=root.destroy).grid(row=height,column=width,sticky=E)
+    '''#above may not be working, may need to close popup directly?'''
+    root.mainloop()
+    return ppts
+
+def flush_folder(dirpath):
+    for file in os.listdir(dirpath):
+        if not file.endswith(".csv"):
+            continue
+        os.remove(os.path.join(dirpath, file))
+        
+
+if __name__ == '__main__':
+    '''
+    root=Tk()
+    root.geometry('175x375')
+    '''
+    masterset = ['1 - M 24','2 - M 42','3 - M 36','4 - F 36',
+              '5 - M 20','6 - M 29', '7 - F 29','8 - F 27','9 - F 24',
+               '10 - F 24','11 - M 24','12 - F 26','13 - M 31','14 - M 28']
     devset = ['1 - M 24','2 - M 42','4 - F 36',
                '7 - F 29','8 - F 27','9 - F 24',
                '11 - M 24','13 - M 31','14 - M 28']
@@ -83,6 +127,7 @@ if __name__ == '__main__':
         pptlist=devset
     elif whichset=='holdout':
         pptlist=holdout
+    '''
     ppts = []
     for i in range(len(pptlist)):
         ppts.append(IntVar())
@@ -91,8 +136,10 @@ if __name__ == '__main__':
     width,height=root.grid_size();
     Button(root,text='Check',command=listppts).grid(row=height,sticky=W)
     Button(root,text='Selected',command=root.destroy).grid(row=height,column=width,sticky=E)
-    '''#above may not be working, may need to close pupup directly?'''
+    #above may not be working, may need to close popup directly?
     root.mainloop()
+    '''
+    ppts=run_selection_window(pptlist)
     path_base='/home/michael/Documents/Aston/MultimodalFW/'
     path_holdoutset=path_base+'dataset/holdout/'
     path_devset=path_base+'dataset/dev/'

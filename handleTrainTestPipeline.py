@@ -113,6 +113,8 @@ def test(datatype,test_set_path=None):
 
 
 def confmat(y_true,y_pred,labels,modelname="",testset=""):
+    '''y_true = actual classes, y_pred = predicted classes,
+    labels = names of class labels'''
     conf=confusion_matrix(y_true,y_pred,labels=labels)
     cm=ConfusionMatrixDisplay(conf,labels).plot()
     cm.figure_.suptitle=(modelname+'\n'+testset)

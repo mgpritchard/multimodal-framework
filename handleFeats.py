@@ -11,7 +11,11 @@ module to contain functionality related to wrangling & processing of data
 import os
 from tkinter import Tk
 from tkinter.filedialog import askopenfilename, askopenfilenames, askdirectory, asksaveasfilename
-import generate_training_matrix as feats
+import generate_training_matrix as genfeats
+
+def select_feats(featureset,alg=None):
+    print('\n\n*no feature selection currently implemented*\n\n')
+    return featureset
 
 def ask_for_dir(datatype=""):
     homepath=os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
@@ -32,7 +36,8 @@ def make_feats(directory_path=None, output_file=None, datatype="",period=1000):
         directory_path=ask_for_dir(datatype)
     if output_file is None:
         output_file=ask_for_savefile(datatype)
-    feats.gen_training_matrix(directory_path, output_file, cols_to_ignore=None, singleFrame=0,period=period)
+    featset=genfeats.gen_training_matrix(directory_path, output_file, cols_to_ignore=None, singleFrame=0,period=period)
+    return featset
     
 def feats_pipeline():
     make_feats(datatype='emg')

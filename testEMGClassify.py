@@ -162,8 +162,10 @@ if __name__ == '__main__':
         train_emg_featset=working+str(pptnum)+'_EMG_train.csv'
         test_emg_featset=working+str(pptnum)+'_EMG_test.csv'
         
-        feats.make_feats(train_emg,train_emg_featset,'emg')
-        feats.make_feats(test_emg,test_emg_featset,'emg')
+        emg_train_feats=feats.make_feats(train_emg,train_emg_featset,'emg')
+        emg_train_feats=feats.select_feats(emg_train_feats)
+        emg_test_feats=feats.make_feats(test_emg,test_emg_featset,'emg')
+        emg_test_feats=feats.select_feats(emg_test_feats)
         
         tt.train(train_emg_featset)
         true,distros,preds=tt.test('emg',test_emg_featset)

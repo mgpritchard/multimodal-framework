@@ -179,8 +179,10 @@ if __name__ == '__main__':
         train_eeg_featset=working+str(pptnum)+'_eeg_train.csv'
         test_eeg_featset=working+str(pptnum)+'_eeg_test.csv'
         
-        feats.make_feats(train_eeg,train_eeg_featset,'eeg',period=1)
-        feats.make_feats(test_eeg,test_eeg_featset,'eeg',period=1)
+        eeg_train_feats=feats.make_feats(train_eeg,train_eeg_featset,'eeg',period=1)
+        eeg_train_feats=feats.select_feats(eeg_train_feats)
+        eeg_test_feats=feats.make_feats(test_eeg,test_eeg_featset,'eeg',period=1)
+        eeg_test_feats=feats.select_feats(eeg_test_feats)
         
         #eegtrain_labelled=train_eeg_featset[:-4] + '_Labelled.csv'
         #eegtest_labelled=test_eeg_featset[:-4] + '_Labelled.csv'

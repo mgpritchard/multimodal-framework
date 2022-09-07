@@ -151,7 +151,7 @@ def gen_training_matrix(directory_path, output_file, cols_to_ignore, singleFrame
 
     print (time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(time.time())),'Done.')
     
-    return None
+    return FINAL_MATRIX
 
 
 if __name__ == '__main__':

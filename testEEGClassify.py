@@ -56,23 +56,24 @@ def split_train_test(featspath):
     ml.train_offline('RF',train_path)
     print('**trained a model**')'''
 
-def test(test_set_path=None):
+'''def test(test_set_path=None): #deprecated, now moved to handleTrainTestPipeline
     root="/home/michael/Documents/Aston/MultimodalFW/"
     if (not 'test' in locals()) and (test_set_path is None):
         # could this just be set test as a param=None, and then if is None?
         testset_loc=askopenfilename(initialdir=root,title='Select test set')
         test=ml.matrix_from_csv_file_drop_ID(testset_loc)[0]
     else:
-        test=ml.matrix_from_csv_file_drop_ID(test_set_path)[0]
-        
+        test=ml.matrix_from_csv_file_drop_ID(test_set_path)[0]    
     testset_values = test[:,0:-1]
     testset_labels = test[:,-1]
+    
     model = ml.load_model('testing eeg',root)
     labels=model.classes_
     
     distrolist=[]
     predlist=[]
     correctness=[]
+    
     for inst_count, instance in enumerate(testset_values):
         distro=ml.prob_dist(model, instance.reshape(1,-1))  
         predlabel=ml.pred_from_distro(labels, distro)
@@ -88,13 +89,15 @@ def test(test_set_path=None):
     gest_truth=[params.idx_to_gestures[gest] for gest in testset_labels]
     gest_pred=[params.idx_to_gestures[pred] for pred in predlist]
     gesturelabels=[params.idx_to_gestures[label] for label in labels]
-    confmat(gest_truth,gest_pred,gesturelabels)
-    return gest_truth,distrolist,gest_pred
+    
+    confmat(gest_truth,gest_pred,gesturelabels,testset=test_set_path)
+    return gest_truth,distrolist,gest_pred'''
 
-def confmat(y_true,y_pred,labels):
+'''def confmat(y_true,y_pred,labels,modelname="",testset=""): #deprecated, now moved to handleTrainTestPipeline
     conf=confusion_matrix(y_true,y_pred,labels=labels)
-    ConfusionMatrixDisplay(conf,labels).plot()
-    plt.show()
+    cm=ConfusionMatrixDisplay(conf,labels).plot()
+    cm.figure_.suptitle=(modelname+'\n'+testset)
+    plt.show()'''
     
 '''def copy_files(filelist,emg_dest,eeg_dest): #deprecated, now moved to handleTrainTestPipeline
     for file in filelist:
@@ -106,10 +109,10 @@ def confmat(y_true,y_pred,labels):
         if not os.path.exists(dest):
             comp.copyfile(source,dest)'''
 
-def ditch_EEG_suffix(eegdir):
+'''def ditch_EEG_suffix(eegdir): #deprecated, now moved to handleComposeDataset
     for file in os.listdir(eegdir):
         if file.endswith('_EEG',0,-4):
-            os.remove(os.path.join(eegdir,file))
+            os.remove(os.path.join(eegdir,file))'''
 
 
 ## Testing the suspiciously hihgh accuracy:
@@ -169,9 +172,9 @@ if __name__ == '__main__':
         '''ONLY DO THIS IF NOT ALREADY PROCESSED EEG'''
         if 1:   
             train_eeg = tt.process_data('eeg',train_eeg)
-            ditch_EEG_suffix(train_eeg)
+            comp.ditch_EEG_suffix(train_eeg)
             test_eeg = tt.process_data('eeg',test_eeg)
-            ditch_EEG_suffix(test_eeg)
+            comp.ditch_EEG_suffix(test_eeg)
         
         train_eeg_featset=working+str(pptnum)+'_eeg_train.csv'
         test_eeg_featset=working+str(pptnum)+'_eeg_test.csv'
@@ -182,7 +185,7 @@ if __name__ == '__main__':
         #eegtrain_labelled=train_eeg_featset[:-4] + '_Labelled.csv'
         #eegtest_labelled=test_eeg_featset[:-4] + '_Labelled.csv'
         tt.train(train_eeg_featset)
-        y_true,y_distro,y_pred=test(test_eeg_featset)
+        y_true,y_distro,y_pred=tt.test('eeg',test_eeg_featset)
         #conf=confusion_matrix(y_true,y_pred)
         break #cutting off after 1 ppt for speedier testing
     

@@ -79,13 +79,15 @@ def test(datatype,test_set_path=None):
     
     root="/home/michael/Documents/Aston/MultimodalFW/"
     if (not 'test' in locals()) and (test_set_path is None):
+        # could this just be argument test_set_path=None, and then if is None?
         test_set_path=askopenfilename(initialdir=root,title='Select test set')
-    test=ml.matrix_from_csv_file(test_set_path)[0]
+    test=ml.matrix_from_csv_file_drop_ID(test_set_path)[0]
     testset_values = test[:,0:-1]
     testset_labels = test[:,-1]
     
-    model = ml.load_model('testing emg',root)
+    model = ml.load_model('testing '+str(datatype),root)
     labels=model.classes_
+    
     distrolist=[]
     predlist=[]
     correctness=[]
@@ -107,9 +109,7 @@ def test(datatype,test_set_path=None):
     gesturelabels=[params.idx_to_gestures[label] for label in labels]
     
     confmat(gest_truth,gest_pred,gesturelabels,testset=test_set_path)
-    
     return gest_truth,distrolist,gest_pred
-    #return testset_labels,distrolist,predlist
 
 
 def confmat(y_true,y_pred,labels,modelname="",testset=""):

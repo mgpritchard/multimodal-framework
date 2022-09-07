@@ -108,7 +108,13 @@ def flush_folder(dirpath):
         if not file.endswith(".csv"):
             continue
         os.remove(os.path.join(dirpath, file))
-        
+
+def ditch_EEG_suffix(eegdir):
+    '''eegdir = folder of processed EEG files from which to
+    remove any files which still retain the '_EEG' suffix'''
+    for file in os.listdir(eegdir):
+        if file.endswith('_EEG',0,-4):
+            os.remove(os.path.join(eegdir,file))        
 
 if __name__ == '__main__':
     '''

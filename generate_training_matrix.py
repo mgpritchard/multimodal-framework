@@ -20,6 +20,7 @@ import time
 import numpy as np
 import pandas as pd
 import params
+import traceback
 from live_feature_extraction import generate_feature_vectors_from_samples, generate_feature_vectors_from_samples_single
 import importlib.util
 spec = importlib.util.spec_from_file_location("toClass", params.gen_trainmat_spec_SpellLoc)
@@ -100,23 +101,32 @@ def gen_training_matrix(directory_path, output_file, cols_to_ignore, singleFrame
        
         print ('Using file', x)
         full_file_path = directory_path  +   '/'   + x            
-        if not singleFrame:
-            vectors, header = generate_feature_vectors_from_samples(file_path = full_file_path, 
-                                                                nsamples = 150, 
-                                                                #period = 1, #it would be 1 for unicorn eeg which is 1234567890.123456
-                                                                period=period, #it would be 1000 for myo emg which is  1234567890123.4
-                                                                state = state,
-                                                                remove_redundant = True,
-                                                                cols_to_ignore = cols_to_ignore)
-        else:
-            vectors, header = generate_feature_vectors_from_samples_single(file_path = full_file_path, 
-                                                                nsamples = 150, 
-                                                                #period = 1,
-                                                                period=1000,
-                                                                state = state,
-                                                                remove_redundant = False,
-                                                                cols_to_ignore = cols_to_ignore)
-        
+        try:
+            if not singleFrame:
+                vectors, header = generate_feature_vectors_from_samples(file_path = full_file_path, 
+                                                                    nsamples = 150, 
+                                                                    #period = 1, #it would be 1 for unicorn eeg which is 1234567890.123456
+                                                                    period=period, #it would be 1000 for myo emg which is  1234567890123.4
+                                                                    state = state,
+                                                                    remove_redundant = True,
+                                                                    cols_to_ignore = cols_to_ignore)
+            else:
+                vectors, header = generate_feature_vectors_from_samples_single(file_path = full_file_path, 
+                                                                    nsamples = 150, 
+                                                                    #period = 1,
+                                                                    period=1000,
+                                                                    state = state,
+                                                                    remove_redundant = False,
+                                                                    cols_to_ignore = cols_to_ignore)
+        except UnboundLocalError as e:
+            print(traceback.format_exc())
+            skip=input('The above error was encountered when trying to generate '
+                  'features from the following data file:\n'+full_file_path+
+                  '\nWould you like to skip the file and continue? [Y/N]')
+            if skip == 'Y':
+                continue
+            else:
+                raise e
         print ('resulting vector shape for the file', vectors.shape)
         
         

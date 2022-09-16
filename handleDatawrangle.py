@@ -20,7 +20,7 @@ from tkinter.filedialog import askopenfilename, askopenfilenames, askdirectory, 
 #import time
 from handleEMG import *
 from handleML import *
-from handleOffline import sync_crop
+from handleOffline import sync_crop, sync_crop_myo_unicorn
 from handleFusion import *
 from topLevel import quickplot
 import pickle
@@ -97,7 +97,7 @@ def list_raw_files(raw_dir):
         raw_list.append(rawfile)
     return raw_list
 
-def sync_raw_files(raw_emg_list,raw_eeg_list,crop_emg_dir,crop_eeg_dir,approval_required=0):
+def sync_raw_files(raw_emg_list,raw_eeg_list,crop_emg_dir,crop_eeg_dir,approval_required=0,unicorn_time_moved=0):
     for emgfile in raw_emg_list:
         print('working with '+repr(emgfile))
         raw_emg = matrix_from_csv_file(emgfile.filepath)
@@ -110,11 +110,13 @@ def sync_raw_files(raw_emg_list,raw_eeg_list,crop_emg_dir,crop_eeg_dir,approval_
             continue
         print('found eeg: '+repr(eegfile))
         raw_eeg = matrix_from_csv_file(eegfile.filepath)
-        raw_eeg=move_unicorn_time(raw_eeg)
+        if not unicorn_time_moved:
+            raw_eeg=move_unicorn_time(raw_eeg)
         if approval_required:
             crop_emg,crop_eeg=approve_sync(raw_emg, raw_eeg)
         else:
-            crop_emg,crop_eeg=sync_crop(raw_emg, raw_eeg)
+            #crop_emg,crop_eeg=sync_crop(raw_emg, raw_eeg)
+            crop_emg,crop_eeg=sync_crop_myo_unicorn(raw_emg,raw_eeg)
         np.savetxt(build_path(crop_emg_dir,emgfile),crop_emg,delimiter=',')
         np.savetxt(build_path(crop_eeg_dir,eegfile),crop_eeg,delimiter=',')
         
@@ -178,12 +180,18 @@ def ditch_bad_columns(eeg):
     eeg=eeg[0,1,2,3,4,5,6,7,8,]
     return eeg
 
-def process_eeg(dataINdir,dataColsRearrangeddir,dataOUTdir):
+def process_eeg(dataINdir,dataColsRearrangeddir,dataOUTdir,bf_time_moved=False):
     eeglist=list_raw_files(dataINdir)
     for eegfile in eeglist:
         print('processing '+repr(eegfile))
-       
-        eeg,sampling_rate=bfsig.load_raw_brainflow(eegfile.filepath)
+        
+        try:
+            eeg,sampling_rate=bfsig.load_raw_brainflow(eegfile.filepath,bf_time_moved)
+        except ArithmeticError as e:
+            print(repr(e))
+            print(eegfile.filepath)
+            continue
+
         np.savetxt(build_path(dataColsRearrangeddir,eegfile),eeg,delimiter=',')
         
         eeg=do_something_brainflow(eeg,sampling_rate)
@@ -227,5 +235,5 @@ def data_pipeline():
 if __name__ == '__main__':
     datain='/home/michael/Documents/Aston/MultimodalFW/repo/multimodal-framework/testbench/emg/data_with_dupes'
     dataout='/home/michael/Documents/Aston/MultimodalFW/repo/multimodal-framework/testbench/emg/dupes_removed'
-    process_emg(datain,dataout)
+    #process_emg(datain,dataout)
         

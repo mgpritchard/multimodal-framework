@@ -30,6 +30,8 @@ from brainflow.data_filter import DataFilter, FilterTypes, AggOperations, NoiseT
 
 def matrix_from_csv_file(file_path,delimiter=','):
     csv_data = np.genfromtxt(file_path, delimiter=delimiter,dtype='float64')
+    if np.isnan(csv_data).any():
+        raise ArithmeticError('nan found in the loaded data')
     full_matrix = csv_data[1:]
     #headers = csv_data[0] # Commented since not used or returned [fcampelo]
     return full_matrix
@@ -80,7 +82,7 @@ def ref_to_avg(data):
         data[rowcount]=newrow
     return data
 
-def load_raw_brainflow(datafile=None,):
+def load_raw_brainflow(datafile=None,bf_time_moved=False):
     #board_id = BoardIds.PLAYBACK_FILE_BOARD.value #this lets you try signal proc algs in realtime without a device
     board_id = BoardIds.UNICORN_BOARD.value
     sampling_rate = BoardShim.get_sampling_rate(board_id)
@@ -94,9 +96,12 @@ def load_raw_brainflow(datafile=None,):
         homepath=os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
         Tk().withdraw()
         datafile=askopenfilename(title='eeg file',initialdir=homepath)
-    data=matrix_from_csv_file(datafile,delimiter='\t')
     
-    data=data[:,needed_channels]
+    if not bf_time_moved:
+        data=matrix_from_csv_file(datafile,delimiter='\t')
+        data=data[:,needed_channels]
+    else:
+        data=matrix_from_csv_file(datafile)
     
     return data, sampling_rate
 

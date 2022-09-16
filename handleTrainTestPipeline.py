@@ -19,10 +19,12 @@ from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay #plot_confu
 import matplotlib.pyplot as plt
 
 
-def process_data(datatype,datain=None,overwrite=True):
+def process_data(datatype,datain=None,overwrite=True,bf_time_moved=False):
     '''datatype = 'emg' or 'eeg',
     datain = directory of raw unprocessed data,
     overwrite = Modify the data in-place T/F?'''
+    
+    root="/home/michael/Documents/Aston/MultimodalFW/"
     
     if datain is None:
         datain=askdirectory(initialdir=root,title='Select '+datatype.upper()+' Directory')
@@ -36,7 +38,7 @@ def process_data(datatype,datain=None,overwrite=True):
         wrangle.process_emg(datain,dataout)        
     elif datatype=='eeg':
         datacolsrearr=datain
-        wrangle.process_eeg(datain,datacolsrearr,dataout)
+        wrangle.process_eeg(datain,datacolsrearr,dataout,bf_time_moved)
     else:
         raise TypeError('Error: Unknown data type: '+str(datatype))
     

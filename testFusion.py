@@ -20,10 +20,66 @@ from tkinter.filedialog import askopenfilename, askopenfilenames, askdirectory, 
 from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay #plot_confusion_matrix
 import matplotlib.pyplot as plt
 
-
+def process_all_data():
+    
+    source_data_dir='/home/michael/Documents/Aston/MultimodalFW/dataset/dev/'
+    
+    pptlist=['001_retake','002_retake','4','7','8','9','11','13','14']
+    
+    repeatlist=['001','002'] #do NOT copy any repeats needed for consistency investigation
+    
+    paths=[]
+    for i in range(len(pptlist)):
+        paths.append(comp.build_path(source_data_dir,pptlist[i].split(' ')[0]))
+    
+    raw_eeg_dir='/home/michael/Documents/Aston/MultimodalFW/working_dataset/devset_EEG/Raw'
+    cropped_eeg_dir='/home/michael/Documents/Aston/MultimodalFW/working_dataset/devset_EEG/Cropped'
+    processed_eeg_dir='/home/michael/Documents/Aston/MultimodalFW/working_dataset/devset_EEG/Processed'
+    
+    raw_emg_dir='/home/michael/Documents/Aston/MultimodalFW/working_dataset/devset_EMG/Raw'
+    cropped_emg_dir='/home/michael/Documents/Aston/MultimodalFW/working_dataset/devset_EMG/Cropped'
+    processed_emg_dir='/home/michael/Documents/Aston/MultimodalFW/working_dataset/devset_EMG/Processed'
+    
+    destination='/home/michael/Documents/Aston/MultimodalFW/working_dataset/'
+    
+    #copy all data into raw
+    '''comp.build_set_separate_modes(paths, destination,
+                                  flush_folders=True,
+                                  emgdest=raw_emg_dir,
+                                  eegdest=raw_eeg_dir)
+    
+    #sync and process all data
+    raw_emg_files=wrangle.list_raw_files(raw_emg_dir)
+    raw_eeg_files=wrangle.list_raw_files(raw_eeg_dir)
+    wrangle.sync_raw_files(raw_emg_files,raw_eeg_files,
+                           cropped_emg_dir,cropped_eeg_dir,
+                           unicorn_time_moved=0)
+    
+    processed_emg_dir=tt.process_data('emg',cropped_emg_dir,overwrite=False,
+                                      bf_time_moved=False,
+                                      dataout=processed_emg_dir)
+    
+    processed_eeg_dir=tt.process_data('eeg',cropped_eeg_dir,overwrite=False,
+                                      bf_time_moved=False,
+                                      dataout=processed_eeg_dir)'''
+    
+    emg_featspath=os.path.join(destination,'devset_EMG/featsEMG.csv')
+    eeg_featspath=os.path.join(destination,'devset_EEG/featsEEG.csv')
+    
+    '''go into at least the Processed folder if not all and run
+    rename 's/june//' *
+    #https://unix.stackexchange.com/questions/175135/how-to-rename-multiple-files-by-replacing-string-in-file-name-this-string-conta
+    which will turn all 001june -> 001'''
+    
+    feats_emg=feats.make_feats(processed_emg_dir,emg_featspath,'emg',period=1000)
+    feats_eeg=feats.make_feats(processed_eeg_dir,eeg_featspath,'eeg',period=1000)
+    
+    return feats_emg,feats_eeg
+    #then later can stratify at the features level
 
 if __name__ == '__main__':
-    #raise
+    emgfeats,eegfeats=process_all_data()
+    raise
     '''Build or find a dataset, separating train and test'''
 
     
@@ -39,6 +95,16 @@ if __name__ == '__main__':
     
     emg_TEST_list=wrangle.list_raw_files('/home/michael/Documents/Aston/MultimodalFW/working_dataset/004 (copy)/testsplit/EMG')
     eeg_TEST_list=wrangle.list_raw_files('/home/michael/Documents/Aston/MultimodalFW/working_dataset/004 (copy)/testsplit/EEG')
+    
+    
+    if any (name in [(file.filepath).split('/')[-1] for file in emg_list]
+            for name in [(file.filepath).split('/')[-1] for file in emg_TEST_list]):
+        raise ValueError('EMG file found in both test and train')
+    if any (name in [(file.filepath).split('/')[-1] for file in eeg_list]
+            for name in [(file.filepath).split('/')[-1] for file in eeg_TEST_list]):
+        raise ValueError('EEG file found in both test and train')
+        
+    
     crop_eeg_TEST_dir='/home/michael/Documents/Aston/MultimodalFW/working_dataset/004 (copy)/testsplit/Cropped EEG'
     crop_emg_TEST_dir='/home/michael/Documents/Aston/MultimodalFW/working_dataset/004 (copy)/testsplit/Cropped EMG'
     

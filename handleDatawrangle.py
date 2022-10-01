@@ -98,15 +98,22 @@ def list_raw_files(raw_dir):
     return raw_list
 
 def sync_raw_files(raw_emg_list,raw_eeg_list,crop_emg_dir,crop_eeg_dir,approval_required=0,unicorn_time_moved=0):
+    rejected_no_matches=[]
+    rejected_false_file_obj=[]
     for emgfile in raw_emg_list:
         print('working with '+repr(emgfile))
-        raw_emg = matrix_from_csv_file(emgfile.filepath)
+        try:
+            raw_emg = matrix_from_csv_file(emgfile.filepath)
+        except AttributeError:
+            rejected_false_file_obj.append(repr(raw_emg))
+            continue
         eegfile= next((eeg for eeg in raw_eeg_list
                  if (eeg.ppt==emgfile.ppt and eeg.label==emgfile.label
                   and eeg.count == emgfile.count)),None)
         if eegfile is None:
             print('no matching eeg file... :(')
             print('skipping')
+            rejected_no_matches.append(emgfile.filepath)
             continue
         print('found eeg: '+repr(eegfile))
         raw_eeg = matrix_from_csv_file(eegfile.filepath)
@@ -119,6 +126,14 @@ def sync_raw_files(raw_emg_list,raw_eeg_list,crop_emg_dir,crop_eeg_dir,approval_
             crop_emg,crop_eeg=sync_crop_myo_unicorn(raw_emg,raw_eeg)
         np.savetxt(build_path(crop_emg_dir,emgfile),crop_emg,delimiter=',')
         np.savetxt(build_path(crop_eeg_dir,eegfile),crop_eeg,delimiter=',')
+    if rejected_no_matches:
+        logpath='/'.join(crop_emg_dir.split('/')[:-1])
+        logfile=os.path.join(logpath,'rejectedNoMatch.csv')
+        np.savetxt(logfile,rejected_no_matches,delimiter=',')
+    if rejected_false_file_obj:
+        logpath='/'.join(crop_emg_dir.split('/')[:-1])
+        logfile=os.path.join(logpath,'rejectedNotAFile.csv')
+        np.savetxt(logfile,rejected_false_file_obj,delimiter=',')
         
 def build_path(dirpath,file):
     filepath=dirpath+'/'+file.ppt+'-'+file.label+'-'+file.count+'.csv'

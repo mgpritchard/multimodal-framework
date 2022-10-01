@@ -50,6 +50,7 @@ def gen_training_matrix(directory_path, output_file, cols_to_ignore, singleFrame
     
     # Initialise return matrix
     FINAL_MATRIX = None
+    rejected_by_feat_script=[]
     
     for x in os.listdir(directory_path):
         
@@ -124,6 +125,7 @@ def gen_training_matrix(directory_path, output_file, cols_to_ignore, singleFrame
                   'features from the following data file:\n'+full_file_path+
                   '\nWould you like to skip the file and continue? [Y/N]')
             if skip == 'Y':
+                rejected_by_feat_script.append(full_file_path)
                 continue
             else:
                 raise e
@@ -147,6 +149,10 @@ def gen_training_matrix(directory_path, output_file, cols_to_ignore, singleFrame
     np.savetxt(output_file, FINAL_MATRIX, delimiter = ',',
             header = ','.join(header), 
             comments = '')
+    
+    if rejected_by_feat_script:
+        np.savetxt(output_file[:-4]+'_REJECTED.csv',rejected_by_feat_script,
+               delimiter=',', fmt="%s")
     
     #Labelled_FINAL_MAT = FINAL_MATRIX.copy()[:,:-1]
     row_labels=[]

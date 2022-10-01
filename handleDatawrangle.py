@@ -154,6 +154,9 @@ def approve_sync(mode1,mode2):
         
 def matrix_from_csv_file(file_path):
     csv_data = np.genfromtxt(file_path, delimiter = ',')
+    if np.isnan(csv_data).all():
+        print('comma-delimiting failed, trying to load with tab delimiter')
+        csv_data = np.genfromtxt(file_path, delimiter = '\t')
     full_matrix = csv_data[1:]
     #headers = csv_data[0] # Commented since not used or returned [fcampelo]
     return full_matrix

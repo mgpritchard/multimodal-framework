@@ -30,8 +30,13 @@ from brainflow.data_filter import DataFilter, FilterTypes, AggOperations, NoiseT
 
 def matrix_from_csv_file(file_path,delimiter=','):
     csv_data = np.genfromtxt(file_path, delimiter=delimiter,dtype='float64')
+    if np.isnan(csv_data).all():
+        if delimiter==',':
+            csv_data = np.genfromtxt(file_path, delimiter = '\t',dtype='float64')
+        elif delimiter=='\t':
+            csv_data = np.genfromtxt(file_path, delimiter = ',',dtype='float64')
     if np.isnan(csv_data).any():
-        raise ArithmeticError('nan found in the loaded data')
+        raise ArithmeticError('nan found in the loaded data after trying both tab and comma delimit')
     full_matrix = csv_data[1:]
     #headers = csv_data[0] # Commented since not used or returned [fcampelo]
     return full_matrix

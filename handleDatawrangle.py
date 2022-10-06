@@ -102,11 +102,13 @@ def sync_raw_files(raw_emg_list,raw_eeg_list,crop_emg_dir,crop_eeg_dir,approval_
     rejected_false_file_obj=[]
     for emgfile in raw_emg_list:
         print('working with '+repr(emgfile))
+        
         try:
             raw_emg = matrix_from_csv_file(emgfile.filepath)
         except AttributeError:
             rejected_false_file_obj.append(repr(raw_emg))
             continue
+        
         eegfile= next((eeg for eeg in raw_eeg_list
                  if (eeg.ppt==emgfile.ppt and eeg.label==emgfile.label
                   and eeg.count == emgfile.count)),None)
@@ -116,20 +118,27 @@ def sync_raw_files(raw_emg_list,raw_eeg_list,crop_emg_dir,crop_eeg_dir,approval_
             rejected_no_matches.append(emgfile.filepath)
             continue
         print('found eeg: '+repr(eegfile))
-        raw_eeg = matrix_from_csv_file(eegfile.filepath)
-        if not unicorn_time_moved:
-            raw_eeg=move_unicorn_time(raw_eeg)
+        #raw_eeg = matrix_from_csv_file(eegfile.filepath)
+        raw_eeg,_ = bfsig.load_raw_brainflow(eegfile.filepath,unicorn_time_moved)
+        
+        #if not unicorn_time_moved:
+        #    raw_eeg=move_unicorn_time(raw_eeg)
+        ##the above is only suitable if
+        ##matrix_from_csv_file has been used rather than load_raw_brainflow
         if approval_required:
             crop_emg,crop_eeg=approve_sync(raw_emg, raw_eeg)
         else:
             #crop_emg,crop_eeg=sync_crop(raw_emg, raw_eeg)
             crop_emg,crop_eeg=sync_crop_myo_unicorn(raw_emg,raw_eeg)
+            
         np.savetxt(build_path(crop_emg_dir,emgfile),crop_emg,delimiter=',')
         np.savetxt(build_path(crop_eeg_dir,eegfile),crop_eeg,delimiter=',')
+        
     if rejected_no_matches:
         logpath='/'.join(crop_emg_dir.split('/')[:-1])
         logfile=os.path.join(logpath,'rejectedNoMatch.csv')
         np.savetxt(logfile,rejected_no_matches,delimiter=',')
+        
     if rejected_false_file_obj:
         logpath='/'.join(crop_emg_dir.split('/')[:-1])
         logfile=os.path.join(logpath,'rejectedNotAFile.csv')
@@ -162,6 +171,7 @@ def matrix_from_csv_file(file_path):
     return full_matrix
 
 def move_unicorn_time(unicorndata):
+    print('** Deprecated in favour of using bfsig.load_raw_brainflow **')
     moved=unicorndata[:,[17,0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,18]]
     return moved
 

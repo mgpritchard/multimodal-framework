@@ -19,7 +19,7 @@ from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay #plot_confu
 import matplotlib.pyplot as plt
 
 
-def process_data(datatype,datain=None,overwrite=True,bf_time_moved=False):
+def process_data(datatype,datain=None,overwrite=True,bf_time_moved=False,dataout=None):
     '''datatype = 'emg' or 'eeg',
     datain = directory of raw unprocessed data,
     overwrite = Modify the data in-place T/F?'''
@@ -32,7 +32,8 @@ def process_data(datatype,datain=None,overwrite=True,bf_time_moved=False):
     if overwrite:
         dataout=datain
     else:
-        dataout=askdirectory(initialdir=root,title='Select Directory for processed '+datatype.upper())
+        if dataout is None:
+            dataout=askdirectory(initialdir=root,title='Select Directory for processed '+datatype.upper())
     
     if datatype=='emg':
         wrangle.process_emg(datain,dataout)        

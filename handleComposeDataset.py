@@ -38,7 +38,7 @@ def listppts():
 def build_path(path,num):
     while len(num)<3:
         num='0'+num
-    path=path+num
+    path=os.path.join(path,num)
     return path
 
 def make_path(path,printout=True):
@@ -59,15 +59,19 @@ def build_set(paths,destination):
         #copy_tree(path,dest)
     #open_file(destination)
     
-def build_set_separate_modes(paths,destination,flush_folders=None):
-    emgdest=destination+'EMG/'
-    eegdest=destination+'EEG/'
+def build_set_separate_modes(paths,destination,flush_folders=None,emgdest=None,eegdest=None):
+    if emgdest==None:
+        emgdest=destination+'EMG/'
+    if eegdest==None:
+        eegdest=destination+'EEG/'
+        
     if not os.path.exists(emgdest):
         print(emgdest)
         os.makedirs(emgdest)
     if not os.path.exists(eegdest):
         print(eegdest)
         os.makedirs(eegdest)
+        
     if flush_folders is not None:
         Tk().withdraw()
         flush_folders=askyesno(title='Flush dataset?',message='Do you want '
@@ -78,6 +82,7 @@ def build_set_separate_modes(paths,destination,flush_folders=None):
     if flush_folders:
         flush_folder(emgdest)
         flush_folder(eegdest)
+        
     for path in paths:
         for file in os.listdir(path):
             if file[-7:-4]=='EEG':

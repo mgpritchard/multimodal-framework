@@ -15,6 +15,7 @@ import generate_training_matrix as genfeats
 
 def select_feats(featureset,alg=None):
     print('\n\n*no feature selection currently implemented*\n\n')
+    #look into MRMR?
     return featureset
 
 def ask_for_dir(datatype=""):

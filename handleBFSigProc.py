@@ -93,7 +93,7 @@ def load_raw_brainflow(datafile=None,bf_time_moved=False):
     sampling_rate = BoardShim.get_sampling_rate(board_id)
     #NEED ONCE TIME COL IS MOVED: eeg_channels = [channel+1 for channel in BoardShim.get_eeg_channels(board_id)]
     eeg_channels = [channel for channel in BoardShim.get_eeg_channels(board_id)]
-    timestamp_channel = 17
+    timestamp_channel = BoardShim.get_timestamp_channel(board_id)
     needed_channels=eeg_channels.copy()
     needed_channels.insert(0,timestamp_channel)
 

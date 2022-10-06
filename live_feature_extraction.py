@@ -1158,7 +1158,11 @@ def generate_feature_vectors_from_samples(file_path, nsamples, period,
                 rm_str = to_rm[i] + str(j)
                 idx = feat_names.index(rm_str)
                 feat_names.pop(idx)
-                ret = np.delete(ret, idx, axis = 1) #catch AxisError, 1 is occasionally out of bounds as array occasionally has dimension 1. maybe also record which ones were skipped
+                try:
+                    ret = np.delete(ret, idx, axis = 1) 
+                except np.AxisError:
+                    #catch AxisError, 1 is occasionally out of bounds as array occasionally has dimension 1. maybe also record which ones were skipped
+                    ret = np.delete(ret, idx, axis = 0)
                 
     '''if os.path.isfile(output_file):    
         with open(output_file, 'a', newline='') as data_file:    

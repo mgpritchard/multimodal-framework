@@ -115,7 +115,7 @@ def train_rf(train_dat,model_path):
     #data=matrix_from_csv_file(train_dat)[0]
     randfs = dict()
 	# define number of trees to consider
-    n_trees = [10, 50, 100]#, 500, 1000]
+    n_trees = [10, 50]#, 100, 500, 1000]
     results=[]
     randfs=[]
     for n in n_trees:

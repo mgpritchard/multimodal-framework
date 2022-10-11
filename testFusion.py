@@ -46,7 +46,12 @@ def process_all_data():
     '''comp.build_set_separate_modes(paths, destination,
                                   flush_folders=True,
                                   emgdest=raw_emg_dir,
-                                  eegdest=raw_eeg_dir)
+                                  eegdest=raw_eeg_dir)'''
+    
+    '''go into the Raw folder and run
+    rename 's/june//' *
+    #https://unix.stackexchange.com/questions/175135/how-to-rename-multiple-files-by-replacing-string-in-file-name-this-string-conta
+    which will turn all 001june -> 001'''
     
     #sync and process all data
     raw_emg_files=wrangle.list_raw_files(raw_emg_dir)
@@ -60,16 +65,11 @@ def process_all_data():
                                       dataout=processed_emg_dir)
     
     processed_eeg_dir=tt.process_data('eeg',cropped_eeg_dir,overwrite=False,
-                                      bf_time_moved=False,
-                                      dataout=processed_eeg_dir)'''
+                                      bf_time_moved=True,
+                                      dataout=processed_eeg_dir)
     
     emg_featspath=os.path.join(destination,'devset_EMG/featsEMG.csv')
     eeg_featspath=os.path.join(destination,'devset_EEG/featsEEG.csv')
-    
-    '''go into at least the Processed folder if not all and run
-    rename 's/june//' *
-    #https://unix.stackexchange.com/questions/175135/how-to-rename-multiple-files-by-replacing-string-in-file-name-this-string-conta
-    which will turn all 001june -> 001'''
     
     feats_emg=feats.make_feats(processed_emg_dir,emg_featspath,'emg',period=1000)
     feats_eeg=feats.make_feats(processed_eeg_dir,eeg_featspath,'eeg',period=1000)
@@ -77,9 +77,225 @@ def process_all_data():
     return feats_emg,feats_eeg
     #then later can stratify at the features level
 
+def inspect_set_balance(emg_set_path,eeg_set_path,emg_set=None,eeg_set=None):
+    #emg_set_path='/home/michael/Documents/Aston/MultimodalFW/working_dataset/devset_EMG/featsEMG_Labelled.csv'
+    #eeg_set_path='/home/michael/Documents/Aston/MultimodalFW/working_dataset/devset_EEG/featsEEG_Labelled.csv'
+    if emg_set is None:
+        emg_set=ml.pd.read_csv(emg_set_path,delimiter=',')
+    emg_set.sort_values(['ID_pptID','ID_run','Label','ID_gestrep','ID_tend'],ascending=[True,True,True,True,True],inplace=True)
+    print(emg_set_path.split('/')[-1])
+    print(emg_set['Label'].value_counts())
+    print(emg_set['ID_pptID'].value_counts())
+    #print(emg_set['ID_run'].value_counts())
+    #print(emg_set['ID_gestrep'].value_counts())
+    
+    if eeg_set is None:
+        eeg_set=ml.pd.read_csv(eeg_set_path,delimiter=',')
+    eeg_set.sort_values(['ID_pptID','ID_run','Label','ID_gestrep','ID_tend'],ascending=[True,True,True,True,True],inplace=True)
+    print(eeg_set_path.split('/')[-1])
+    print(eeg_set['Label'].value_counts())
+    print(eeg_set['ID_pptID'].value_counts())
+    #print(eeg_set['ID_run'].value_counts())
+    #print(eeg_set['ID_gestrep'].value_counts())
+    
+    return emg_set,eeg_set
+
+def identify_rejects(rejectlog=None):
+    if rejectlog is None:
+        Tk().withdraw()
+        root="/home/michael/Documents/Aston/MultimodalFW/working_dataset/"
+        rejectlog=askopenfilename(initialdir=root,title='Select log of rejected datafiles')
+    rejectpaths=np.genfromtxt(rejectlog,dtype='U')
+    
+    rejects=[]
+    for rejectfile in rejectpaths:
+        directory,file=os.path.split(rejectfile)
+        reject=wrangle.build_rawfile_obj(file, directory)
+        rejects.append(reject)
+    return rejects
+
+def purge_rejects(rejects,featset):
+    for reject in rejects:
+        pptID=int(reject.ppt) if reject.ppt[-1].isdigit() else int(reject.ppt[:-1])
+        rejectrows=featset.loc[(featset['ID_pptID']==pptID)
+                               & (featset['Label']==reject.label)
+                                 & (featset['ID_gestrep']==int(reject.count))]
+        if rejectrows.empty:
+            print('No matching feature windows for rejected file '+reject.filepath)
+            continue
+        featset.drop(rejectrows.index,inplace=True)
+    return featset
+
+def get_ppt_split(featset):
+    print(featset['ID_pptID'].unique())
+    msk_ppt1=(featset['ID_pptID']==1)
+    msk_ppt2=(featset['ID_pptID']==15) #ppt2 retrial was labelled 15
+    msk_ppt4=(featset['ID_pptID']==4)
+    msk_ppt7=(featset['ID_pptID']==7)
+    msk_ppt8=(featset['ID_pptID']==8)
+    msk_ppt9=(featset['ID_pptID']==9)
+    msk_ppt11=(featset['ID_pptID']==11)
+    msk_ppt12=(featset['ID_pptID']==12)
+    msk_ppt13=(featset['ID_pptID']==13)
+    #return these and then as necessary to featset[mask]
+    #https://stackoverflow.com/questions/33742588/pandas-split-dataframe-by-column-value
+    #so can do different permutations of assembling train/test sets
+    #can also invert a mask (see link above) to get the rest for all-except-n
+    return [msk_ppt1,msk_ppt2,msk_ppt4,msk_ppt7,msk_ppt8,msk_ppt9,msk_ppt11,msk_ppt12,msk_ppt13]
+
+def synchronously_classify(test_set_emg,test_set_eeg,model_emg,model_eeg,classlabels):
+    distrolist_emg=[]
+    predlist_emg=[]
+    correctness_emg=[]
+    
+    distrolist_eeg=[]
+    predlist_eeg=[]
+    correctness_eeg=[]
+    
+    distrolist_fusion=[]
+    predlist_fusion=[]
+    correctness_fusion=[]
+    
+    targets=[]
+    
+    for index,emgrow in test_set_emg.iterrows():
+        eegrow = test_set_eeg[(test_set_eeg['ID_pptID']==emgrow['ID_pptID'])
+                              & (test_set_eeg['ID_run']==emgrow['ID_run'])
+                              & (test_set_eeg['Label']==emgrow['Label'])
+                              & (test_set_eeg['ID_gestrep']==emgrow['ID_gestrep'])
+                              & (test_set_eeg['ID_tend']==emgrow['ID_tend'])]
+        #syntax like the below would do it closer to a .where
+        #eegrow=test_set_eeg[test_set_eeg[['ID_pptID','Label']]==emgrow[['ID_pptID','Label']]]
+        if eegrow.empty:
+            print('No matching EEG window for EMG window '+str(emgrow['ID_pptID'])+str(emgrow['ID_run'])+str(emgrow['Label'])+str(emgrow['ID_gestrep'])+str(emgrow['ID_tend']))
+            continue
+        
+        TargetLabel=emgrow['Label']
+        if TargetLabel != eegrow['Label'].values:
+            raise Exception('Sense check failed, target label should agree between modes')
+        
+        '''Get values from instances'''
+        IDs=list(emgrow.filter(regex='^ID_').keys())
+        IDs.append('Label')
+        emgvals=emgrow.drop(IDs).values
+        eegvals=eegrow.drop(IDs,axis='columns').values
+        
+        '''Pass values to models'''
+        
+        distro_emg=ml.prob_dist(model_emg,emgvals.reshape(1,-1))
+        pred_emg=ml.pred_from_distro(classlabels,distro_emg)
+        distrolist_emg.append(distro_emg)
+        predlist_emg.append(pred_emg)
+        
+        if pred_emg == TargetLabel:
+            correctness_emg.append(True)
+        else:
+            correctness_emg.append(False)
+        
+        distro_eeg=ml.prob_dist(model_eeg,eegvals.reshape(1,-1))
+        pred_eeg=ml.pred_from_distro(classlabels,distro_eeg)
+        distrolist_eeg.append(distro_eeg)
+        predlist_eeg.append(pred_eeg)
+        
+        if pred_eeg == TargetLabel:
+            correctness_eeg.append(True)
+        else:
+            correctness_eeg.append(False)
+        
+        distro_fusion=fusion.fuse_mean(distro_emg,distro_eeg)
+        pred_fusion=ml.pred_from_distro(classlabels,distro_fusion)
+        distrolist_fusion.append(distro_fusion)
+        predlist_fusion.append(pred_fusion)
+        
+        if pred_fusion == TargetLabel:
+            correctness_fusion.append(True)
+        else:
+            correctness_fusion.append(False)
+            
+        targets.append(TargetLabel)
+    return targets, predlist_emg, correctness_emg, predlist_eeg, correctness_eeg, predlist_fusion, correctness_fusion
+
+def evaluate_results(targets, predlist_emg, correctness_emg, predlist_eeg, correctness_eeg, predlist_fusion, correctness_fusion, classlabels):
+    '''Evaluate accuracy'''
+    accuracy_emg = sum(correctness_emg)/len(correctness_emg)
+    print('EMG accuracy: '+ str(accuracy_emg))
+    
+    accuracy_eeg = sum(correctness_eeg)/len(correctness_eeg)
+    print('EEG accuracy: '+str(accuracy_eeg))
+    
+    accuracy_fusion = sum(correctness_fusion)/len(correctness_fusion)
+    print('Fusion accuracy: '+str(accuracy_fusion))
+    
+    '''Convert predictions to gesture labels'''
+    gest_truth=[params.idx_to_gestures[gest] for gest in targets]
+    gest_pred_emg=[params.idx_to_gestures[pred] for pred in predlist_emg]
+    gest_pred_eeg=[params.idx_to_gestures[pred] for pred in predlist_eeg]
+    gest_pred_fusion=[params.idx_to_gestures[pred] for pred in predlist_fusion]
+    gesturelabels=[params.idx_to_gestures[label] for label in classlabels]
+    
+    '''Produce confusion matrix'''
+    tt.confmat(gest_truth,gest_pred_emg,gesturelabels)
+    tt.confmat(gest_truth,gest_pred_eeg,gesturelabels)
+    tt.confmat(gest_truth,gest_pred_fusion,gesturelabels)
+    
+    return accuracy_emg,accuracy_eeg,accuracy_fusion
+
 if __name__ == '__main__':
-    emgfeats,eegfeats=process_all_data()
-    raise
+    #emgfeats,eegfeats=process_all_data()
+    emgpath='/home/michael/Documents/Aston/MultimodalFW/working_dataset/devset_EMG/featsEMG.csv'
+    eegpath='/home/michael/Documents/Aston/MultimodalFW/working_dataset/devset_EEG/featsEEG.csv'
+    
+    emg_set=ml.pd.read_csv(emgpath,delimiter=',')
+    eeg_set=ml.pd.read_csv(eegpath,delimiter=',')
+    emg_set,eeg_set=inspect_set_balance(emgpath,eegpath,emg_set,eeg_set)
+    
+    rejects=identify_rejects()
+    eeg_set=purge_rejects(rejects,eeg_set)#This has stopped working
+    emg_set,eeg_set=inspect_set_balance(emgpath,eegpath,emg_set,eeg_set)
+    
+    eeg_masks=get_ppt_split(eeg_set)
+    emg_masks=get_ppt_split(emg_set)
+    
+    
+    pptIDs=[]
+    emg_accs=[]
+    eeg_accs=[]
+    fus_accs=[]
+    for idx,mask in enumerate(emg_masks):
+        emg_ppt = emg_set[mask]
+        emg_others = emg_set[~mask]
+        mask_eeg=eeg_masks[idx]
+        eeg_ppt = eeg_set[mask_eeg]
+        eeg_others = eeg_set[~mask_eeg]
+        #emg_ppt=ml.drop_ID_cols(emg_ppt)
+        emg_others=ml.drop_ID_cols(emg_others)
+        #eeg_ppt=ml.drop_ID_cols(eeg_ppt)
+        eeg_others=ml.drop_ID_cols(eeg_others)
+        
+        pptID=emg_set.reset_index()['ID_pptID'][0]
+        pptIDs.append(pptID)
+        
+        emg_model_dest='/home/michael/Documents/Aston/MultimodalFW/working_dataset/devset_EMG'
+        eeg_model_dest='/home/michael/Documents/Aston/MultimodalFW/working_dataset/devset_EEG'
+        emg_model = ml.train_offline(modeltype='RF',loaded_trainset=emg_others.values,model_name='allExcept'+str(pptID)+'_emg',modeldest=emg_model_dest)
+        eeg_model = ml.train_offline(modeltype='RF',loaded_trainset=eeg_others.values,model_name='allExcept'+str(pptID)+'_eeg',modeldest=eeg_model_dest)
+        
+        classlabels = emg_model.classes_
+        
+        emg_ppt.sort_values(['ID_pptID','ID_run','Label','ID_gestrep','ID_tend'],ascending=[True,True,True,True,True],inplace=True)
+        eeg_ppt.sort_values(['ID_pptID','ID_run','Label','ID_gestrep','ID_tend'],ascending=[True,True,True,True,True],inplace=True)
+        
+        targets, predlist_emg, correctness_emg, predlist_eeg, correctness_eeg, predlist_fusion, correctness_fusion = synchronously_classify(emg_ppt, eeg_ppt, emg_model, eeg_model, classlabels)
+        
+        acc_emg,acc_eeg,acc_fusion=evaluate_results(targets, predlist_emg, correctness_emg, predlist_eeg, correctness_eeg, predlist_fusion, correctness_fusion, classlabels)
+        
+        emg_accs.append(acc_emg)
+        eeg_accs.append(acc_eeg)
+        fus_accs.append(acc_fusion)
+    per_ppt_accs = ml.pd.DataFrame(list(zip(pptIDs,emg_accs,eeg_accs,fus_accs)),columns=['pptID','emg_acc','eeg_acc','fusion_acc'])
+        
+    #https://stackoverflow.com/a/61217963
+    raise KeyboardInterrupt('ending execution here!')
     '''Build or find a dataset, separating train and test'''
 
     

@@ -60,32 +60,47 @@ def matrix_from_csv_file(file):
 	#print ('HDR', (headers.shape))
     return matrix, headers
 
+def drop_ID_cols(csv_dframe):
+    IDs=csv_dframe.filter(regex='^ID_').columns
+    csv_dframe=csv_dframe.drop(IDs,axis='columns')
+    return csv_dframe
+
 def matrix_from_csv_file_drop_ID(file):
     csv_dframe=pd.read_csv(file,delimiter=",")
     IDs=csv_dframe.filter(regex='^ID_').columns
     csv_dframe=csv_dframe.drop(IDs,axis='columns')
+    #skip above 2 lines and call csv_dframe=drop_ID_cols(csv_dframe)
     matrix=csv_dframe.values
     headers = csv_dframe.columns.values
     print ('MAT', (matrix.shape))
 	#print ('HDR', (headers.shape))
     return matrix, headers
 
-def train_offline(modeltype='gaussNB',train_set=None):
+def train_offline(modeltype='gaussNB',train_set=None,loaded_trainset=None,model_name=None,modeldest=None):
     path=os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
     Tk().withdraw()
-    if train_set is None:
-        title='select training dataset'
-        train_set=askopenfilename(initialdir=path,title=title,filetypes = (("csv files","*.csv"),("all files","*.*")))
-    title_sav='location for trained model'
-    modeldest=askdirectory(initialdir=path,title=title_sav)
-    modelname=modeldest+'/'+os.path.basename(train_set)[:-4]+'_'+modeltype+'.sav'
-    train_dat=matrix_from_csv_file_drop_ID(train_set)[0]
+    if loaded_trainset is None:
+        if train_set is None:
+            title='select training dataset'
+            train_set=askopenfilename(initialdir=path,title=title,filetypes = (("csv files","*.csv"),("all files","*.*")))
+        train_dat=matrix_from_csv_file_drop_ID(train_set)[0]
+    else:
+        train_dat=loaded_trainset
+    if modeldest is None:
+        title_sav='location for trained model'
+        modeldest=askdirectory(initialdir=path,title=title_sav)
+    if train_set is not None:
+        modelname=modeldest+'/'+os.path.basename(train_set)[:-4]+'_'+modeltype+'.sav'
+    else:
+        modelname=modeldest+'/'+model_name+'_'+modeltype+'.csv'
     if modeltype=='gaussNB':
-        train_nb(train_dat,modelname)
+        model=train_nb(train_dat,modelname)
     elif modeltype=='RF':
-        train_rf(train_dat,modelname)
+        model=train_rf(train_dat,modelname)
     elif modeltype=='LDA':
-        train_lda(train_dat,modelname)
+        model=train_lda(train_dat,modelname)
+    
+    return model
 
 def train_nb(train_dat,model_path):
     #data=matrix_from_csv_file(train_dat)[0] #move this up a level or 2
@@ -94,13 +109,13 @@ def train_nb(train_dat,model_path):
     print('accuracy: ',acc)
     with open(model_path,'wb') as savepath:
         pickle.dump(naivb,savepath)
-    return
+    return naivb
 
 def train_rf(train_dat,model_path):
     #data=matrix_from_csv_file(train_dat)[0]
     randfs = dict()
 	# define number of trees to consider
-    n_trees = [10, 50, 100, 500, 1000]
+    n_trees = [10, 50, 100]#, 500, 1000]
     results=[]
     randfs=[]
     for n in n_trees:
@@ -114,7 +129,7 @@ def train_rf(train_dat,model_path):
     model_path=model_path[:-4]+'_'+str(n_trees[winInd])+'trees.sav'
     with open(model_path,'wb') as savepath:
         pickle.dump(winner,savepath)
-    return
+    return winner
 
 def train_lda(train_dat,model_path):
     #data=matrix_from_csv_file(train_dat)[0]
@@ -123,7 +138,7 @@ def train_lda(train_dat,model_path):
     print('accuracy: ',acc)
     with open(model_path,'wb') as savepath:
         pickle.dump(lda,savepath)
-    return
+    return lda
     
 def train_model(model,data):
     train=data[:,:-1]

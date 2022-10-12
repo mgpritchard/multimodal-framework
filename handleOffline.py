@@ -87,6 +87,12 @@ def sync_crop(data1,data2):
     data1,data2=syncstarts(data1,data2)
     data1,data2=syncends(data1,data2)
     return data1,data2
+
+def sync_crop_myo_unicorn(emg,eeg):
+    eeg[:,0]=eeg[:,0]*1000
+    emg,eeg=syncstarts(emg,eeg)
+    emg,eeg=syncends(emg,eeg)
+    return emg,eeg
     
 def syncstarts(data1,data2):
     starts=[data1[0,0],data2[0,0]]

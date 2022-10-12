@@ -62,6 +62,7 @@ def onlineclassify():
     #best weighting scheme
 
 def offlineclassify(toggle_report):
+    '''for classifying DATA while offline with a pretrained model'''
     #model_name = 'EMG-GNB-SYNTH-CALIB.sav'  #load GPT2-augmented model
     #model_name='test-model.sav'            #load model without GPT2
     path=os.path.dirname(os.path.dirname(os.path.realpath(__file__)))

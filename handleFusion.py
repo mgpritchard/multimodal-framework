@@ -63,6 +63,16 @@ def fuse_linweight(mode1,mode2,weight1,weight2):
     fused=(mode1*weight1)+(mode2*weight2)
     return np.asarray(fused)
 
+def fuse_select(emg,eeg,args):
+    alg=args['fusion_alg']
+    if alg=='mean':
+        fusion = fuse_mean(emg,eeg)
+    elif alg=='3_1_emg':
+        fusion = fuse_linweight(emg,eeg,75,25)
+    elif alg=='3_1_eeg':
+        fusion = fuse_linweight(emg,eeg,25,75)
+    return fusion
+
 def fuse_mean(mode1,mode2):
     mean=fuse_linweight(mode1,mode2,50,50)
     return mean

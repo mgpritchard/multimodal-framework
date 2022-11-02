@@ -17,9 +17,14 @@ import sklearn as skl
 from sklearn.naive_bayes import GaussianNB
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
+from sklearn.neighbors import KNeighborsClassifier
 from sklearn.model_selection import cross_val_score
 from sklearn.model_selection import RepeatedStratifiedKFold
 from sklearn.metrics import accuracy_score
+
+#from hyperopt import fmin, tpe, hp, STATUS_OK
+#from hyperopt.pll import scope
+
 import pickle
 from tkinter import Tk
 from tkinter.filedialog import askopenfilename, askopenfilenames, askdirectory, asksaveasfilename
@@ -130,6 +135,67 @@ def train_rf(train_dat,model_path):
     with open(model_path,'wb') as savepath:
         pickle.dump(winner,savepath)
     return winner
+
+'''def optimise_rf(train_data,model_path):
+    ntree_space=scope.int(hp.quiniform('n_trees', 5, 10, q=1))
+    best_ntrees = fmin(train_RF_opt,
+                space = ntree_space,
+                algo = tpe.suggest,
+                max_evals=10)
+    winner=train_RF_winner(train_data,best_ntrees)
+    model_path=model_path[:-4]+'_'+str(best_ntrees)+'trees.sav'
+    with open(model_path,'wb') as savepath:
+        pickle.dump(winner,savepath)
+    return winner'''
+    
+'''def train_RF_opt(data,n_trees):
+    model=RandomForestClassifier(n_estimators=n_trees)
+    train=data[:,:-1]
+    targets=data[:,-1]
+    train1,train2,test1=np.array_split(train,3)
+    train1=train1.astype(np.float64)
+    train2=train2.astype(np.float64)
+    traindat=np.concatenate((train1,train2))
+    test1=test1.astype(np.float64)
+    targets1,targets2,targetstest=np.array_split(targets,3)
+    targetsdat=np.concatenate((targets1,targets2))
+    model.fit(traindat,targetsdat)
+    results=model.predict(test1)
+    acc=accuracy_score(targetstest,results)
+    return 1-acc'''
+
+def train_optimise(training_set,modeltype,args):
+    '''where training_set has had ID columns dropped'''
+    
+    if modeltype=='RF':
+        model=train_RF_param(training_set,args)
+    elif modeltype=='gaussNB':
+        raise ValueError('No Gaussian NB implemented yet')
+        model=train_nb(training_set,args)
+    elif modeltype=='LDA':
+        raise ValueError('No LDA implemented yet')
+        model=train_lda(training_set,args)
+    elif modeltype=='kNN':
+        model = train_knn(training_set,args)
+    
+    return model
+
+def train_knn(train_data,args):
+    k=args['knn_k']
+    model=KNeighborsClassifier(n_neighbors=k)
+    train=train_data.values[:,:-1]
+    targets=train_data.values[:,-1]
+    model.fit(train.astype(np.float64),targets)
+    return model
+
+def train_RF_param(train_data,args):
+    '''where args is a dictionary with n_trees as an integer item within'''
+    n_trees=args['n_trees']
+    model=RandomForestClassifier(n_estimators=n_trees)
+    train=train_data.values[:,:-1]
+    targets=train_data.values[:,-1]
+    model.fit(train.astype(np.float64),targets)
+    return model
 
 def train_lda(train_dat,model_path):
     #data=matrix_from_csv_file(train_dat)[0]

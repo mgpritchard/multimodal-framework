@@ -8,6 +8,7 @@ Created on Wed Sep  7 23:42:00 2022
 
 import os
 import numpy as np
+import statistics as stats
 import handleDatawrangle as wrangle
 import handleFeats as feats
 import handleML as ml
@@ -19,6 +20,8 @@ from tkinter import Tk
 from tkinter.filedialog import askopenfilename, askopenfilenames, askdirectory, asksaveasfilename
 from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay #plot_confusion_matrix
 import matplotlib.pyplot as plt
+from hyperopt import fmin, tpe, hp, space_eval, STATUS_OK, Trials
+from hyperopt.pyll import scope, stochastic
 
 def process_all_data():
     
@@ -143,7 +146,7 @@ def get_ppt_split(featset):
     #can also invert a mask (see link above) to get the rest for all-except-n
     return [msk_ppt1,msk_ppt2,msk_ppt4,msk_ppt7,msk_ppt8,msk_ppt9,msk_ppt11,msk_ppt12,msk_ppt13]
 
-def synchronously_classify(test_set_emg,test_set_eeg,model_emg,model_eeg,classlabels):
+def synchronously_classify(test_set_emg,test_set_eeg,model_emg,model_eeg,classlabels,args):
     distrolist_emg=[]
     predlist_emg=[]
     correctness_emg=[]
@@ -202,7 +205,8 @@ def synchronously_classify(test_set_emg,test_set_eeg,model_emg,model_eeg,classla
         else:
             correctness_eeg.append(False)
         
-        distro_fusion=fusion.fuse_mean(distro_emg,distro_eeg)
+        #distro_fusion=fusion.fuse_mean(distro_emg,distro_eeg)
+        distro_fusion=fusion.fuse_select(distro_emg, distro_eeg, args)
         pred_fusion=ml.pred_from_distro(classlabels,distro_fusion)
         distrolist_fusion.append(distro_fusion)
         predlist_fusion.append(pred_fusion)
@@ -215,7 +219,7 @@ def synchronously_classify(test_set_emg,test_set_eeg,model_emg,model_eeg,classla
         targets.append(TargetLabel)
     return targets, predlist_emg, correctness_emg, predlist_eeg, correctness_eeg, predlist_fusion, correctness_fusion
 
-def evaluate_results(targets, predlist_emg, correctness_emg, predlist_eeg, correctness_eeg, predlist_fusion, correctness_fusion, classlabels):
+def evaluate_results(targets, predlist_emg, correctness_emg, predlist_eeg, correctness_eeg, predlist_fusion, correctness_fusion, classlabels, plot_confmats=False):
     '''Evaluate accuracy'''
     accuracy_emg = sum(correctness_emg)/len(correctness_emg)
     print('EMG accuracy: '+ str(accuracy_emg))
@@ -233,14 +237,182 @@ def evaluate_results(targets, predlist_emg, correctness_emg, predlist_eeg, corre
     gest_pred_fusion=[params.idx_to_gestures[pred] for pred in predlist_fusion]
     gesturelabels=[params.idx_to_gestures[label] for label in classlabels]
     
-    '''Produce confusion matrix'''
-    tt.confmat(gest_truth,gest_pred_emg,gesturelabels)
-    tt.confmat(gest_truth,gest_pred_eeg,gesturelabels)
-    tt.confmat(gest_truth,gest_pred_fusion,gesturelabels)
+    if plot_confmats:
+        '''Produce confusion matrix'''
+        tt.confmat(gest_truth,gest_pred_emg,gesturelabels)
+        tt.confmat(gest_truth,gest_pred_eeg,gesturelabels)
+        tt.confmat(gest_truth,gest_pred_fusion,gesturelabels)
     
     return accuracy_emg,accuracy_eeg,accuracy_fusion
 
+def train_models_opt(emg_train_set,eeg_train_set,args):
+    emg_model_type=args['emg']['emg_model_type']
+    eeg_model_type=args['eeg']['eeg_model_type']
+    emg_model = ml.train_optimise(emg_train_set,emg_model_type,args['emg'])
+    eeg_model = ml.train_optimise(eeg_train_set, eeg_model_type, args['eeg'])
+    return emg_model,eeg_model
+
+def function_fuse_ppt1(args):
+    emg_set_path='/home/michael/Documents/Aston/MultimodalFW/working_dataset/devset_EMG/featsEMG.csv'
+    eeg_set_path='/home/michael/Documents/Aston/MultimodalFW/working_dataset/devset_EEG/featsEEG.csv'
+    
+    emg_set=ml.pd.read_csv(emg_set_path,delimiter=',')
+    eeg_set=ml.pd.read_csv(eeg_set_path,delimiter=',')
+    
+    eeg_masks=get_ppt_split(eeg_set)
+    emg_masks=get_ppt_split(emg_set)
+    
+    emg_mask_1=emg_masks[0]
+    eeg_mask_1=eeg_masks[0]
+    
+    emg_ppt = emg_set[emg_mask_1]
+    emg_others = emg_set[~emg_mask_1]
+    eeg_ppt = eeg_set[eeg_mask_1]
+    eeg_others = eeg_set[~eeg_mask_1]
+    #emg_ppt=ml.drop_ID_cols(emg_ppt)
+    emg_others=ml.drop_ID_cols(emg_others)
+    #eeg_ppt=ml.drop_ID_cols(eeg_ppt)
+    eeg_others=ml.drop_ID_cols(eeg_others)
+    
+    emg_model,eeg_model=train_models_opt(emg_others,eeg_others,args)
+    
+    classlabels = emg_model.classes_
+    
+    emg_ppt.sort_values(['ID_pptID','ID_run','Label','ID_gestrep','ID_tend'],ascending=[True,True,True,True,True],inplace=True)
+    eeg_ppt.sort_values(['ID_pptID','ID_run','Label','ID_gestrep','ID_tend'],ascending=[True,True,True,True,True],inplace=True)
+        
+    targets, predlist_emg, correctness_emg, predlist_eeg, correctness_eeg, predlist_fusion, correctness_fusion = synchronously_classify(emg_ppt, eeg_ppt, emg_model, eeg_model, classlabels,args)
+        
+    acc_emg,acc_eeg,acc_fusion=evaluate_results(targets, predlist_emg, correctness_emg, predlist_eeg, correctness_eeg, predlist_fusion, correctness_fusion, classlabels)
+    
+    return 1-acc_fusion
+
+def function_fuse_LOO(args):
+    emg_set_path='/home/michael/Documents/Aston/MultimodalFW/working_dataset/devset_EMG/featsEMG.csv'
+    eeg_set_path='/home/michael/Documents/Aston/MultimodalFW/working_dataset/devset_EEG/featsEEG.csv'
+    
+    emg_set=ml.pd.read_csv(emg_set_path,delimiter=',')
+    eeg_set=ml.pd.read_csv(eeg_set_path,delimiter=',')
+    
+    eeg_masks=get_ppt_split(eeg_set)
+    emg_masks=get_ppt_split(emg_set)
+    
+    accs=[]
+    emg_accs=[]
+    eeg_accs=[]
+    for idx,emg_mask in enumerate(emg_masks):
+        eeg_mask=eeg_masks[idx]
+        
+        emg_ppt = emg_set[emg_mask]
+        emg_others = emg_set[~emg_mask]
+        eeg_ppt = eeg_set[eeg_mask]
+        eeg_others = eeg_set[~eeg_mask]
+        #emg_ppt=ml.drop_ID_cols(emg_ppt)
+        emg_others=ml.drop_ID_cols(emg_others)
+        #eeg_ppt=ml.drop_ID_cols(eeg_ppt)
+        eeg_others=ml.drop_ID_cols(eeg_others)
+        
+        emg_model,eeg_model=train_models_opt(emg_others,eeg_others,args)
+        
+        classlabels = emg_model.classes_
+        
+        emg_ppt.sort_values(['ID_pptID','ID_run','Label','ID_gestrep','ID_tend'],ascending=[True,True,True,True,True],inplace=True)
+        eeg_ppt.sort_values(['ID_pptID','ID_run','Label','ID_gestrep','ID_tend'],ascending=[True,True,True,True,True],inplace=True)
+            
+        targets, predlist_emg, correctness_emg, predlist_eeg, correctness_eeg, predlist_fusion, correctness_fusion = synchronously_classify(emg_ppt, eeg_ppt, emg_model, eeg_model, classlabels,args)
+            
+        acc_emg,acc_eeg,acc_fusion=evaluate_results(targets, predlist_emg, correctness_emg, predlist_eeg, correctness_eeg, predlist_fusion, correctness_fusion, classlabels)
+        emg_accs.append(acc_emg)
+        eeg_accs.append(acc_eeg)
+        accs.append(acc_fusion)
+    mean_acc=stats.mean(accs)
+    mean_emg=stats.mean(emg_accs)
+    mean_eeg=stats.mean(eeg_accs)
+    #return 1-mean_acc
+    return {
+        'loss': 1-mean_acc,
+        'status': STATUS_OK,
+        'fusion_acc':mean_acc,
+        'emg_acc':mean_emg,
+        'eeg_acc':mean_eeg,}
+
+def setup_search_space():
+    space = {
+            'emg':hp.choice('emg model',[
+                {'emg_model_type':'RF',
+                 'n_trees':scope.int(hp.quniform('emg.RF.ntrees',10,50,q=10)),
+                 #integerising search space https://github.com/hyperopt/hyperopt/issues/566#issuecomment-549510376
+                 },
+                {'emg_model_type':'kNN',
+                 'knn_k':scope.int(hp.quniform('emg.knn.k',1,5,q=1)),
+                # 'd':hp.uniform('d',1,10),
+                }
+                ]),
+            'eeg':hp.choice('eeg model',[
+                {'eeg_model_type':'RF',
+                 'n_trees':scope.int(hp.quniform('eeg_ntrees',10,50,q=10)),
+                 },
+                {'eeg_model_type':'kNN',
+                 'knn_k':scope.int(hp.quniform('eeg.knn.k',1,5,q=1)),
+                 # naming convention https://github.com/hyperopt/hyperopt/issues/380#issuecomment-685173200
+                # 'm':hp.uniform('m',1,10),
+                 }
+                ]),
+            'fusion_alg':hp.choice('fusion algorithm',[
+                'mean',
+                '3_1_emg',
+                '3_1_eeg']),
+            }
+    return space
+
+def optimise_fusion():
+    space=setup_search_space()
+    trials=Trials() #http://hyperopt.github.io/hyperopt/getting-started/minimizing_functions/#attaching-extra-information-via-the-trials-object
+    best = fmin(function_fuse_LOO,
+                space=space,
+                algo=tpe.suggest,
+                max_evals=5,
+                trials=trials)
+    return best, space, trials
+
+def plot_opt_in_time(trials):
+    fig,ax=plt.subplots()
+    ax.plot(range(1, len(trials) + 1),
+            [1-x['result']['loss'] for x in trials], 
+        color='red', marker='.', linewidth=0)
+    #https://www.kaggle.com/code/fanvacoolt/tutorial-on-hyperopt?scriptVersionId=12981074&cellId=97
+    ax.set(title='accuracy over time')
+    plt.show()
+    
+def plot_stat_in_time(trials,stat):
+    fig,ax=plt.subplots()
+    ax.plot(range(1, len(trials) + 1),
+            [x['result'][stat] for x in trials], 
+        color='red', marker='.', linewidth=0)
+    #https://www.kaggle.com/code/fanvacoolt/tutorial-on-hyperopt?scriptVersionId=12981074&cellId=97
+    ax.set(title=stat+' over time')
+    plt.show()
+
+
 if __name__ == '__main__':
+    
+    best,space,trials=optimise_fusion()
+    best_results=function_fuse_LOO(space_eval(space,best))
+    #print(best)
+    print(space_eval(space,best))
+    print(1-(best_results['loss']))
+    plot_stat_in_time(trials, 'emg_acc')
+    plot_stat_in_time(trials, 'eeg_acc')
+    plot_stat_in_time(trials, 'loss')
+    
+    raise KeyboardInterrupt('ending execution here!')
+    
+    '''PICKLING THE TRIALS OBJ'''
+    #import pickle as pickle
+    #filename='/home/michael/Documents/Aston/MultimodalFW/working_dataset/demo_trials_obj.p'
+    #pickle.dump(trials,open(filename,'wb'))
+    #load_trials_var=pickle.load(open(filename,'rb'))
+    
     #emgfeats,eegfeats=process_all_data()
     emgpath='/home/michael/Documents/Aston/MultimodalFW/working_dataset/devset_EMG/featsEMG.csv'
     eegpath='/home/michael/Documents/Aston/MultimodalFW/working_dataset/devset_EEG/featsEEG.csv'
@@ -296,6 +468,10 @@ if __name__ == '__main__':
         
     #https://stackoverflow.com/a/61217963
     raise KeyboardInterrupt('ending execution here!')
+    
+    
+    
+    
     '''Build or find a dataset, separating train and test'''
 
     

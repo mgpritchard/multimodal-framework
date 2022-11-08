@@ -22,6 +22,7 @@ from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay #plot_confu
 import matplotlib.pyplot as plt
 from hyperopt import fmin, tpe, hp, space_eval, STATUS_OK, Trials
 from hyperopt.pyll import scope, stochastic
+import time
 
 def process_all_data():
     
@@ -138,13 +139,13 @@ def get_ppt_split(featset):
     msk_ppt8=(featset['ID_pptID']==8)
     msk_ppt9=(featset['ID_pptID']==9)
     msk_ppt11=(featset['ID_pptID']==11)
-    msk_ppt12=(featset['ID_pptID']==12)
     msk_ppt13=(featset['ID_pptID']==13)
+    msk_ppt14=(featset['ID_pptID']==14)
     #return these and then as necessary to featset[mask]
     #https://stackoverflow.com/questions/33742588/pandas-split-dataframe-by-column-value
     #so can do different permutations of assembling train/test sets
     #can also invert a mask (see link above) to get the rest for all-except-n
-    return [msk_ppt1,msk_ppt2,msk_ppt4,msk_ppt7,msk_ppt8,msk_ppt9,msk_ppt11,msk_ppt12,msk_ppt13]
+    return [msk_ppt1,msk_ppt2,msk_ppt4,msk_ppt7,msk_ppt8,msk_ppt9,msk_ppt11,msk_ppt13,msk_ppt14]
 
 def synchronously_classify(test_set_emg,test_set_eeg,model_emg,model_eeg,classlabels,args):
     distrolist_emg=[]
@@ -288,6 +289,7 @@ def function_fuse_ppt1(args):
     return 1-acc_fusion
 
 def function_fuse_LOO(args):
+    start=time.time()
     emg_set_path='/home/michael/Documents/Aston/MultimodalFW/working_dataset/devset_EMG/featsEMG.csv'
     eeg_set_path='/home/michael/Documents/Aston/MultimodalFW/working_dataset/devset_EEG/featsEEG.csv'
     
@@ -328,13 +330,15 @@ def function_fuse_LOO(args):
     mean_acc=stats.mean(accs)
     mean_emg=stats.mean(emg_accs)
     mean_eeg=stats.mean(eeg_accs)
+    end=time.time()
     #return 1-mean_acc
     return {
         'loss': 1-mean_acc,
         'status': STATUS_OK,
         'fusion_acc':mean_acc,
         'emg_acc':mean_emg,
-        'eeg_acc':mean_eeg,}
+        'eeg_acc':mean_eeg,
+        'elapsed_time':end-start,}
 
 def setup_search_space():
     space = {

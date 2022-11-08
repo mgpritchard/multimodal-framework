@@ -117,6 +117,8 @@ def train_nb(train_dat,model_path):
     return naivb
 
 def train_rf(train_dat,model_path):
+    '''internal basic optimisation over defined n_trees and saving of winner model'''
+    
     #data=matrix_from_csv_file(train_dat)[0]
     randfs = dict()
 	# define number of trees to consider
@@ -135,34 +137,6 @@ def train_rf(train_dat,model_path):
     with open(model_path,'wb') as savepath:
         pickle.dump(winner,savepath)
     return winner
-
-'''def optimise_rf(train_data,model_path):
-    ntree_space=scope.int(hp.quiniform('n_trees', 5, 10, q=1))
-    best_ntrees = fmin(train_RF_opt,
-                space = ntree_space,
-                algo = tpe.suggest,
-                max_evals=10)
-    winner=train_RF_winner(train_data,best_ntrees)
-    model_path=model_path[:-4]+'_'+str(best_ntrees)+'trees.sav'
-    with open(model_path,'wb') as savepath:
-        pickle.dump(winner,savepath)
-    return winner'''
-    
-'''def train_RF_opt(data,n_trees):
-    model=RandomForestClassifier(n_estimators=n_trees)
-    train=data[:,:-1]
-    targets=data[:,-1]
-    train1,train2,test1=np.array_split(train,3)
-    train1=train1.astype(np.float64)
-    train2=train2.astype(np.float64)
-    traindat=np.concatenate((train1,train2))
-    test1=test1.astype(np.float64)
-    targets1,targets2,targetstest=np.array_split(targets,3)
-    targetsdat=np.concatenate((targets1,targets2))
-    model.fit(traindat,targetsdat)
-    results=model.predict(test1)
-    acc=accuracy_score(targetstest,results)
-    return 1-acc'''
 
 def train_optimise(training_set,modeltype,args):
     '''where training_set has had ID columns dropped'''

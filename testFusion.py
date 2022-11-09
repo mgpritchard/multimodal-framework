@@ -18,7 +18,7 @@ import handleFusion as fusion
 import params
 from tkinter import Tk
 from tkinter.filedialog import askopenfilename, askopenfilenames, askdirectory, asksaveasfilename
-from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay #plot_confusion_matrix
+from sklearn.metrics import accuracy_score, f1_score, confusion_matrix, ConfusionMatrixDisplay #plot_confusion_matrix
 import matplotlib.pyplot as plt
 from hyperopt import fmin, tpe, hp, space_eval, STATUS_OK, Trials
 from hyperopt.pyll import scope, stochastic
@@ -220,6 +220,61 @@ def synchronously_classify(test_set_emg,test_set_eeg,model_emg,model_eeg,classla
         targets.append(TargetLabel)
     return targets, predlist_emg, correctness_emg, predlist_eeg, correctness_eeg, predlist_fusion, correctness_fusion
 
+def synced_predict(test_set_emg,test_set_eeg,model_emg,model_eeg,classlabels,args):
+  #  distrolist_emg=[]
+    predlist_emg=[]
+    
+ #   distrolist_eeg=[]
+    predlist_eeg=[]
+    
+   # distrolist_fusion=[]
+    predlist_fusion=[]
+    
+    targets=[]
+    
+    for index,emgrow in test_set_emg.iterrows():
+        eegrow = test_set_eeg[(test_set_eeg['ID_pptID']==emgrow['ID_pptID'])
+                              & (test_set_eeg['ID_run']==emgrow['ID_run'])
+                              & (test_set_eeg['Label']==emgrow['Label'])
+                              & (test_set_eeg['ID_gestrep']==emgrow['ID_gestrep'])
+                              & (test_set_eeg['ID_tend']==emgrow['ID_tend'])]
+        #syntax like the below would do it closer to a .where
+        #eegrow=test_set_eeg[test_set_eeg[['ID_pptID','Label']]==emgrow[['ID_pptID','Label']]]
+        if eegrow.empty:
+            print('No matching EEG window for EMG window '+str(emgrow['ID_pptID'])+str(emgrow['ID_run'])+str(emgrow['Label'])+str(emgrow['ID_gestrep'])+str(emgrow['ID_tend']))
+            continue
+        
+        TargetLabel=emgrow['Label']
+        if TargetLabel != eegrow['Label'].values:
+            raise Exception('Sense check failed, target label should agree between modes')
+        
+        '''Get values from instances'''
+        IDs=list(emgrow.filter(regex='^ID_').keys())
+        IDs.append('Label')
+        emgvals=emgrow.drop(IDs).values
+        eegvals=eegrow.drop(IDs,axis='columns').values
+        
+        '''Pass values to models'''
+        
+        distro_emg=ml.prob_dist(model_emg,emgvals.reshape(1,-1))
+        pred_emg=ml.pred_from_distro(classlabels,distro_emg)
+       # distrolist_emg.append(distro_emg)
+        predlist_emg.append(pred_emg)
+        
+        distro_eeg=ml.prob_dist(model_eeg,eegvals.reshape(1,-1))
+        pred_eeg=ml.pred_from_distro(classlabels,distro_eeg)
+       # distrolist_eeg.append(distro_eeg)
+        predlist_eeg.append(pred_eeg)
+        
+        #distro_fusion=fusion.fuse_mean(distro_emg,distro_eeg)
+        distro_fusion=fusion.fuse_select(distro_emg, distro_eeg, args)
+        pred_fusion=ml.pred_from_distro(classlabels,distro_fusion)
+       # distrolist_fusion.append(distro_fusion)
+        predlist_fusion.append(pred_fusion)
+            
+        targets.append(TargetLabel)
+    return targets, predlist_emg, predlist_eeg, predlist_fusion
+
 def evaluate_results(targets, predlist_emg, correctness_emg, predlist_eeg, correctness_eeg, predlist_fusion, correctness_fusion, classlabels, plot_confmats=False):
     '''Evaluate accuracy'''
     accuracy_emg = sum(correctness_emg)/len(correctness_emg)
@@ -245,6 +300,22 @@ def evaluate_results(targets, predlist_emg, correctness_emg, predlist_eeg, corre
         tt.confmat(gest_truth,gest_pred_fusion,gesturelabels)
     
     return accuracy_emg,accuracy_eeg,accuracy_fusion
+
+def classes_from_preds(targets,predlist_emg,predlist_eeg,predlist_fusion,classlabels):
+    '''Convert predictions to gesture labels'''
+    gest_truth=[params.idx_to_gestures[gest] for gest in targets]
+    gest_pred_emg=[params.idx_to_gestures[pred] for pred in predlist_emg]
+    gest_pred_eeg=[params.idx_to_gestures[pred] for pred in predlist_eeg]
+    gest_pred_fusion=[params.idx_to_gestures[pred] for pred in predlist_fusion]
+    gesturelabels=[params.idx_to_gestures[label] for label in classlabels]
+    
+    return gest_truth,gest_pred_emg,gest_pred_eeg,gest_pred_fusion,gesturelabels
+
+def plot_confmats(gest_truth,gest_pred_emg,gest_pred_eeg,gest_pred_fusion,gesturelabels):
+        '''Produce confusion matrix'''
+        tt.confmat(gest_truth,gest_pred_emg,gesturelabels)
+        tt.confmat(gest_truth,gest_pred_eeg,gesturelabels)
+        tt.confmat(gest_truth,gest_pred_fusion,gesturelabels)
 
 def train_models_opt(emg_train_set,eeg_train_set,args):
     emg_model_type=args['emg']['emg_model_type']
@@ -302,6 +373,10 @@ def function_fuse_LOO(args):
     accs=[]
     emg_accs=[]
     eeg_accs=[]
+    
+    f1s=[]
+    emg_f1s=[]
+    eeg_f1s=[]
     for idx,emg_mask in enumerate(emg_masks):
         eeg_mask=eeg_masks[idx]
         
@@ -321,23 +396,49 @@ def function_fuse_LOO(args):
         emg_ppt.sort_values(['ID_pptID','ID_run','Label','ID_gestrep','ID_tend'],ascending=[True,True,True,True,True],inplace=True)
         eeg_ppt.sort_values(['ID_pptID','ID_run','Label','ID_gestrep','ID_tend'],ascending=[True,True,True,True,True],inplace=True)
             
-        targets, predlist_emg, correctness_emg, predlist_eeg, correctness_eeg, predlist_fusion, correctness_fusion = synchronously_classify(emg_ppt, eeg_ppt, emg_model, eeg_model, classlabels,args)
+        targets, predlist_emg, predlist_eeg, predlist_fusion = synced_predict(emg_ppt, eeg_ppt, emg_model, eeg_model, classlabels,args)
             
-        acc_emg,acc_eeg,acc_fusion=evaluate_results(targets, predlist_emg, correctness_emg, predlist_eeg, correctness_eeg, predlist_fusion, correctness_fusion, classlabels)
+        #acc_emg,acc_eeg,acc_fusion=evaluate_results(targets, predlist_emg, correctness_emg, predlist_eeg, correctness_eeg, predlist_fusion, correctness_fusion, classlabels)
+        
+        gest_truth,gest_pred_emg,gest_pred_eeg,gest_pred_fusion,gesturelabels=classes_from_preds(targets,predlist_emg,predlist_eeg,predlist_fusion,classlabels)
+        
+        #plot_confmats(gest_truth,gest_pred_emg,gest_pred_eeg,gest_pred_fusion,gesturelabels)
+        
+        acc_emg=accuracy_score(gest_truth,gest_pred_emg)
+        acc_eeg=accuracy_score(gest_truth,gest_pred_eeg)
+        acc_fusion=accuracy_score(gest_truth,gest_pred_fusion)
+        
+        f1_emg=f1_score(gest_truth,gest_pred_emg,average='weighted')
+        f1_eeg=f1_score(gest_truth,gest_pred_eeg,average='weighted')
+        f1_fusion=f1_score(gest_truth,gest_pred_fusion,average='weighted')
+        
         emg_accs.append(acc_emg)
         eeg_accs.append(acc_eeg)
         accs.append(acc_fusion)
+        
+        emg_f1s.append(f1_emg)
+        eeg_f1s.append(f1_eeg)
+        f1s.append(f1_fusion)
     mean_acc=stats.mean(accs)
+    median_acc=stats.median(accs)
     mean_emg=stats.mean(emg_accs)
     mean_eeg=stats.mean(eeg_accs)
+    mean_f1_emg=stats.mean(emg_f1s)
+    mean_f1_eeg=stats.mean(eeg_f1s)
+    mean_f1_fusion=stats.mean(f1s)
+    median_f1=stats.median(f1s)
     end=time.time()
     #return 1-mean_acc
     return {
-        'loss': 1-mean_acc,
+        'loss': 1-median_f1,
         'status': STATUS_OK,
-        'fusion_acc':mean_acc,
-        'emg_acc':mean_emg,
-        'eeg_acc':mean_eeg,
+        'fusion_mean':mean_acc,
+        'fusion_median':median_acc,
+        'emg_mean':mean_emg,
+        'eeg_mean':mean_eeg,
+        'emg_f1_mean':mean_f1_emg,
+        'eeg_f1_mean':mean_f1_eeg,
+        'f1_mean':mean_f1_fusion,
         'elapsed_time':end-start,}
 
 def setup_search_space():
@@ -375,7 +476,7 @@ def optimise_fusion():
     best = fmin(function_fuse_LOO,
                 space=space,
                 algo=tpe.suggest,
-                max_evals=5,
+                max_evals=25,
                 trials=trials)
     return best, space, trials
 
@@ -405,9 +506,10 @@ if __name__ == '__main__':
     #print(best)
     print(space_eval(space,best))
     print(1-(best_results['loss']))
-    plot_stat_in_time(trials, 'emg_acc')
-    plot_stat_in_time(trials, 'eeg_acc')
+    plot_stat_in_time(trials, 'emg_mean')
+    plot_stat_in_time(trials, 'eeg_mean')
     plot_stat_in_time(trials, 'loss')
+    plot_stat_in_time(trials,'f1_mean')
     
     raise KeyboardInterrupt('ending execution here!')
     

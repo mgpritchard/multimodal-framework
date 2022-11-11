@@ -361,8 +361,8 @@ def function_fuse_ppt1(args):
 
 def function_fuse_LOO(args):
     start=time.time()
-    emg_set_path='/home/michael/Documents/Aston/MultimodalFW/working_dataset/devset_EMG/featsEMG.csv'
-    eeg_set_path='/home/michael/Documents/Aston/MultimodalFW/working_dataset/devset_EEG/featsEEG.csv'
+    emg_set_path=args['emg_set_path']
+    eeg_set_path=args['eeg_set_path']
     
     emg_set=ml.pd.read_csv(emg_set_path,delimiter=',')
     eeg_set=ml.pd.read_csv(eeg_set_path,delimiter=',')
@@ -467,6 +467,8 @@ def setup_search_space():
                 'mean',
                 '3_1_emg',
                 '3_1_eeg']),
+            'emg_set_path':params.emg_set_path_for_system_tests,
+            'eeg_set_path':params.eeg_set_path_for_system_tests,
             }
     return space
 

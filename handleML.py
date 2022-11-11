@@ -147,11 +147,23 @@ def train_optimise(training_set,modeltype,args):
         raise ValueError('No Gaussian NB implemented yet')
         model=train_nb(training_set,args)
     elif modeltype=='LDA':
-        raise ValueError('No LDA implemented yet')
-        model=train_lda(training_set,args)
+        #raise ValueError('No LDA implemented yet')
+        model=train_LDA_param(training_set,args)
     elif modeltype=='kNN':
         model = train_knn(training_set,args)
     
+    return model
+
+def train_LDA_param(train_data,args):
+    solver=args['LDA_solver']
+    shrinkage=args['shrinkage']
+    if solver == 'svd':
+        model=LinearDiscriminantAnalysis(solver=solver)
+    else:
+        model=LinearDiscriminantAnalysis(solver=solver,shrinkage=shrinkage)
+    train=train_data.values[:,:-1]
+    targets=train_data.values[:,-1]
+    model.fit(train.astype(np.float64),targets)
     return model
 
 def train_knn(train_data,args):

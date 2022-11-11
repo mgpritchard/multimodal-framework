@@ -450,8 +450,11 @@ def setup_search_space():
                  },
                 {'emg_model_type':'kNN',
                  'knn_k':scope.int(hp.quniform('emg.knn.k',1,5,q=1)),
-                # 'd':hp.uniform('d',1,10),
-                }
+                 },
+                {'emg_model_type':'LDA',
+                 'LDA_solver':hp.choice('emg.LDA_solver',['svd','lsqr','eigen']),
+                 'shrinkage':hp.uniform('emg.lda.shrinkage',0.0,1.0),
+                 },
                 ]),
             'eeg':hp.choice('eeg model',[
                 {'eeg_model_type':'RF',
@@ -459,9 +462,13 @@ def setup_search_space():
                  },
                 {'eeg_model_type':'kNN',
                  'knn_k':scope.int(hp.quniform('eeg.knn.k',1,5,q=1)),
+                 },
+                {'eeg_model_type':'LDA',
+                 'LDA_solver':hp.choice('eeg.LDA_solver',['svd','lsqr','eigen']),
+                 'shrinkage':hp.uniform('eeg.lda.shrinkage',0.0,1.0),
+                 },
                  # naming convention https://github.com/hyperopt/hyperopt/issues/380#issuecomment-685173200
-                # 'm':hp.uniform('m',1,10),
-                 }
+              #   }
                 ]),
             'fusion_alg':hp.choice('fusion algorithm',[
                 'mean',

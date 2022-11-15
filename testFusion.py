@@ -18,7 +18,7 @@ import handleFusion as fusion
 import params
 from tkinter import Tk
 from tkinter.filedialog import askopenfilename, askopenfilenames, askdirectory, asksaveasfilename
-from sklearn.metrics import accuracy_score, f1_score, confusion_matrix, ConfusionMatrixDisplay #plot_confusion_matrix
+from sklearn.metrics import accuracy_score, f1_score, cohen_kappa_score, confusion_matrix, ConfusionMatrixDisplay #plot_confusion_matrix
 import matplotlib.pyplot as plt
 from hyperopt import fmin, tpe, hp, space_eval, STATUS_OK, Trials
 from hyperopt.pyll import scope, stochastic
@@ -378,6 +378,8 @@ def function_fuse_LOO(args):
     f1s=[]
     emg_f1s=[]
     eeg_f1s=[]
+    
+    kappas=[]
     for idx,emg_mask in enumerate(emg_masks):
         eeg_mask=eeg_masks[idx]
         
@@ -413,6 +415,8 @@ def function_fuse_LOO(args):
         f1_eeg=f1_score(gest_truth,gest_pred_eeg,average='weighted')
         f1_fusion=f1_score(gest_truth,gest_pred_fusion,average='weighted')
         
+        kappa=cohen_kappa_score(gest_truth,gest_pred_fusion)
+        
         emg_accs.append(acc_emg)
         eeg_accs.append(acc_eeg)
         accs.append(acc_fusion)
@@ -420,6 +424,8 @@ def function_fuse_LOO(args):
         emg_f1s.append(f1_emg)
         eeg_f1s.append(f1_eeg)
         f1s.append(f1_fusion)
+        
+        kappas.append(kappa)
     mean_acc=stats.mean(accs)
     median_acc=stats.median(accs)
     mean_emg=stats.mean(emg_accs)
@@ -428,10 +434,11 @@ def function_fuse_LOO(args):
     mean_f1_eeg=stats.mean(eeg_f1s)
     mean_f1_fusion=stats.mean(f1s)
     median_f1=stats.median(f1s)
+    median_kappa=stats.median(kappas)
     end=time.time()
     #return 1-mean_acc
     return {
-        'loss': 1-median_f1,
+        'loss': 1-median_kappa,
         'status': STATUS_OK,
         'fusion_mean':mean_acc,
         'fusion_median':median_acc,
@@ -456,6 +463,12 @@ def setup_search_space():
                  'LDA_solver':hp.choice('emg.LDA_solver',['svd','lsqr','eigen']),
                  'shrinkage':hp.uniform('emg.lda.shrinkage',0.0,1.0),
                  },
+                {'emg_model_type':'QDA',
+                 'regularisation':hp.uniform('emg.qda.regularisation',0.0,1.0),
+                 },
+            #    {'emg_model_type':'SVM',
+             #    'svm_C':hp.uniform('emg.svm.c',0.1,100),
+              #   }
                 ]),
             'eeg':hp.choice('eeg model',[
                 {'eeg_model_type':'RF',
@@ -468,6 +481,11 @@ def setup_search_space():
                  'LDA_solver':hp.choice('eeg.LDA_solver',['svd','lsqr','eigen']),
                  'shrinkage':hp.uniform('eeg.lda.shrinkage',0.0,1.0),
                  },
+                {'eeg_model_type':'QDA',
+                 'regularisation':hp.uniform('eeg.qda.regularisation',0.0,1.0),
+                 },
+             #   {'eeg_model_type':'SVM',
+              #   'svm_C':hp.uniform('eeg.svm.c',0.1,100),
                  # naming convention https://github.com/hyperopt/hyperopt/issues/380#issuecomment-685173200
               #   }
                 ]),

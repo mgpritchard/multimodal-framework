@@ -18,7 +18,7 @@ import handleFusion as fusion
 import params
 from tkinter import Tk
 from tkinter.filedialog import askopenfilename, askopenfilenames, askdirectory, asksaveasfilename
-from sklearn.metrics import accuracy_score, f1_score, cohen_kappa_score, confusion_matrix, ConfusionMatrixDisplay #plot_confusion_matrix
+from sklearn.metrics import accuracy_score, f1_score, cohen_kappa_score, log_loss, confusion_matrix, ConfusionMatrixDisplay #plot_confusion_matrix
 import matplotlib.pyplot as plt
 from hyperopt import fmin, tpe, hp, space_eval, STATUS_OK, Trials
 from hyperopt.pyll import scope, stochastic
@@ -132,7 +132,7 @@ def purge_rejects(rejects,featset):
     return featset
 
 def get_ppt_split(featset):
-    print(featset['ID_pptID'].unique())
+    #print(featset['ID_pptID'].unique())
     msk_ppt1=(featset['ID_pptID']==1)
     msk_ppt2=(featset['ID_pptID']==15) #ppt2 retrial was labelled 15
     msk_ppt4=(featset['ID_pptID']==4)
@@ -276,6 +276,68 @@ def synced_predict(test_set_emg,test_set_eeg,model_emg,model_eeg,classlabels,arg
         targets.append(TargetLabel)
     return targets, predlist_emg, predlist_eeg, predlist_fusion
 
+def refactor_synced_predict(test_set_emg,test_set_eeg,model_emg,model_eeg,classlabels,args):
+  #  distrolist_emg=[]
+    predlist_emg=[]
+    
+ #   distrolist_eeg=[]
+    predlist_eeg=[]
+    
+   # distrolist_fusion=[]
+    predlist_fusion=[]
+    
+    targets=[]
+    
+    index_emg=ml.pd.MultiIndex.from_arrays([test_set_emg[col] for col in ['ID_pptID','ID_run','Label','ID_gestrep','ID_tend']])
+    index_eeg=ml.pd.MultiIndex.from_arrays([test_set_eeg[col] for col in ['ID_pptID','ID_run','Label','ID_gestrep','ID_tend']])
+    emg=test_set_emg.loc[index_emg.isin(index_eeg)].reset_index(drop=True)
+    eeg=test_set_eeg.loc[index_eeg.isin(index_emg)].reset_index(drop=True)
+    for index,emgrow in emg.iterrows():
+        eegrow = eeg[(eeg['ID_pptID']==emgrow['ID_pptID'])
+                              & (eeg['ID_run']==emgrow['ID_run'])
+                              & (eeg['Label']==emgrow['Label'])
+                              & (eeg['ID_gestrep']==emgrow['ID_gestrep'])
+                              & (eeg['ID_tend']==emgrow['ID_tend'])]
+        #syntax like the below would do it closer to a .where
+        #eegrow=test_set_eeg[test_set_eeg[['ID_pptID','Label']]==emgrow[['ID_pptID','Label']]]
+        if eegrow.empty:
+            print('No matching EEG window for EMG window '+str(emgrow['ID_pptID'])+str(emgrow['ID_run'])+str(emgrow['Label'])+str(emgrow['ID_gestrep'])+str(emgrow['ID_tend']))
+            continue
+        
+        TargetLabel=emgrow['Label']
+        if TargetLabel != eegrow['Label'].values:
+            raise Exception('Sense check failed, target label should agree between modes')
+        targets.append(TargetLabel)
+        
+    '''Get values from instances'''
+    IDs=list(emg.filter(regex='^ID_').keys())
+    IDs.append('Label')
+    emgvals=emg.drop(IDs,axis='columns').values
+    eegvals=eeg.drop(IDs,axis='columns').values
+    
+    '''Pass values to models'''
+    
+    distros_emg=ml.prob_dist(model_emg,emgvals)
+    for distro in distros_emg:
+        pred_emg=ml.pred_from_distro(classlabels,distro)
+   # distrolist_emg.append(distro_emg)
+        predlist_emg.append(pred_emg)
+    
+    distros_eeg=ml.prob_dist(model_eeg,eegvals)
+    for distro in distros_eeg:
+        pred_eeg=ml.pred_from_distro(classlabels,distro)
+   # distrolist_eeg.append(distro_eeg)
+        predlist_eeg.append(pred_eeg)
+    
+    #distro_fusion=fusion.fuse_mean(distro_emg,distro_eeg)
+    distros_fusion=fusion.fuse_select(distros_emg, distros_eeg, args)
+    for distro in distros_fusion:
+        pred_fusion=ml.pred_from_distro(classlabels,distro)
+       # distrolist_fusion.append(distro_fusion)
+        predlist_fusion.append(pred_fusion) 
+        
+    return targets, predlist_emg, predlist_eeg, predlist_fusion
+
 def evaluate_results(targets, predlist_emg, correctness_emg, predlist_eeg, correctness_eeg, predlist_fusion, correctness_fusion, classlabels, plot_confmats=False):
     '''Evaluate accuracy'''
     accuracy_emg = sum(correctness_emg)/len(correctness_emg)
@@ -399,12 +461,13 @@ def function_fuse_LOO(args):
         emg_ppt.sort_values(['ID_pptID','ID_run','Label','ID_gestrep','ID_tend'],ascending=[True,True,True,True,True],inplace=True)
         eeg_ppt.sort_values(['ID_pptID','ID_run','Label','ID_gestrep','ID_tend'],ascending=[True,True,True,True,True],inplace=True)
             
-        targets, predlist_emg, predlist_eeg, predlist_fusion = synced_predict(emg_ppt, eeg_ppt, emg_model, eeg_model, classlabels,args)
+        #targets, predlist_emg, predlist_eeg, predlist_fusion = synced_predict(emg_ppt, eeg_ppt, emg_model, eeg_model, classlabels,args)
+        targets, predlist_emg, predlist_eeg, predlist_fusion = refactor_synced_predict(emg_ppt, eeg_ppt, emg_model, eeg_model, classlabels,args)
             
         #acc_emg,acc_eeg,acc_fusion=evaluate_results(targets, predlist_emg, correctness_emg, predlist_eeg, correctness_eeg, predlist_fusion, correctness_fusion, classlabels)
         
         gest_truth,gest_pred_emg,gest_pred_eeg,gest_pred_fusion,gesturelabels=classes_from_preds(targets,predlist_emg,predlist_eeg,predlist_fusion,classlabels)
-        
+        '''could calculate log loss if got the probabilities back''' #https://towardsdatascience.com/comprehensive-guide-on-multiclass-classification-metrics-af94cfb83fbd
         #plot_confmats(gest_truth,gest_pred_emg,gest_pred_eeg,gest_pred_fusion,gesturelabels)
         
         acc_emg=accuracy_score(gest_truth,gest_pred_emg)
@@ -464,7 +527,7 @@ def setup_search_space():
                  'shrinkage':hp.uniform('emg.lda.shrinkage',0.0,1.0),
                  },
                 {'emg_model_type':'QDA',
-                 'regularisation':hp.uniform('emg.qda.regularisation',0.0,1.0),
+                 'regularisation':hp.uniform('emg.qda.regularisation',0.0,1.0), #https://www.kaggle.com/code/code1110/best-parameter-s-for-qda/notebook
                  },
             #    {'emg_model_type':'SVM',
              #    'svm_C':hp.uniform('emg.svm.c',0.1,100),
@@ -517,13 +580,14 @@ def plot_opt_in_time(trials):
     ax.set(title='accuracy over time')
     plt.show()
     
-def plot_stat_in_time(trials,stat):
+def plot_stat_in_time(trials,stat,ylower=0,yupper=1):
     fig,ax=plt.subplots()
     ax.plot(range(1, len(trials) + 1),
             [x['result'][stat] for x in trials], 
         color='red', marker='.', linewidth=0)
     #https://www.kaggle.com/code/fanvacoolt/tutorial-on-hyperopt?scriptVersionId=12981074&cellId=97
     ax.set(title=stat+' over time')
+    ax.set_ylim(ylower,yupper)
     plt.show()
 
 
@@ -538,6 +602,7 @@ if __name__ == '__main__':
     plot_stat_in_time(trials, 'eeg_mean')
     plot_stat_in_time(trials, 'loss')
     plot_stat_in_time(trials,'f1_mean')
+    plot_stat_in_time(trials,'elapsed_time',0,200)
     
     table=pd.DataFrame(trials.trials)
     table_readable=pd.concat(
@@ -552,6 +617,9 @@ if __name__ == '__main__':
     #filename='/home/michael/Documents/Aston/MultimodalFW/working_dataset/demo_trials_obj.p'
     #pickle.dump(trials,open(filename,'wb'))
     #load_trials_var=pickle.load(open(filename,'rb'))
+    
+    
+    #for properly evaluating results later: https://towardsdatascience.com/multiclass-classification-evaluation-with-roc-curves-and-roc-auc-294fd4617e3a
     
     #emgfeats,eegfeats=process_all_data()
     emgpath='/home/michael/Documents/Aston/MultimodalFW/working_dataset/devset_EMG/featsEMG.csv'

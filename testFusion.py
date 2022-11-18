@@ -23,6 +23,7 @@ import matplotlib.pyplot as plt
 from hyperopt import fmin, tpe, hp, space_eval, STATUS_OK, Trials
 from hyperopt.pyll import scope, stochastic
 import time
+import pandas as pd
 
 def process_all_data():
     
@@ -602,6 +603,12 @@ if __name__ == '__main__':
     plot_stat_in_time(trials, 'loss')
     plot_stat_in_time(trials,'f1_mean')
     plot_stat_in_time(trials,'elapsed_time',0,200)
+    
+    table=pd.DataFrame(trials.trials)
+    table_readable=pd.concat(
+        [pd.DataFrame(table['result'].tolist()),
+         pd.DataFrame(pd.DataFrame(table['misc'].tolist())['vals'].values.tolist())],
+        axis=1,join='outer')
     
     raise KeyboardInterrupt('ending execution here!')
     

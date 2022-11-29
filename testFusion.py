@@ -19,6 +19,8 @@ import params
 from tkinter import Tk
 from tkinter.filedialog import askopenfilename, askopenfilenames, askdirectory, asksaveasfilename
 from sklearn.metrics import accuracy_score, f1_score, cohen_kappa_score, log_loss, confusion_matrix, ConfusionMatrixDisplay #plot_confusion_matrix
+from sklearn.model_selection import train_test_split
+import random
 import matplotlib.pyplot as plt
 from hyperopt import fmin, tpe, hp, space_eval, STATUS_OK, Trials
 from hyperopt.pyll import scope, stochastic
@@ -422,6 +424,14 @@ def function_fuse_ppt1(args):
     
     return 1-acc_fusion
 
+def train_bayes_fuser(model_emg,model_eeg,emg_set,eeg_set,classlabels,args):
+    targets,predlist_emg,predlist_eeg,_=refactor_synced_predict(emg_set, eeg_set, model_emg, model_eeg, classlabels, args)
+    onehot=fusion.setup_onehot(classlabels)
+    onehot_pred_emg=fusion.encode_preds_onehot(predlist_emg,onehot)
+    onehot_pred_eeg=fusion.encode_preds_onehot(predlist_eeg,onehot)
+    fuser=fusion.train_catNB_fuser(onehot_pred_emg, onehot_pred_eeg, targets)
+    return fuser, onehot
+
 def function_fuse_LOO(args):
     start=time.time()
     emg_set_path=args['emg_set_path']
@@ -434,7 +444,7 @@ def function_fuse_LOO(args):
     emg_masks=get_ppt_split(emg_set)
     
     accs=[]
-    emg_accs=[]
+    emg_accs=[] #https://stackoverflow.com/questions/13520876/how-can-i-make-multiple-empty-lists-in-python
     eeg_accs=[]
     
     f1s=[]
@@ -449,12 +459,32 @@ def function_fuse_LOO(args):
         emg_others = emg_set[~emg_mask]
         eeg_ppt = eeg_set[eeg_mask]
         eeg_others = eeg_set[~eeg_mask]
-        #emg_ppt=ml.drop_ID_cols(emg_ppt)
-        emg_others=ml.drop_ID_cols(emg_others)
-        #eeg_ppt=ml.drop_ID_cols(eeg_ppt)
-        eeg_others=ml.drop_ID_cols(eeg_others)
         
-        emg_model,eeg_model=train_models_opt(emg_others,eeg_others,args)
+        if args['fusion_alg']=='bayes':
+            emg_others.sort_values(['ID_pptID','ID_run','Label','ID_gestrep','ID_tend'],ascending=[True,True,True,True,True],inplace=True)
+            eeg_others.sort_values(['ID_pptID','ID_run','Label','ID_gestrep','ID_tend'],ascending=[True,True,True,True,True],inplace=True)
+            
+            index_emg=ml.pd.MultiIndex.from_arrays([emg_others[col] for col in ['ID_pptID','ID_run','Label','ID_gestrep','ID_tend']])
+            index_eeg=ml.pd.MultiIndex.from_arrays([eeg_others[col] for col in ['ID_pptID','ID_run','Label','ID_gestrep','ID_tend']])
+            emg_others=emg_others.loc[index_emg.isin(index_eeg)].reset_index(drop=True)
+            eeg_others=eeg_others.loc[index_eeg.isin(index_emg)].reset_index(drop=True)
+                    
+            emg_others['ID_splitIndex']=emg_others['Label']+emg_others['ID_pptID']
+            eeg_others['ID_splitIndex']=eeg_others['Label']+eeg_others['ID_pptID']
+            #https://stackoverflow.com/questions/45516424/sklearn-train-test-split-on-pandas-stratify-by-multiple-columns
+            random_split=random.randint(0,100)
+            emg_train_split_ML,emg_train_split_fusion=train_test_split(emg_others,test_size=0.33,random_state=random_split,stratify=emg_others[['ID_splitIndex']])
+            eeg_train_split_ML,eeg_train_split_fusion=train_test_split(eeg_others,test_size=0.33,random_state=random_split,stratify=eeg_others[['ID_splitIndex']])
+            #https://stackoverflow.com/questions/43095076/scikit-learn-train-test-split-can-i-ensure-same-splits-on-different-datasets
+            
+            emg_train_split_ML=ml.drop_ID_cols(emg_train_split_ML)
+            eeg_train_split_ML=ml.drop_ID_cols(eeg_train_split_ML)
+            
+            emg_model,eeg_model=train_models_opt(emg_train_split_ML,eeg_train_split_ML,args)
+        else:
+            emg_others=ml.drop_ID_cols(emg_others)
+            eeg_others=ml.drop_ID_cols(eeg_others)
+            emg_model,eeg_model=train_models_opt(emg_others,eeg_others,args)
         
         classlabels = emg_model.classes_
         
@@ -463,7 +493,11 @@ def function_fuse_LOO(args):
             
         #targets, predlist_emg, predlist_eeg, predlist_fusion = synced_predict(emg_ppt, eeg_ppt, emg_model, eeg_model, classlabels,args)
         targets, predlist_emg, predlist_eeg, predlist_fusion = refactor_synced_predict(emg_ppt, eeg_ppt, emg_model, eeg_model, classlabels,args)
-            
+        
+        if args['fusion_alg']=='bayes':
+            fuser,onehotEncoder=train_bayes_fuser(emg_model,eeg_model,emg_train_split_fusion,eeg_train_split_fusion,classlabels,args)
+            predlist_fusion=fusion.bayesian_fusion(fuser,onehotEncoder,predlist_emg,predlist_eeg,classlabels)
+        
         #acc_emg,acc_eeg,acc_fusion=evaluate_results(targets, predlist_emg, correctness_emg, predlist_eeg, correctness_eeg, predlist_fusion, correctness_fusion, classlabels)
         
         gest_truth,gest_pred_emg,gest_pred_eeg,gest_pred_fusion,gesturelabels=classes_from_preds(targets,predlist_emg,predlist_eeg,predlist_fusion,classlabels)
@@ -553,9 +587,10 @@ def setup_search_space():
               #   }
                 ]),
             'fusion_alg':hp.choice('fusion algorithm',[
-                'mean',
-                '3_1_emg',
-                '3_1_eeg']),
+                #'mean',
+                #'3_1_emg',
+                #'3_1_eeg',
+                'bayes']),
             'emg_set_path':params.emg_set_path_for_system_tests,
             'eeg_set_path':params.eeg_set_path_for_system_tests,
             }
@@ -592,6 +627,10 @@ def plot_stat_in_time(trials,stat,ylower=0,yupper=1):
 
 
 if __name__ == '__main__':
+    
+    #space=stochastic.sample(setup_search_space())
+    #best_results=function_fuse_LOO(space)
+    
     
     best,space,trials=optimise_fusion()
     best_results=function_fuse_LOO(space_eval(space,best))

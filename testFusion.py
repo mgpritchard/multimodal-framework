@@ -422,6 +422,14 @@ def function_fuse_ppt1(args):
     
     return 1-acc_fusion
 
+def train_bayes_fuser(model_emg,model_eeg,emg_set,eeg_set,classlabels,args):
+    targets,predlist_emg,predlist_eeg,_=refactor_synced_predict(emg_set, eeg_set, model_emg, model_eeg, classlabels, args)
+    onehot=fusion.setup_onehot(classlabels)
+    onehot_pred_emg=fusion.encode_preds_onehot(predlist_emg,onehot)
+    onehot_pred_eeg=fusion.encode_preds_onehot(predlist_eeg,onehot)
+    fuser=fusion.train_catNB_fuser(onehot_pred_emg, onehot_pred_eeg, targets)
+    return fuser, onehot
+
 def function_fuse_LOO(args):
     start=time.time()
     emg_set_path=args['emg_set_path']
@@ -450,8 +458,10 @@ def function_fuse_LOO(args):
         eeg_ppt = eeg_set[eeg_mask]
         eeg_others = eeg_set[~eeg_mask]
         #emg_ppt=ml.drop_ID_cols(emg_ppt)
+        emg_others_for_bayes=emg_others
         emg_others=ml.drop_ID_cols(emg_others)
         #eeg_ppt=ml.drop_ID_cols(eeg_ppt)
+        eeg_others_for_bayes=eeg_others
         eeg_others=ml.drop_ID_cols(eeg_others)
         
         emg_model,eeg_model=train_models_opt(emg_others,eeg_others,args)
@@ -463,7 +473,11 @@ def function_fuse_LOO(args):
             
         #targets, predlist_emg, predlist_eeg, predlist_fusion = synced_predict(emg_ppt, eeg_ppt, emg_model, eeg_model, classlabels,args)
         targets, predlist_emg, predlist_eeg, predlist_fusion = refactor_synced_predict(emg_ppt, eeg_ppt, emg_model, eeg_model, classlabels,args)
-            
+        
+        if args['fusion_alg']=='bayes':
+            fuser,onehot=train_bayes_fuser(emg_model,eeg_model,emg_others_for_bayes,eeg_others_for_bayes,classlabels,args)
+            predlist_fusion=fusion.bayesian_fusion(fuser,onehot,predlist_emg,predlist_eeg,classlabels)
+        
         #acc_emg,acc_eeg,acc_fusion=evaluate_results(targets, predlist_emg, correctness_emg, predlist_eeg, correctness_eeg, predlist_fusion, correctness_fusion, classlabels)
         
         gest_truth,gest_pred_emg,gest_pred_eeg,gest_pred_fusion,gesturelabels=classes_from_preds(targets,predlist_emg,predlist_eeg,predlist_fusion,classlabels)
@@ -553,9 +567,10 @@ def setup_search_space():
               #   }
                 ]),
             'fusion_alg':hp.choice('fusion algorithm',[
-                'mean',
-                '3_1_emg',
-                '3_1_eeg']),
+                #'mean',
+                #'3_1_emg',
+                #'3_1_eeg',
+                'bayes']),
             'emg_set_path':params.emg_set_path_for_system_tests,
             'eeg_set_path':params.eeg_set_path_for_system_tests,
             }
@@ -592,6 +607,9 @@ def plot_stat_in_time(trials,stat,ylower=0,yupper=1):
 
 
 if __name__ == '__main__':
+    
+    #space=stochastic.sample(setup_search_space())
+    #function_fuse_LOO(space)
     
     best,space,trials=optimise_fusion()
     best_results=function_fuse_LOO(space_eval(space,best))

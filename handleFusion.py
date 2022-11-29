@@ -14,7 +14,45 @@ import pandas as pd
 import scipy as sp
 import matplotlib.pyplot as plt
 import csv
+import params
+from sklearn.preprocessing import OneHotEncoder
+from sklearn.naive_bayes import CategoricalNB
+import handleML as ml
 #try divergence BETWEEN the two modes?? how to distribute this across them?
+
+def setup_onehot(classlabels):
+    labels=[params.idx_to_gestures[label] for label in classlabels]
+    options=np.array(labels).reshape(-1,1)
+    ohe_dense=OneHotEncoder(sparse=False)
+    ohe_dense.fit_transform(options)
+    return ohe_dense    
+    
+def encode_preds_onehot(preds,encoder):
+    #preds=[1,2,3,1,0,1,0,1]
+    preds_labelled=np.array([params.idx_to_gestures[pred] for pred in preds],dtype=object).reshape(-1,1)
+    output=encoder.transform(preds_labelled)
+    #cols=np.hsplit(output,output.shape[1])
+    return output
+
+def train_catNB_fuser(mode1,mode2,targets):
+    '''maybe interesting alternative? https://github.com/phamdinhthang/fusion_naive_bayes'''
+    model=CategoricalNB()
+    train=np.column_stack([mode1,mode2])
+    #train=train_data.values[:,:-1]
+    #targets=train_data.values[:,-1]
+    model.fit(train.astype(np.float64),targets)
+    return model
+
+def bayesian_fusion(fuser,onehot,predlist_emg,predlist_eeg,classlabels):
+    onehot_pred_emg=encode_preds_onehot(predlist_emg,onehot)
+    onehot_pred_eeg=encode_preds_onehot(predlist_eeg,onehot)
+    fusion_distros=ml.prob_dist(fuser,np.column_stack([onehot_pred_emg,onehot_pred_eeg]))
+    fusion_preds=[]
+    for distro in fusion_distros:
+        pred_fusion=ml.pred_from_distro(classlabels,distro)
+       # distrolist_fusion.append(distro_fusion)
+        fusion_preds.append(pred_fusion) 
+    return fusion_preds
 
 def reward_pattern_match():
     pass
@@ -29,7 +67,6 @@ def reward_pattern_match():
     #i think we assume that in a one-frame space it won't genuinely change
     #class twice!
     #each rising/falling edge is functionally a sigmoid
-
 
 def normalise_weights(w1,w2):
     wtot = w1+w2
@@ -71,6 +108,9 @@ def fuse_select(emg,eeg,args):
         fusion = fuse_linweight(emg,eeg,75,25)
     elif alg=='3_1_eeg':
         fusion = fuse_linweight(emg,eeg,25,75)
+    elif alg=='bayes':
+        '''bayesian fusion is not done here, just keeping system happy'''
+        fusion = fuse_mean(emg,eeg)
     return fusion
 
 def fuse_mean(mode1,mode2):

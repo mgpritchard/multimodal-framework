@@ -26,8 +26,9 @@ from brainflow.data_filter import DataFilter, FilterTypes, AggOperations, NoiseT
 from brainflow.exit_codes import BrainflowExitCodes #,BrainFlowError
 from brainflow.utils import check_memory_layout_row_major
 
-test_datafile='/home/michael/Documents/Aston/MultimodalFW/working_dataset/devset_EEG/Raw/0001a-neutral-1-_EEG.csv'
-
+test_datafile='/home/michael/Documents/Aston/MultimodalFW/working_dataset/devset_EEG/Raw/0001a-grasp-2-_EEG.csv'
+trialname=test_datafile.split('/')[-1][:-9]
+print(trialname)
 
 def plot_signals(data,channels_to_plot,title='time domain',transposed=False):
     #df = pd.DataFrame(np.transpose(data))
@@ -77,13 +78,14 @@ except Exception as e:
     if e.exit_code==BrainflowExitCodes.INVALID_ARGUMENTS_ERROR.value:
         data=data.transpose()
         check_memory_layout_row_major(data[eeg_channel],1)
-data=data[:,200:]
+        
+data=data[:,250:] #'''WHY IS THIS NEEDED, WHAT CAUSES IMPULSE. HARDWARE?'''
 
 plot_signals(data,eeg_channel,title='before anything',transposed=True)
 check_PSD(data,eeg_channel,nfft,sampling_rate,title='before anything')
 
 
-
+'''DETREND THE DATA'''
 #DC blocking filter may be able to realtime detrend
 #https://dsp.stackexchange.com/questions/25189/detrending-in-real-time
 DataFilter.detrend(data[eeg_channel], DetrendOperations.CONSTANT.value)
@@ -92,7 +94,7 @@ plot_signals(data,eeg_channel,title='after detrend',transposed=True)
 check_PSD(data,eeg_channel,nfft,sampling_rate,title='after detrend')
 
 
-
+'''50 Hz MAINS NOTCH'''
 DataFilter.perform_bandstop(data[eeg_channel], sampling_rate, 48.0, 52.0, 3,
                                         FilterTypes.BUTTERWORTH.value, 0)
 
@@ -100,6 +102,20 @@ plot_signals(data,eeg_channel,title='after mains notch',transposed=True)
 check_PSD(data,eeg_channel,nfft,sampling_rate,title='after mains notch')
 
 
+'''HIGH PASS'''
+DataFilter.perform_highpass(data[eeg_channel], sampling_rate, 3.0, 2,
+                                        FilterTypes.BUTTERWORTH.value, 0) #0 is chebyshev ripple
+
+plot_signals(data,eeg_channel,title='after 2.0Hz HPF',transposed=True)
+check_PSD(data,eeg_channel,nfft,sampling_rate,title='after 2.0Hz HPF')
+
+
+'''LOW PASS'''
+DataFilter.perform_lowpass(data[eeg_channel], sampling_rate, 90.0, 2,
+                                        FilterTypes.BUTTERWORTH.value, 0) #0 is chebyshev ripple
+
+plot_signals(data,eeg_channel,title='after 90.0Hz LPF',transposed=True)
+check_PSD(data,eeg_channel,nfft,sampling_rate,title='after 90.0Hz LPF')
 
 
 

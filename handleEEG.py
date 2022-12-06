@@ -22,6 +22,24 @@ from brainflow.board_shim import BoardShim, BrainFlowInputParams
 from brainflow.data_filter import DataFilter, FilterTypes, AggOperations
 import argparse
 
+# https://stackoverflow.com/questions/6663222/doing-fft-in-realtime
+#successive fouriers, slide the window slightly
+#in a realtime: slide the window by x ms everytime you get a new x ms data
+
+#https://web.archive.org/web/20181105231756/http://developer.choosemuse.com/tools/available-data#Absolute_Band_Powers
+#steps through the process incl sample rate to freq bins calc
+#muse use Hamming window, 256 samples, to get 128 components +0Hz
+#then basically sum up components within a band (allowing components to be in multiple bands)
+
+#https://download.ni.com/evaluation/pxi/Understanding%20FFTs%20and%20Windowing.pdf
+#PAGE 10 - 11, short answer is Hamming or Hanning would likely do the job.
+# note comparison of the two on p12. Narrow main lobe preferred as spectral
+#resolution and separation of signals is important (p11) so likely Hamming
+
+#https://www.researchgate.net/publication/336192872_Window_Functions_Analysis_in_Filters_for_EEG_Movement_Intention_Signals
+#suggests Hamming and Hann broadly similar (Bartlett best but not in brainflow)
+#ADD THIS ONE TO LIT ONGOING
+
 
 def main():
     BoardShim.enable_dev_board_logger()

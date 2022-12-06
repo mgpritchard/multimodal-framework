@@ -29,6 +29,9 @@ if platform =='win32':
     prompt_lateral="C:/Users/pritcham/Documents/python/mm-prompts/multimodal-prompts/lateral.jpg"
     prompt_tripod="C:/Users/pritcham/Documents/python/mm-prompts/multimodal-prompts/tripod.jpg"
     gen_trainmat_spec_SpellLoc="C:/Users/pritcham/Documents/python/labelstoClass/labelstoClassEMGSpell.py"
+    
+    emg_set_path_for_system_tests='C:/Users/pritcham/Documents/mm-framework/working_dataset/devset_EMG/featsEMG.csv'
+    eeg_set_path_for_system_tests='C:/Users/pritcham/Documents/mm-framework/working_dataset/devset_EEG/featsEEG.csv'
 elif platform == 'darwin':
     #mac
     path='macpath'
@@ -43,3 +46,6 @@ elif platform == 'linux' or 'linux32':
     prompt_lateral="/home/michael/Documents/Aston/MultimodalFW/prompts/lateral.png"
     prompt_tripod="/home/michael/Documents/Aston/MultimodalFW/prompts/tripod.png"
     gen_trainmat_spec_SpellLoc="/home/michael/github/labelstoClass/labelstoClassEMGSpell.py"
+    
+    emg_set_path_for_system_tests='/home/michael/Documents/Aston/MultimodalFW/working_dataset/devset_EMG/featsEMG.csv'
+    eeg_set_path_for_system_tests='/home/michael/Documents/Aston/MultimodalFW/working_dataset/devset_EEG/featsEEG.csv'

@@ -16,10 +16,15 @@ import csv
 import sklearn as skl
 from sklearn.naive_bayes import GaussianNB
 from sklearn.ensemble import RandomForestClassifier
-from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
+from sklearn.discriminant_analysis import LinearDiscriminantAnalysis, QuadraticDiscriminantAnalysis
+from sklearn.neighbors import KNeighborsClassifier
 from sklearn.model_selection import cross_val_score
 from sklearn.model_selection import RepeatedStratifiedKFold
 from sklearn.metrics import accuracy_score
+
+#from hyperopt import fmin, tpe, hp, STATUS_OK
+#from hyperopt.pll import scope
+
 import pickle
 from tkinter import Tk
 from tkinter.filedialog import askopenfilename, askopenfilenames, askdirectory, asksaveasfilename
@@ -112,6 +117,8 @@ def train_nb(train_dat,model_path):
     return naivb
 
 def train_rf(train_dat,model_path):
+    '''internal basic optimisation over defined n_trees and saving of winner model'''
+    
     #data=matrix_from_csv_file(train_dat)[0]
     randfs = dict()
 	# define number of trees to consider
@@ -130,6 +137,61 @@ def train_rf(train_dat,model_path):
     with open(model_path,'wb') as savepath:
         pickle.dump(winner,savepath)
     return winner
+
+def train_optimise(training_set,modeltype,args):
+    '''where training_set has had ID columns dropped'''
+    
+    if modeltype=='RF':
+        model=train_RF_param(training_set,args)
+    elif modeltype=='gaussNB':
+        raise ValueError('No Gaussian NB implemented yet')
+        model=train_nb(training_set,args)
+    elif modeltype=='LDA':
+        #raise ValueError('No LDA implemented yet')
+        model=train_LDA_param(training_set,args)
+    elif modeltype=='kNN':
+        model = train_knn(training_set,args)
+    elif modeltype=='QDA':
+        model = train_QDA(training_set,args)
+   
+    return model
+
+def train_QDA(train_data,args):
+    reg=args['regularisation']
+    model=QuadraticDiscriminantAnalysis(reg_param=reg)
+    train=train_data.values[:,:-1]
+    targets=train_data.values[:,-1]
+    model.fit(train.astype(np.float64),targets)
+    return model
+
+def train_LDA_param(train_data,args):
+    solver=args['LDA_solver']
+    shrinkage=args['shrinkage']
+    if solver == 'svd':
+        model=LinearDiscriminantAnalysis(solver=solver)
+    else:
+        model=LinearDiscriminantAnalysis(solver=solver,shrinkage=shrinkage)
+    train=train_data.values[:,:-1]
+    targets=train_data.values[:,-1]
+    model.fit(train.astype(np.float64),targets)
+    return model
+
+def train_knn(train_data,args):
+    k=args['knn_k']
+    model=KNeighborsClassifier(n_neighbors=k)
+    train=train_data.values[:,:-1]
+    targets=train_data.values[:,-1]
+    model.fit(train.astype(np.float64),targets)
+    return model
+
+def train_RF_param(train_data,args):
+    '''where args is a dictionary with n_trees as an integer item within'''
+    n_trees=args['n_trees']
+    model=RandomForestClassifier(n_estimators=n_trees)
+    train=train_data.values[:,:-1]
+    targets=train_data.values[:,-1]
+    model.fit(train.astype(np.float64),targets)
+    return model
 
 def train_lda(train_dat,model_path):
     #data=matrix_from_csv_file(train_dat)[0]

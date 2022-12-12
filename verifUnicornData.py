@@ -61,7 +61,7 @@ def plot_t_and_f(data,channels_to_plot,psd,title,transposed=False):
     ax2.set_title('power spectral density')
 
 
-def check_PSD(data,channel,nfft,sampling_rate,title):
+def check_PSD(data,channel,nfft,sampling_rate):
     psd=DataFilter.get_psd_welch(data[eeg_channel], nfft, nfft // 2, sampling_rate,
                                WindowFunctions.BLACKMAN_HARRIS.value)
     band_power_alpha = DataFilter.get_band_power(psd, 7.0, 13.0)
@@ -95,19 +95,24 @@ except Exception as e:
         data=data.transpose()
         check_memory_layout_row_major(data[eeg_channel],1)
         
-data=data[:,500:] #'''WHY IS THIS NEEDED, WHAT CAUSES IMPULSE. HARDWARE?'''
+data=data[:,250:] #'''WHY IS THIS NEEDED, WHAT CAUSES IMPULSE. HARDWARE?'''
+
+
+psd=check_PSD(data,eeg_channel,nfft,sampling_rate)
 
 plot_signals(data,eeg_channel,title=(trialname + ' before anything'),transposed=True)
-check_PSD(data,eeg_channel,nfft,sampling_rate,title=(trialname + ' before anything'))
+plot_psd(psd,title=(trialname + ' before anything'))
 
 
 '''DETREND THE DATA'''
 #DC blocking filter may be able to realtime detrend
 #https://dsp.stackexchange.com/questions/25189/detrending-in-real-time
 DataFilter.detrend(data[eeg_channel], DetrendOperations.CONSTANT.value)
+psd=check_PSD(data,eeg_channel,nfft,sampling_rate)
 
 plot_signals(data,eeg_channel,title=(trialname + ' after detrend'),transposed=True)
-check_PSD(data,eeg_channel,nfft,sampling_rate,title=(trialname + ' after detrend'))
+plot_psd(psd,title=(trialname + ' after detrend'))
+
 
 '''
 #TRYING TO REMOVE IMPULSE
@@ -118,28 +123,31 @@ plot_signals(data,eeg_channel,title='after impulse killer',transposed=True)
 check_PSD(data,eeg_channel,nfft,sampling_rate,title='after impulse killer')
 '''
 
+
 '''50 Hz MAINS NOTCH'''
 DataFilter.perform_bandstop(data[eeg_channel], sampling_rate, 48.0, 52.0, 3,
                                         FilterTypes.BUTTERWORTH.value, 0)
+psd=check_PSD(data,eeg_channel,nfft,sampling_rate)
 
 plot_signals(data,eeg_channel,title=(trialname + ' after mains notch'),transposed=True)
-check_PSD(data,eeg_channel,nfft,sampling_rate,title=(trialname + ' after mains notch'))
+plot_psd(psd,title=(trialname + ' after 50Hz mains notch'))
 
 
 '''HIGH PASS'''
 DataFilter.perform_highpass(data[eeg_channel], sampling_rate, 3.0, 2,
                                         FilterTypes.BUTTERWORTH.value, 0) #0 is chebyshev ripple
+psd=check_PSD(data,eeg_channel,nfft,sampling_rate)
 
 plot_signals(data,eeg_channel,title=(trialname + ' after 2.0Hz HPF'),transposed=True)
-check_PSD(data,eeg_channel,nfft,sampling_rate,title=(trialname + ' after 2.0Hz HPF'))
+plot_psd(psd,title=(trialname + ' after 2.0Hz HPF'))
 
 
 '''LOW PASS'''
 DataFilter.perform_lowpass(data[eeg_channel], sampling_rate, 90.0, 2,
-                                        FilterTypes.BUTTERWORTH.value, 0) #0 is chebyshev ripple
+                                        FilterTypes.BUTTERWORTH.value, 0)
+psd=check_PSD(data,eeg_channel,nfft,sampling_rate)
 
 plot_signals(data,eeg_channel,title=(trialname + ' after 90.0Hz LPF'),transposed=True)
-check_PSD(data,eeg_channel,nfft,sampling_rate,title=(trialname + ' after 90.0Hz LPF'))
-
+plot_psd(psd,title=(trialname + ' after 90.0Hz LPF'))
 
 

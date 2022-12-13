@@ -71,9 +71,8 @@ def check_PSD(data,channel,nfft,sampling_rate):
     print("alpha/beta:%f" % (band_power_alpha / band_power_beta))'''
     return psd
 
-test_datafile='/home/michael/Documents/Aston/MultimodalFW/working_dataset/devset_EEG/Raw/0001a-grasp-2-_EEG.csv'
-trialname=test_datafile.split('/')[-1][:-9]
-print(trialname)
+
+
 
 board_id = BoardIds.UNICORN_BOARD.value
 params = BrainFlowInputParams()
@@ -89,15 +88,30 @@ timestamp_channel = BoardShim.get_timestamp_channel(board_id)
 eeg_channel=eeg_channels[5]
 
 
-data,_=handleBF.load_raw_brainflow(datafile=test_datafile)
+
+
+#test_datafile='/home/michael/Documents/Aston/MultimodalFW/working_dataset/devset_EEG/Raw/0001a-grasp-2-_EEG.csv'
+test_datafile='/home/michael/Documents/Aston/MultimodalFW/working_dataset/devset_EEG/Cropped/0001a-grasp-2.csv'
+trialname=test_datafile.split('/')[-1]
+if trialname.endswith('EEG'):
+    trialname=trialname[:-9]
+else:
+    trialname=trialname[:-4]
+print(trialname)
+
+#data,_=handleBF.load_raw_brainflow(datafile=test_datafile)
+data,_=handleBF.load_raw_brainflow(datafile=test_datafile,bf_time_moved=True)
+if not data.shape[0]==len(eeg_channels)+1:
+    data=data.transpose()
 try:
     check_memory_layout_row_major(data[eeg_channel],1)
 except Exception as e:
     if e.exit_code==BrainflowExitCodes.INVALID_ARGUMENTS_ERROR.value:
-        data=data.transpose()
+        data=data.copy(order='c')
+        #https://stackoverflow.com/questions/35800242/numpy-c-api-change-ordering-from-column-to-row-major
         check_memory_layout_row_major(data[eeg_channel],1)
-        
-data=data[:,250:] #'''WHY IS THIS NEEDED, WHAT CAUSES IMPULSE. HARDWARE?'''
+
+#data=data[:,250:] #'''WHAT CAUSES IMPULSE. HARDWARE?'''
 
 
 psd=check_PSD(data,eeg_channel,nfft,sampling_rate)

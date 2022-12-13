@@ -183,3 +183,11 @@ plot_t_and_f(data,eeg_channel,psd,'90.0Hz LPF (2nd order Bwth)',transposed=True)
 #plot_psd(psd,title=(trialname + ' after 90.0Hz LPF'))
 '''
 
+n=nfft
+while n <= (len(data[eeg_channel])-len(data[eeg_channel])%nfft):
+    psd=check_PSD(data[:,n-nfft:n],eeg_channel,nfft,sampling_rate)
+    band_power_alpha = DataFilter.get_band_power(psd, 7.0, 13.0)
+    band_power_beta = DataFilter.get_band_power(psd, 14.0, 30.0)
+    print('Slice of '+trialname+' from '+str(n-nfft)+' to '+str(n)+': Alpha '+str(round(band_power_alpha,3))+', Beta '+str(round(band_power_beta,3)))
+    plot_t_and_f(data[:,n-nfft:n],eeg_channel,psd,('Slice from '+str(n-nfft)+' to '+str(n)),transposed=True,PSD_xlim=[0,30])
+    n+=nfft

@@ -190,4 +190,4 @@ while n <= (len(data[eeg_channel])-len(data[eeg_channel])%nfft):
     band_power_beta = DataFilter.get_band_power(psd, 14.0, 30.0)
     print('Slice of '+trialname+' from '+str(n-nfft)+' to '+str(n)+': Alpha '+str(round(band_power_alpha,3))+', Beta '+str(round(band_power_beta,3)))
     plot_t_and_f(data[:,n-nfft:n],eeg_channel,psd,('Slice from '+str(n-nfft)+' to '+str(n)),transposed=True,PSD_xlim=[0,30])
-    n+=nfft
+    n+=(int(nfft/2))

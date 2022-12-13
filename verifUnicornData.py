@@ -45,7 +45,7 @@ def plot_psd(psd,title):
     plt.title('power spectral density '+title)
     plt.show()
     
-def plot_t_and_f(data,channels_to_plot,psd,title,transposed=False):
+def plot_t_and_f(data,channels_to_plot,psd,title,transposed=False,PSD_xlim=None):
     if transposed:
         data=data.transpose()
     df = pd.DataFrame(data)
@@ -59,14 +59,16 @@ def plot_t_and_f(data,channels_to_plot,psd,title,transposed=False):
     ax1.set_title('time series signal')
     ax2.plot(psd[1],psd[0]) 
     ax2.set_title('PSD')
+    if PSD_xlim is not None:
+        ax2.set_xlim(PSD_xlim)
 
 
 def check_PSD(data,channel,nfft,sampling_rate):
     psd=DataFilter.get_psd_welch(data[eeg_channel], nfft, nfft // 2, sampling_rate,
                                WindowFunctions.BLACKMAN_HARRIS.value)
-    band_power_alpha = DataFilter.get_band_power(psd, 7.0, 13.0)
+    '''band_power_alpha = DataFilter.get_band_power(psd, 7.0, 13.0)
     band_power_beta = DataFilter.get_band_power(psd, 14.0, 30.0)
-    print("alpha/beta:%f" % (band_power_alpha / band_power_beta))
+    print("alpha/beta:%f" % (band_power_alpha / band_power_beta))'''
     return psd
 
 test_datafile='/home/michael/Documents/Aston/MultimodalFW/working_dataset/devset_EEG/Raw/0001a-grasp-2-_EEG.csv'
@@ -128,7 +130,7 @@ check_PSD(data,eeg_channel,nfft,sampling_rate,title='after impulse killer')
 
 '''50 Hz MAINS NOTCH'''
 DataFilter.perform_bandstop(data[eeg_channel], sampling_rate, 48.0, 52.0, 3,
-                                        FilterTypes.BUTTERWORTH.value, 0)
+                                        FilterTypes.BUTTERWORTH.value, 0) #0 is chebyshev ripple
 psd=check_PSD(data,eeg_channel,nfft,sampling_rate)
 
 plot_t_and_f(data,eeg_channel,psd,'50Hz Mains Notch (3rd order Bwth)',transposed=True)
@@ -136,17 +138,28 @@ plot_t_and_f(data,eeg_channel,psd,'50Hz Mains Notch (3rd order Bwth)',transposed
 #plot_psd(psd,title=(trialname + ' after 50Hz mains notch'))
 
 
-'''HIGH PASS'''
-DataFilter.perform_highpass(data[eeg_channel], sampling_rate, 3.0, 2,
-                                        FilterTypes.BUTTERWORTH.value, 0) #0 is chebyshev ripple
+'''100 Hz MAINS HARMONIC'''
+DataFilter.perform_bandstop(data[eeg_channel], sampling_rate, 98.0, 102.0, 3,
+                                        FilterTypes.BUTTERWORTH.value, 0)
 psd=check_PSD(data,eeg_channel,nfft,sampling_rate)
 
-plot_t_and_f(data,eeg_channel,psd,'2.0Hz HPF (2nd order Bwth)',transposed=True)
+plot_t_and_f(data,eeg_channel,psd,'100Hz Mains Harmonic (3rd order Bwth)',transposed=True)
+
+
+
+
+'''HIGH PASS'''
+DataFilter.perform_highpass(data[eeg_channel], sampling_rate, 4.0, 2,
+                                        FilterTypes.BUTTERWORTH.value, 0) #maybe 5Hz??
+psd=check_PSD(data,eeg_channel,nfft,sampling_rate)
+
+plot_t_and_f(data,eeg_channel,psd,'2.0Hz HPF (2nd order Bwth)',transposed=True,PSD_xlim=[0, 30])
 #plot_signals(data,eeg_channel,title=(trialname + ' after 2.0Hz HPF'),transposed=True)
 #plot_psd(psd,title=(trialname + ' after 2.0Hz HPF'))
 
 
 '''LOW PASS'''
+'''
 DataFilter.perform_lowpass(data[eeg_channel], sampling_rate, 90.0, 2,
                                         FilterTypes.BUTTERWORTH.value, 0)
 psd=check_PSD(data,eeg_channel,nfft,sampling_rate)
@@ -154,5 +167,5 @@ psd=check_PSD(data,eeg_channel,nfft,sampling_rate)
 plot_t_and_f(data,eeg_channel,psd,'90.0Hz LPF (2nd order Bwth)',transposed=True)
 #plot_signals(data,eeg_channel,title=(trialname + ' after 90.0Hz LPF'),transposed=True)
 #plot_psd(psd,title=(trialname + ' after 90.0Hz LPF'))
-
+'''
 

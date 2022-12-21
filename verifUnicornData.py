@@ -27,6 +27,8 @@ from brainflow.data_filter import DataFilter, FilterTypes, AggOperations, NoiseT
 from brainflow.exit_codes import BrainflowExitCodes #,BrainFlowError
 from brainflow.utils import check_memory_layout_row_major
 
+from scipy.signal import find_peaks
+
 def plot_eeg_and_emg(eegdat,emgdat,eegchannel,emgchannel,title):
     #print('Something is wonky here\nMyo runs at 200Hz, Unicorn at 250\n...so they should have similar no of samples')
     eegdat=eegdat.transpose()
@@ -176,7 +178,7 @@ def process_all_eeg(dataINdir,dataOUTdir):
         np.savetxt(build_path(dataOUTdir,eegfile),eeg,delimiter=',')
 
 if __name__ == '__main__':
-
+    
     '''Setup Unicorn branflow etc'''
     board_id = BoardIds.UNICORN_BOARD.value
     params = BrainFlowInputParams()
@@ -198,7 +200,7 @@ if __name__ == '__main__':
     
     '''select datafile to process'''
     #test_datafile='/home/michael/Documents/Aston/MultimodalFW/working_dataset/devset_EEG/Raw/0001a-grasp-2-_EEG.csv'
-    test_datafile='/home/michael/Documents/Aston/MultimodalFW/working_dataset/devset_EEG/Cropped/0001a-close-2.csv'
+    test_datafile='/home/michael/Documents/Aston/MultimodalFW/working_dataset/devset_EEG/Cropped/004a-open-2.csv' #0001a-close-2.csv
     trialname=test_datafile.split('/')[-1]
     if trialname.endswith('EEG'):
         trialname=trialname[:-9]
@@ -272,7 +274,8 @@ if __name__ == '__main__':
     
     '''HIGH PASS'''
     DataFilter.perform_highpass(data[eeg_channel], sampling_rate, 4.0, 2,
-                                            FilterTypes.BUTTERWORTH.value, 0) #maybe 5Hz??
+                                            FilterTypes.BUTTERWORTH.value, 0) #maybe 5Hz?? default 2nd order
+    #data=data[:,100:]
     psd=check_PSD(data,eeg_channel,nfft,sampling_rate)
     
     plot_t_and_f(data,eeg_channel,psd,'2.0Hz HPF (2nd order Bwth)',transposed=True,PSD_xlim=[0, 30])
@@ -289,6 +292,13 @@ if __name__ == '__main__':
     #plot_signals(data,eeg_channel,title=(trialname + ' after 90.0Hz LPF'),transposed=True)
     #plot_psd(psd,title=(trialname + ' after 90.0Hz LPF'))
     '''
+    
+    peaks,_=find_peaks(data[eeg_channel]) #plot below to verify how many peaks to chop
+    #plt.figure();plt.plot(data[eeg_channel]);plt.plot(peaks,data[eeg_channel][peaks],"x");plt.show()
+    data=data[:,peaks[1]:] #this is HPF Order - 1 ??
+    
+    psd=check_PSD(data,eeg_channel,nfft,sampling_rate)
+    plot_t_and_f(data,eeg_channel,psd,'Chopping off transient peaks',transposed=True,PSD_xlim=[0, 30])
     
     
     

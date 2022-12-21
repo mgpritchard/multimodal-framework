@@ -113,7 +113,7 @@ def check_PSD(data,channel,nfft,sampling_rate):
     print("alpha/beta:%f" % (band_power_alpha / band_power_beta))'''
     return psd
 
-def pipeline_no_plots(eegfile):
+def pipeline_no_plots(eegfile,is_timestamp_first=True):
     '''Setup Unicorn branflow etc'''
     board_id = BoardIds.UNICORN_BOARD.value
     params = BrainFlowInputParams()
@@ -129,7 +129,7 @@ def pipeline_no_plots(eegfile):
 
     '''load EEG data and ensure its the right way round'''
     #data,_=handleBF.load_raw_brainflow(datafile=test_datafile)
-    data,_=handleBF.load_raw_brainflow(datafile=eegfile,bf_time_moved=True)
+    data,_=handleBF.load_raw_brainflow(datafile=eegfile,bf_time_moved=is_timestamp_first)
     eeg_channel_check=eeg_channels[5] 
     if not data.shape[0]==len(eeg_channels)+1:
         data=data.transpose()
@@ -140,6 +140,9 @@ def pipeline_no_plots(eegfile):
             data=data.copy(order='c')
             #https://stackoverflow.com/questions/35800242/numpy-c-api-change-ordering-from-column-to-row-major
             check_memory_layout_row_major(data[eeg_channel_check],1)
+    
+    if is_timestamp_first:
+        eeg_channels=[colnum+1 for colnum in eeg_channels]
     
     '''chop off start of recording, if not using cropped EEG'''
     #data=data[:,250:] #'''WHAT CAUSES IMPULSE. HARDWARE?'''
@@ -160,14 +163,16 @@ def pipeline_no_plots(eegfile):
         '''HIGH PASS'''
         DataFilter.perform_highpass(data[eeg_channel], sampling_rate, 4.0, 2,
                                                 FilterTypes.BUTTERWORTH.value, 0)
-    
-    return data
+    eeg_horizontal=True
+    return data, eeg_horizontal
 
 def process_all_eeg(dataINdir,dataOUTdir):
     eeglist=list_raw_files(dataINdir)
     for eegfile in eeglist:
         print('processing '+repr(eegfile))
-        eeg=pipeline_no_plots(eegfile.filepath)
+        eeg,eeg_horizontal=pipeline_no_plots(eegfile.filepath)
+        if eeg_horizontal:
+            eeg=eeg.transpose()
         np.savetxt(build_path(dataOUTdir,eegfile),eeg,delimiter=',')
 
 if __name__ == '__main__':
@@ -186,7 +191,8 @@ if __name__ == '__main__':
     timestamp_channel = BoardShim.get_timestamp_channel(board_id)
     
     '''pick channel to process'''
-    eeg_channel=eeg_channels[5]
+    channel_select = 3
+    eeg_channel=eeg_channels[channel_select]
     
     
     
@@ -313,4 +319,4 @@ if __name__ == '__main__':
     #df['Timestamp'].plot(xlim=([850,900]),ylim=([3400,3600]))
     
     '''plotting both modalities together'''
-    plot_eeg_and_emg(data,emgdat,5,4,'EMG and EEG for '+trialname)
+    plot_eeg_and_emg(data,emgdat,channel_select,4,'EMG and EEG for '+trialname)

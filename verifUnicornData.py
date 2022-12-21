@@ -17,6 +17,7 @@ import matplotlib
 import matplotlib.pyplot as plt
 #import plotly as pltly
 import handleBFSigProc as handleBF
+from handleDatawrangle import list_raw_files, build_path
 
 from tkinter import Tk
 from tkinter.filedialog import askopenfilename
@@ -112,6 +113,62 @@ def check_PSD(data,channel,nfft,sampling_rate):
     print("alpha/beta:%f" % (band_power_alpha / band_power_beta))'''
     return psd
 
+def pipeline_no_plots(eegfile):
+    '''Setup Unicorn branflow etc'''
+    board_id = BoardIds.UNICORN_BOARD.value
+    params = BrainFlowInputParams()
+    board=BoardShim(board_id,params)
+    #print(board.get_version()) #current ver is 4.2, get_version added in 5
+    #board_descr = BoardShim.get_board_descr(board_id)
+    #sampling_rate = int(board_descr['sampling_rate'])
+    sampling_rate = BoardShim.get_sampling_rate(board_id)
+    nfft = DataFilter.get_nearest_power_of_two(sampling_rate)
+    #eeg_channels = board_descr['eeg_channels']
+    eeg_channels = [channel for channel in BoardShim.get_eeg_channels(board_id)]
+    timestamp_channel = BoardShim.get_timestamp_channel(board_id)
+
+    '''load EEG data and ensure its the right way round'''
+    #data,_=handleBF.load_raw_brainflow(datafile=test_datafile)
+    data,_=handleBF.load_raw_brainflow(datafile=eegfile,bf_time_moved=True)
+    eeg_channel_check=eeg_channels[5] 
+    if not data.shape[0]==len(eeg_channels)+1:
+        data=data.transpose()
+    try:
+        check_memory_layout_row_major(data[eeg_channel_check],1)
+    except Exception as e:
+        if e.exit_code==BrainflowExitCodes.INVALID_ARGUMENTS_ERROR.value:
+            data=data.copy(order='c')
+            #https://stackoverflow.com/questions/35800242/numpy-c-api-change-ordering-from-column-to-row-major
+            check_memory_layout_row_major(data[eeg_channel_check],1)
+    
+    '''chop off start of recording, if not using cropped EEG'''
+    #data=data[:,250:] #'''WHAT CAUSES IMPULSE. HARDWARE?'''
+    '''Process each EEG channel (could this be more efficient?)'''
+    for eeg_channel in eeg_channels:
+        '''DETREND THE DATA'''
+        DataFilter.detrend(data[eeg_channel], DetrendOperations.CONSTANT.value)
+    
+        
+        '''50 Hz MAINS NOTCH'''
+        DataFilter.perform_bandstop(data[eeg_channel], sampling_rate, 48.0, 52.0, 3,
+                                                FilterTypes.BUTTERWORTH.value, 0)
+        
+        '''100 Hz MAINS HARMONIC'''
+        DataFilter.perform_bandstop(data[eeg_channel], sampling_rate, 98.0, 102.0, 3,
+                                                FilterTypes.BUTTERWORTH.value, 0)
+    
+        '''HIGH PASS'''
+        DataFilter.perform_highpass(data[eeg_channel], sampling_rate, 4.0, 2,
+                                                FilterTypes.BUTTERWORTH.value, 0)
+    
+    return data
+
+def process_all_eeg(dataINdir,dataOUTdir):
+    eeglist=list_raw_files(dataINdir)
+    for eegfile in eeglist:
+        print('processing '+repr(eegfile))
+        eeg=pipeline_no_plots(eegfile.filepath)
+        np.savetxt(build_path(dataOUTdir,eegfile),eeg,delimiter=',')
 
 if __name__ == '__main__':
 

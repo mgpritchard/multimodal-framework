@@ -26,6 +26,44 @@ from brainflow.data_filter import DataFilter, FilterTypes, AggOperations, NoiseT
 from brainflow.exit_codes import BrainflowExitCodes #,BrainFlowError
 from brainflow.utils import check_memory_layout_row_major
 
+def plot_eeg_and_emg(eegdat,emgdat,eegchannel,emgchannel,title):
+    #print('Something is wonky here\nMyo runs at 200Hz, Unicorn at 250\n...so they should have similar no of samples')
+    eegdat=eegdat.transpose()
+    eeg_sig=eegdat[:,eegchannel]
+    emg_sig=emgdat[:,emgchannel]
+   
+    fig,ax=plt.subplots()
+    
+    #ax.plot(np.linspace(0,eegdat[-1,0],len(eeg_sig)),eeg_sig)#plot samples
+    ax.plot(eegdat[:,0],eeg_sig)   #plot against timestamps
+    '''occasional odd results when plotting against actual time. timestamps nonlinear?'''
+    '''answer, it seems that emg records with some kind of only-saving-when-changed'''
+    ax.set_title(title)
+    ax.yaxis.set_label_text(f"eeg channel {eegchannel}",{'color':'tab:blue'})
+    ax.xaxis.set_label_text('Time, referenced to '+u't\u2080')
+    
+    
+    ax2=ax.twinx() #https://cmdlinetips.com/2019/10/how-to-make-a-plot-with-two-different-y-axis-in-python-with-matplotlib/
+    
+    #ax2.plot(np.linspace(0,emgdat[-1,0],len(emg_sig)),emg_sig,color="orange")
+    ax2.plot(emgdat[:,0],emg_sig,color="orange")
+    ax2.yaxis.set_label_text(f"emg channel {emgchannel}",{'color':'orange'})
+    
+    '''fig=plt.figure() #alt approach, deprecated
+    ax=fig.add_subplot(111,label='1')
+    ax2=fig.add_subplot(111,label='2',frame_on=False)
+    #https://stackoverflow.com/questions/42734109/two-or-more-graphs-in-one-plot-with-different-x-axis-and-y-axis-scales-in-pyth
+    #ax.set_title(title)
+    ax.plot(np.linspace(0,eegdat[-1,0],len(eeg_sig)),eeg_sig)
+    ax2.xaxis.set_label_position('top') 
+    ax2.yaxis.set_label_position('right')
+    ax2.xaxis.tick_top()
+    ax2.yaxis.tick_right()
+    ax2.tick_params(axis='x', colors="orange")
+    ax2.tick_params(axis='y', colors="orange")
+    ax2.plot(np.linspace(0,emgdat[-1,0],len(emg_sig)),emg_sig,color="orange")'''
+    plt.show()
+
 def plot_signals(data,channels_to_plot,title='time domain',transposed=False):
     #df = pd.DataFrame(np.transpose(data))
     if transposed:
@@ -48,14 +86,16 @@ def plot_psd(psd,title):
 def plot_t_and_f(data,channels_to_plot,psd,title,transposed=False,PSD_xlim=None):
     if transposed:
         data=data.transpose()
-    df = pd.DataFrame(data)
+    columns=['Timestamp','EEG1','EEG2','EEG3','EEG4','EEG5','EEG6','EEG7','EEG8']
+    df = pd.DataFrame(data.copy(),columns=columns)  #this bastard thing is directly affecting the global "data"
+    df['Timestamp']=df['Timestamp']-df['Timestamp'][0]
     gs_kw=dict(width_ratios=[2,1])
     fig,(ax1,ax2)=plt.subplots(1,2,gridspec_kw=gs_kw)
     '''the following may work in matplotlib 3.6'''
     #gs_kw = dict(width_ratios=[1.5, 1], height_ratios=[1, 2])
     #fig,(ax1,ax2)=plt.subplot_mosaic([['Time','Freq']],gridspec_kw=gs_kw)
     fig.suptitle(title)
-    df[channels_to_plot].plot(ax=ax1)
+    df[columns[channels_to_plot]].plot(ax=ax1)
     ax1.set_title('time series signal')
     ax2.plot(psd[1],psd[0]) 
     ax2.set_title('PSD')
@@ -99,6 +139,8 @@ else:
     trialname=trialname[:-4]
 print(trialname)
 
+matched_emgfile='/home/michael/Documents/Aston/MultimodalFW/working_dataset/devset_EMG/Cropped/'+trialname+'.csv'
+emgdat=handleBF.matrix_from_csv_file(matched_emgfile)
 #data,_=handleBF.load_raw_brainflow(datafile=test_datafile)
 data,_=handleBF.load_raw_brainflow(datafile=test_datafile,bf_time_moved=True)
 if not data.shape[0]==len(eeg_channels)+1:
@@ -183,11 +225,30 @@ plot_t_and_f(data,eeg_channel,psd,'90.0Hz LPF (2nd order Bwth)',transposed=True)
 #plot_psd(psd,title=(trialname + ' after 90.0Hz LPF'))
 '''
 
+
+
+plot_signals(emgdat,1,title='of the matching emg')
+
+'''print('EMG starting T: '+str(emgdat[0,0]))
+print('EMG ending T: '+str(emgdat[-1,0]))
+print('EEG starting T: '+str(data[0,0]))
+print('EEG ending T: '+str(data[0,-1]))'''
+
+'''referencing the timestamps to T0'''
+emgdat[:,0]=emgdat[:,0]-emgdat[0,0]
+data[0,:]=data[0,:]-data[0,0]
+'''print('EMG starting T: '+str(emgdat[0,0]))
+print('EMG ending T: '+str(emgdat[-1,0]))
+print('EEG starting T: '+str(data[0,0]))
+print('EEG ending T: '+str(data[0,-1]))'''
+
 n=nfft
 while n <= (len(data[eeg_channel])-len(data[eeg_channel])%nfft):
-    psd=check_PSD(data[:,n-nfft:n],eeg_channel,nfft,sampling_rate)
+    psd = check_PSD(data[:,n-nfft:n],eeg_channel,nfft,sampling_rate)
     band_power_alpha = DataFilter.get_band_power(psd, 7.0, 13.0)
     band_power_beta = DataFilter.get_band_power(psd, 14.0, 30.0)
     print('Slice of '+trialname+' from '+str(n-nfft)+' to '+str(n)+': Alpha '+str(round(band_power_alpha,3))+', Beta '+str(round(band_power_beta,3)))
     plot_t_and_f(data[:,n-nfft:n],eeg_channel,psd,('Slice from '+str(n-nfft)+' to '+str(n)),transposed=True,PSD_xlim=[0,30])
     n+=(int(nfft/2))
+
+plot_eeg_and_emg(data,emgdat,5,4,'EMG and EEG for '+trialname)

@@ -165,6 +165,11 @@ def pipeline_no_plots(eegfile,is_timestamp_first=True):
         '''HIGH PASS'''
         DataFilter.perform_highpass(data[eeg_channel], sampling_rate, 4.0, 2,
                                                 FilterTypes.BUTTERWORTH.value, 0)
+        
+        try_chopping_transient_peaks=1
+        if try_chopping_transient_peaks:
+            peaks,_=find_peaks(data[eeg_channel])
+            data=data[:,peaks[1]:] #typically HPF Order - 1
     eeg_horizontal=True
     return data, eeg_horizontal
 
@@ -296,7 +301,6 @@ if __name__ == '__main__':
     peaks,_=find_peaks(data[eeg_channel]) #plot below to verify how many peaks to chop
     #plt.figure();plt.plot(data[eeg_channel]);plt.plot(peaks,data[eeg_channel][peaks],"x");plt.show()
     data=data[:,peaks[1]:] #this is HPF Order - 1 ??
-    
     psd=check_PSD(data,eeg_channel,nfft,sampling_rate)
     plot_t_and_f(data,eeg_channel,psd,'Chopping off transient peaks',transposed=True,PSD_xlim=[0, 30])
     

@@ -55,17 +55,22 @@ def split_train_test(featspath):
     return train_path, test_path
 
 
-def eeg_within_ppt(eeg_set_path='/home/michael/Documents/Aston/MultimodalFW/working_dataset/devset_EEG/featsEEGNewDecImpulseKill.csv'):
-    '''use handleFeats make_feats on a dir of data for a manual featset gen'''
+def eeg_within_ppt(eeg_set_path=None,single_ppt_dataset=False,selected_ppt=1):
+    '''use handleFeats make_feats on a dir of data for a manual featset gen
+    selected_ppt not needed if single_ppt_dataset is True'''
     
     args={'eeg_model_type':'RF',
                  'n_trees':20}
-    eeg_set_path='/home/michael/Documents/Aston/MultimodalFW/working_dataset/devset_EEG/featsEEGNewDecImpulseKill.csv'
+    if eeg_set_path is None:
+        eeg_set_path='/home/michael/Documents/Aston/MultimodalFW/working_dataset/devset_EEG/featsEEGNewDecImpulseKill.csv'
     eeg_set=ml.pd.read_csv(eeg_set_path,delimiter=',')
-    eeg_masks=fus.get_ppt_split(eeg_set)
     
-    ppt=eeg_masks[1]
-    eeg_ppt = eeg_set[ppt]
+    if not single_ppt_dataset:
+        eeg_masks=fus.get_ppt_split(eeg_set)
+        ppt=eeg_masks[selected_ppt]
+        eeg_ppt = eeg_set[ppt]
+    else:
+        eeg_ppt=eeg_set
     
     #eeg_others.sort_values(['ID_pptID','ID_run','Label','ID_gestrep','ID_tend'],ascending=[True,True,True,True,True],inplace=True)
     #index_eeg=ml.pd.MultiIndex.from_arrays([eeg_others[col] for col in ['ID_pptID','ID_run','Label','ID_gestrep','ID_tend']])
@@ -158,6 +163,11 @@ def eeg_within_ppt(eeg_set_path='/home/michael/Documents/Aston/MultimodalFW/work
 #tree.plot_tree(model,feature_names=attrib_names,max_depth=2,fontsize=6)    
 
 if __name__ == '__main__':
+    
+    WAYGAL_P4_set='/home/michael/Documents/Aston/EEG/WAY-EEG-GAL Data/WAYGAL_P4_Feats.csv'
+    eeg_within_ppt(WAYGAL_P4_set,single_ppt_dataset=True)
+    raise
+    
     #test(None)
     #raise
     #run handleComposeDataset

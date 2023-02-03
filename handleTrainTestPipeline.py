@@ -49,6 +49,7 @@ def process_data(datatype,datain=None,overwrite=True,bf_time_moved=False,dataout
 
 
 def make_feats(datatype,data_path):
+    '''handleFeats make_feats is cleaner for a manual feature pull'''
     feats_file=asksaveasfilename(initialdir=root,title='Save featureset as')
     feats.make_feats(directory_path=data_path,output_file=feats_file,datatype=datatype)
     print('**made '+datatype+' featureset**')

@@ -5,6 +5,14 @@ testbench/eeg/data_from_brainflow/
 testbench/eeg/data_rearranged_cols/
 testbench/eeg/data_after_sigproc/
 
+#Ignore any dependency graphs made with pyan
+pyan*
+
+#Ignore scripts to learn onehot encoding, hyperopt, and call graphs
+attemptOnehot.py
+callGraph_attempt.py
+hyperopt_playground.py
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]

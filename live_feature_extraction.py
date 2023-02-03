@@ -1067,8 +1067,12 @@ def generate_feature_vectors_from_samples(file_path, nsamples, period,
     
     pptID,_,rep=((file_path.split('/')[-1])[:-4]).split('-')
     
-    run=0 if pptID[-1].isdigit() else params.runletter_to_num[pptID[-1]]
-    pptID=int(pptID) if pptID[-1].isdigit() else int(pptID[:-1])
+    if pptID[-2]=='_':
+        #This accounts for data of the form 001_1, 001_2 rather than 001a, 001b
+        pptID,run=map(int,pptID.split('_'))
+    else:
+        run=0 if pptID[-1].isdigit() else params.runletter_to_num[pptID[-1]]
+        pptID=int(pptID) if pptID[-1].isdigit() else int(pptID[:-1])
     
     # We will start at the very begining of the file
     t = 0.
@@ -1144,7 +1148,8 @@ def generate_feature_vectors_from_samples(file_path, nsamples, period,
              # Remove the label (last column) of previous vector
             previous_vector = previous_vector[:-1] 
 
-    feat_names = ['ID_pptID','ID_run','ID_gestrep','ID_tstart','ID_tend']+["lag1_" + s for s in headers[:-1]] + headers #catch unboundlocal error headers before assignment and skip somehow?
+    feat_names = ['ID_pptID','ID_run','ID_gestrep','ID_tstart','ID_tend']+["lag1_" + s for s in headers[:-1]] + headers
+    #catching unboundlocal error "headers before assignment" and skipping in the calling context of this function (ie in gen_train)
     
     if remove_redundant:
         # Remove redundant lag window features

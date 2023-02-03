@@ -389,9 +389,11 @@ def train_models_opt(emg_train_set,eeg_train_set,args):
     eeg_model = ml.train_optimise(eeg_train_set, eeg_model_type, args['eeg'])
     return emg_model,eeg_model
 
-def function_fuse_ppt1(args):
-    emg_set_path='/home/michael/Documents/Aston/MultimodalFW/working_dataset/devset_EMG/featsEMG.csv'
-    eeg_set_path='/home/michael/Documents/Aston/MultimodalFW/working_dataset/devset_EEG/featsEEG.csv'
+def function_fuse_pptn(args,n,plot_confmats=False,emg_set_path=None,eeg_set_path=None):
+    if emg_set_path is None:
+        emg_set_path='/home/michael/Documents/Aston/MultimodalFW/working_dataset/devset_EMG/featsEMG.csv'
+    if eeg_set_path is None:
+        eeg_set_path='/home/michael/Documents/Aston/MultimodalFW/working_dataset/devset_EEG/featsEEGNewDec.csv'
     
     emg_set=ml.pd.read_csv(emg_set_path,delimiter=',')
     eeg_set=ml.pd.read_csv(eeg_set_path,delimiter=',')
@@ -399,13 +401,13 @@ def function_fuse_ppt1(args):
     eeg_masks=get_ppt_split(eeg_set)
     emg_masks=get_ppt_split(emg_set)
     
-    emg_mask_1=emg_masks[0]
-    eeg_mask_1=eeg_masks[0]
+    emg_mask_n=emg_masks[n-1]
+    eeg_mask_n=eeg_masks[n-1]
     
-    emg_ppt = emg_set[emg_mask_1]
-    emg_others = emg_set[~emg_mask_1]
-    eeg_ppt = eeg_set[eeg_mask_1]
-    eeg_others = eeg_set[~eeg_mask_1]
+    emg_ppt = emg_set[emg_mask_n]
+    emg_others = emg_set[~emg_mask_n]
+    eeg_ppt = eeg_set[eeg_mask_n]
+    eeg_others = eeg_set[~eeg_mask_n]
     #emg_ppt=ml.drop_ID_cols(emg_ppt)
     emg_others=ml.drop_ID_cols(emg_others)
     #eeg_ppt=ml.drop_ID_cols(eeg_ppt)
@@ -420,7 +422,7 @@ def function_fuse_ppt1(args):
         
     targets, predlist_emg, correctness_emg, predlist_eeg, correctness_eeg, predlist_fusion, correctness_fusion = synchronously_classify(emg_ppt, eeg_ppt, emg_model, eeg_model, classlabels,args)
         
-    acc_emg,acc_eeg,acc_fusion=evaluate_results(targets, predlist_emg, correctness_emg, predlist_eeg, correctness_eeg, predlist_fusion, correctness_fusion, classlabels)
+    acc_emg,acc_eeg,acc_fusion=evaluate_results(targets, predlist_emg, correctness_emg, predlist_eeg, correctness_eeg, predlist_fusion, correctness_fusion, classlabels, plot_confmats)
     
     return 1-acc_fusion
 
@@ -602,7 +604,7 @@ def optimise_fusion():
     best = fmin(function_fuse_LOO,
                 space=space,
                 algo=tpe.suggest,
-                max_evals=25,
+                max_evals=2,
                 trials=trials)
     return best, space, trials
 
@@ -624,6 +626,10 @@ def plot_stat_in_time(trials,stat,ylower=0,yupper=1):
     ax.set(title=stat+' over time')
     ax.set_ylim(ylower,yupper)
     plt.show()
+    
+    # Plot something showing which were which models?
+    # eg with vertical fill
+    # https://stackoverflow.com/questions/23248435/fill-between-two-vertical-lines-in-matplotlib
 
 
 if __name__ == '__main__':
@@ -648,6 +654,9 @@ if __name__ == '__main__':
         [pd.DataFrame(table['result'].tolist()),
          pd.DataFrame(pd.DataFrame(table['misc'].tolist())['vals'].values.tolist())],
         axis=1,join='outer')
+    
+    print('plotting ppt1 just to get a confmat')
+    ppt1acc=function_fuse_pptn(space_eval(space,best),1,plot_confmats=True)
     
     raise KeyboardInterrupt('ending execution here!')
     

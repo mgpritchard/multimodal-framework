@@ -133,22 +133,30 @@ def purge_rejects(rejects,featset):
         featset.drop(rejectrows.index,inplace=True)
     return featset
 
-def get_ppt_split(featset):
-    #print(featset['ID_pptID'].unique())
-    msk_ppt1=(featset['ID_pptID']==1)
-    msk_ppt2=(featset['ID_pptID']==15) #ppt2 retrial was labelled 15
-    msk_ppt4=(featset['ID_pptID']==4)
-    msk_ppt7=(featset['ID_pptID']==7)
-    msk_ppt8=(featset['ID_pptID']==8)
-    msk_ppt9=(featset['ID_pptID']==9)
-    msk_ppt11=(featset['ID_pptID']==11)
-    msk_ppt13=(featset['ID_pptID']==13)
-    msk_ppt14=(featset['ID_pptID']==14)
-    #return these and then as necessary to featset[mask]
-    #https://stackoverflow.com/questions/33742588/pandas-split-dataframe-by-column-value
-    #so can do different permutations of assembling train/test sets
-    #can also invert a mask (see link above) to get the rest for all-except-n
-    return [msk_ppt1,msk_ppt2,msk_ppt4,msk_ppt7,msk_ppt8,msk_ppt9,msk_ppt11,msk_ppt13,msk_ppt14]
+def get_ppt_split(featset,args={'using_literature_data':True}):
+    if args['using_literature_data']:
+        masks=get_ppt_split_flexi(featset)
+        return masks
+    else:
+        #print(featset['ID_pptID'].unique())
+        msk_ppt1=(featset['ID_pptID']==1)
+        msk_ppt2=(featset['ID_pptID']==15) #ppt2 retrial was labelled 15
+        msk_ppt4=(featset['ID_pptID']==4)
+        msk_ppt7=(featset['ID_pptID']==7)
+        msk_ppt8=(featset['ID_pptID']==8)
+        msk_ppt9=(featset['ID_pptID']==9)
+        msk_ppt11=(featset['ID_pptID']==11)
+        msk_ppt13=(featset['ID_pptID']==13)
+        msk_ppt14=(featset['ID_pptID']==14)
+        #return these and then as necessary to featset[mask]
+        #https://stackoverflow.com/questions/33742588/pandas-split-dataframe-by-column-value
+        #so can do different permutations of assembling train/test sets
+        #can also invert a mask (see link above) to get the rest for all-except-n
+        return [msk_ppt1,msk_ppt2,msk_ppt4,msk_ppt7,msk_ppt8,msk_ppt9,msk_ppt11,msk_ppt13,msk_ppt14]
+
+def get_ppt_split_flexi(featset):
+    masks=[featset['ID_pptID']== n_ppt for n_ppt in np.sort(featset['ID_pptID'].unique())] 
+    return masks
 
 def synchronously_classify(test_set_emg,test_set_eeg,model_emg,model_eeg,classlabels,args):
     distrolist_emg=[]
@@ -390,16 +398,23 @@ def train_models_opt(emg_train_set,eeg_train_set,args):
     return emg_model,eeg_model
 
 def function_fuse_pptn(args,n,plot_confmats=False,emg_set_path=None,eeg_set_path=None):
+    
     if emg_set_path is None:
-        emg_set_path='/home/michael/Documents/Aston/MultimodalFW/working_dataset/devset_EMG/featsEMG.csv'
+        if args['using_literature_data']:
+            emg_set_path=params.emg_path_waygal_4812
+        else:
+            emg_set_path=params.emg_set_path_for_system_tests
     if eeg_set_path is None:
-        eeg_set_path='/home/michael/Documents/Aston/MultimodalFW/working_dataset/devset_EEG/featsEEGNewDec.csv'
+         if args['using_literature_data']:
+            eeg_set_path=params.eeg_path_waygal_4812
+         else:
+            eeg_set_path=params.eeg_set_path_for_system_tests
     
     emg_set=ml.pd.read_csv(emg_set_path,delimiter=',')
     eeg_set=ml.pd.read_csv(eeg_set_path,delimiter=',')
     
-    eeg_masks=get_ppt_split(eeg_set)
-    emg_masks=get_ppt_split(emg_set)
+    eeg_masks=get_ppt_split(eeg_set,args)
+    emg_masks=get_ppt_split(emg_set,args)
     
     emg_mask_n=emg_masks[n-1]
     eeg_mask_n=eeg_masks[n-1]
@@ -442,8 +457,8 @@ def function_fuse_LOO(args):
     emg_set=ml.pd.read_csv(emg_set_path,delimiter=',')
     eeg_set=ml.pd.read_csv(eeg_set_path,delimiter=',')
     
-    eeg_masks=get_ppt_split(eeg_set)
-    emg_masks=get_ppt_split(emg_set)
+    eeg_masks=get_ppt_split(eeg_set,args)
+    emg_masks=get_ppt_split(emg_set,args)
     
     accs=[]
     emg_accs=[] #https://stackoverflow.com/questions/13520876/how-can-i-make-multiple-empty-lists-in-python
@@ -593,8 +608,11 @@ def setup_search_space():
                 #'3_1_emg',
                 #'3_1_eeg',
                 'bayes']),
-            'emg_set_path':params.emg_set_path_for_system_tests,
-            'eeg_set_path':params.eeg_set_path_for_system_tests,
+            #'emg_set_path':params.emg_set_path_for_system_tests,
+            #'eeg_set_path':params.eeg_set_path_for_system_tests,
+            'emg_set_path':params.emg_path_waygal_4812,
+            'eeg_set_path':params.eeg_path_waygal_4812,
+            'using_literature_data':True,
             }
     return space
 

@@ -48,4 +48,10 @@ elif platform == 'linux' or 'linux32':
     gen_trainmat_spec_SpellLoc="/home/michael/github/labelstoClass/labelstoClassEMGSpell.py"
     
     emg_set_path_for_system_tests='/home/michael/Documents/Aston/MultimodalFW/working_dataset/devset_EMG/featsEMG.csv'
-    eeg_set_path_for_system_tests='/home/michael/Documents/Aston/MultimodalFW/working_dataset/devset_EEG/featsEEG.csv'
+    #eeg_set_path_for_system_tests='/home/michael/Documents/Aston/MultimodalFW/working_dataset/devset_EEG/featsEEG.csv'
+    '''new EEG featset based on new sig proc pipeline'''
+    #eeg_set_path_for_system_tests='/home/michael/Documents/Aston/MultimodalFW/working_dataset/devset_EEG/featsEEGNewDec.csv'
+    eeg_set_path_for_system_tests='/home/michael/Documents/Aston/MultimodalFW/working_dataset/devset_EEG/featsEEGNewDecImpulseKill.csv'
+    
+    emg_path_waygal_4812='/home/michael/Documents/Aston/EEG/WAY-EEG-GAL Data/P4_8_12/P4812_emg_Feats.csv'
+    eeg_path_waygal_4812='/home/michael/Documents/Aston/EEG/WAY-EEG-GAL Data/P4_8_12/P4812_eeg_Feats.csv'

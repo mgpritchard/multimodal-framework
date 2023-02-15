@@ -18,6 +18,7 @@ from sklearn.naive_bayes import GaussianNB
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.discriminant_analysis import LinearDiscriminantAnalysis, QuadraticDiscriminantAnalysis
 from sklearn.neighbors import KNeighborsClassifier
+from sklearn.svm import SVC
 from sklearn.model_selection import cross_val_score
 from sklearn.model_selection import RepeatedStratifiedKFold
 from sklearn.metrics import accuracy_score
@@ -153,7 +154,22 @@ def train_optimise(training_set,modeltype,args):
         model = train_knn(training_set,args)
     elif modeltype=='QDA':
         model = train_QDA(training_set,args)
+    elif modeltype=='SVM':
+        model = train_SVC_Platt(training_set,args)
    
+    return model
+
+def train_SVC_Platt(train_data,args):
+    kernel=args['kernel']
+    C=args['svm_C']
+    gamma=args['gamma']
+    if kernel=='linear':
+        model=SVC(C=C,kernel=kernel,probability=True) #possible need to fix random_state as predict is called multiple times?
+    else:
+        model=SVC(C=C,kernel=kernel,gamma=gamma,probability=True)
+    train=train_data.values[:,:-1]
+    targets=train_data.values[:,-1]
+    model.fit(train.astype(np.float64),targets)
     return model
 
 def train_QDA(train_data,args):

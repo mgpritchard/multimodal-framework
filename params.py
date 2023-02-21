@@ -32,6 +32,9 @@ if platform =='win32':
     
     emg_set_path_for_system_tests='C:/Users/pritcham/Documents/mm-framework/working_dataset/devset_EMG/featsEMG.csv'
     eeg_set_path_for_system_tests='C:/Users/pritcham/Documents/mm-framework/working_dataset/devset_EEG/featsEEG.csv'
+    
+    emg_waygal='C:/Users/pritcham/Documents/mm-framework/WAYGAL/WaygalAllEMGFeats.csv'
+    eeg_waygal='C:/Users/pritcham/Documents/mm-framework/WAYGAL/WayGalAllEEGFeats.csv'
 elif platform == 'darwin':
     #mac
     path='macpath'

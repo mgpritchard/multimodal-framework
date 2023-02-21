@@ -688,7 +688,7 @@ def optimise_fusion():
     best = fmin(function_fuse_LOO,
                 space=space,
                 algo=tpe.suggest,
-                max_evals=2,
+                max_evals=100,
                 trials=trials)
     return best, space, trials
 

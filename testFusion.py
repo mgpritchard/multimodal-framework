@@ -117,6 +117,58 @@ def inspect_set_balance(emg_set_path=None,eeg_set_path=None,emg_set=None,eeg_set
     
     return emg_set,eeg_set
 
+def balance_set(emg_set,eeg_set):
+    #print('initial')
+    #_,_=inspect_set_balance(emg_set=emg_set,eeg_set=eeg_set)
+    
+    index_emg=ml.pd.MultiIndex.from_arrays([emg_set[col] for col in ['ID_pptID','ID_run','Label','ID_gestrep','ID_tend']])
+    index_eeg=ml.pd.MultiIndex.from_arrays([eeg_set[col] for col in ['ID_pptID','ID_run','Label','ID_gestrep','ID_tend']])
+    emg=emg_set.loc[index_emg.isin(index_eeg)].reset_index(drop=True)
+    eeg=eeg_set.loc[index_eeg.isin(index_emg)].reset_index(drop=True)
+    
+    emg.sort_values(['ID_pptID','ID_run','Label','ID_gestrep','ID_tend'],ascending=[True,True,True,True,True],inplace=True)
+    eeg.sort_values(['ID_pptID','ID_run','Label','ID_gestrep','ID_tend'],ascending=[True,True,True,True,True],inplace=True)
+    
+    eeg['ID_stratID']=eeg['ID_pptID'].astype(str)+eeg['Label'].astype(str)
+    emg['ID_stratID']=emg['ID_pptID'].astype(str)+emg['Label'].astype(str)
+    
+    stratsize=np.min(emg['ID_stratID'].value_counts())
+    balemg = emg.groupby('ID_stratID')
+    #g.apply(lambda x: x.sample(g.size().min()))
+    #https://stackoverflow.com/questions/45839316/pandas-balancing-data
+    balemg=balemg.apply(lambda x: x.sample(stratsize))
+    print('subsampling to ',str(stratsize),' per combo of ppt and class')
+   
+    #print('----------\nEMG Balanced')
+    #_,_=inspect_set_balance(emg_set=balemg,eeg_set=eeg)
+    
+    index_balemg=ml.pd.MultiIndex.from_arrays([balemg[col] for col in ['ID_pptID','ID_run','Label','ID_gestrep','ID_tend']])
+    baleeg=eeg_set.loc[index_eeg.isin(index_balemg)].reset_index(drop=True)
+   
+    #print('----------\nBoth Balanced')
+    #_,_=inspect_set_balance(emg_set=balemg,eeg_set=baleeg)
+    
+    if 0:   #manual checking, almost certainly unnecessary
+        for index,emgrow in balemg.iterrows():
+            eegrow = baleeg[(baleeg['ID_pptID']==emgrow['ID_pptID'])
+                                  & (baleeg['ID_run']==emgrow['ID_run'])
+                                  & (baleeg['Label']==emgrow['Label'])
+                                  & (baleeg['ID_gestrep']==emgrow['ID_gestrep'])
+                                  & (baleeg['ID_tend']==emgrow['ID_tend'])]
+            #syntax like the below would do it closer to a .where
+            #eegrow=test_set_eeg[test_set_eeg[['ID_pptID','Label']]==emgrow[['ID_pptID','Label']]]
+            if eegrow.empty:
+                print('No matching EEG window for EMG window '+str(emgrow['ID_pptID'])+str(emgrow['ID_run'])+str(emgrow['Label'])+str(emgrow['ID_gestrep'])+str(emgrow['ID_tend']))
+                continue
+            
+            TargetLabel=emgrow['Label']
+            if TargetLabel != eegrow['Label'].values:
+                raise Exception('Sense check failed, target label should agree between modes')
+        print('checked all for window matching')
+    
+    balemg.drop(columns='ID_stratID',inplace=True)
+    return balemg,baleeg
+
 def identify_rejects(rejectlog=None):
     if rejectlog is None:
         Tk().withdraw()
@@ -423,6 +475,8 @@ def function_fuse_pptn(args,n,plot_confmats=False,emg_set_path=None,eeg_set_path
     emg_set=ml.pd.read_csv(emg_set_path,delimiter=',')
     eeg_set=ml.pd.read_csv(eeg_set_path,delimiter=',')
     
+    emg_set,eeg_set=balance_set(emg_set,eeg_set)
+    
     eeg_masks=get_ppt_split(eeg_set,args)
     emg_masks=get_ppt_split(emg_set,args)
     
@@ -466,6 +520,8 @@ def function_fuse_LOO(args):
     
     emg_set=ml.pd.read_csv(emg_set_path,delimiter=',')
     eeg_set=ml.pd.read_csv(eeg_set_path,delimiter=',')
+    
+    emg_set,eeg_set=balance_set(emg_set,eeg_set)
     
     eeg_masks=get_ppt_split(eeg_set,args)
     emg_masks=get_ppt_split(emg_set,args)

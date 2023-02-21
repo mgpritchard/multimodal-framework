@@ -55,3 +55,6 @@ elif platform == 'linux' or 'linux32':
     
     emg_path_waygal_4812='/home/michael/Documents/Aston/EEG/WAY-EEG-GAL Data/P4_8_12/P4812_emg_Feats.csv'
     eeg_path_waygal_4812='/home/michael/Documents/Aston/EEG/WAY-EEG-GAL Data/P4_8_12/P4812_eeg_Feats.csv'
+    
+    eeg_waygal='/home/michael/Documents/Aston/EEG/WAY-EEG-GAL Data/All_CSVs/WayGalAllEEGFeats.csv'
+    emg_waygal='/home/michael/Documents/Aston/EEG/WAY-EEG-GAL Data/All_CSVs/WaygalAllEMGFeats.csv'

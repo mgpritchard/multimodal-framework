@@ -368,6 +368,18 @@ if __name__ == '__main__':
     plot_all_channels(data, trialname)
     
     
+    ''''''''
+    print('this might cause more issues by\ntrying to ref to avg when that',
+          'avg includes signals that are totally wonky')
+    if not isinstance(data, pd.DataFrame):   
+        columns=['Timestamp','EEG1','EEG2','EEG3','EEG4','EEG5','EEG6','EEG7','EEG8']
+        data = pd.DataFrame(data.transpose(),columns=columns)
+    data=quick_ref_to_avg(data).values.transpose()
+    psd=check_PSD(data,eeg_channel,nfft,sampling_rate)
+    plot_t_and_f(data, eeg_channel, psd, 'After ref to avg',transposed=True)
+    plot_all_channels(data, trialname)
+    ''''''''
+    
     '''DETREND THE DATA'''
     #DC blocking filter may be able to realtime detrend
     #https://dsp.stackexchange.com/questions/25189/detrending-in-real-time

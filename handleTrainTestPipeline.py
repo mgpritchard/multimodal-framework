@@ -242,6 +242,7 @@ def within_ppt_test(set_path=None,single_ppt_dataset=False,selected_ppt=1,args=N
     #eeg_others.sort_values(['ID_pptID','ID_run','Label','ID_gestrep','ID_tend'],ascending=[True,True,True,True,True],inplace=True)
     #index_eeg=ml.pd.MultiIndex.from_arrays([eeg_others[col] for col in ['ID_pptID','ID_run','Label','ID_gestrep','ID_tend']])
     data_ppt['ID_stratID']=data_ppt['ID_run']+data_ppt['Label']+data_ppt['ID_gestrep']
+    '''DOES THE ABOVE NEED TO BE .astype(str) EVERYTHING?????'''
     train_split,test_split=train_test_split(data_ppt['ID_stratID'].unique(),test_size=0.33)
     data_train=data_ppt[data_ppt['ID_stratID'].isin(train_split)]
     data_test=data_ppt[data_ppt['ID_stratID'].isin(test_split)]

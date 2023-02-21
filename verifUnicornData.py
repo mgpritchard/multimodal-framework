@@ -185,7 +185,88 @@ def process_all_eeg(dataINdir,dataOUTdir):
         if eeg_horizontal:
             eeg=eeg.transpose()
         np.savetxt(build_path(dataOUTdir,eegfile),eeg,delimiter=',')
+        
+def plot_all_channels_from_file(eeg_filepath):
+    
+    test_datafile=eeg_filepath
+    '''Setup Unicorn brainflow etc'''
+    board_id = BoardIds.UNICORN_BOARD.value
+    params = BrainFlowInputParams()
+    board=BoardShim(board_id,params)
+    #print(board.get_version()) #current ver is 4.2, get_version added in 5
+    #board_descr = BoardShim.get_board_descr(board_id)
+    #eeg_channels = board_descr['eeg_channels']
+    eeg_channels = [channel for channel in BoardShim.get_eeg_channels(board_id)]
+    timestamp_channel = BoardShim.get_timestamp_channel(board_id)
+    # 1 = Fz
+    # 2 = C3
+    # 3 = Cz
+    # 4 = C4
+    # 5 = Pz
+    # 6 = PO7
+    # 7 = Oz
+    # 8 = PO8
+    
+    trialname=test_datafile.split('/')[-1]
+    if trialname.endswith('EEG'):
+        trialname=trialname[:-9]
+    else:
+        trialname=trialname[:-4]
+    #print(trialname)
+    
+    data,_=handleBF.load_raw_brainflow(datafile=test_datafile,bf_time_moved=True)
+    if not data.shape[0]==len(eeg_channels)+1:
+        data=data.transpose()
+    try:
+        check_memory_layout_row_major(data[2],1)
+    except Exception as e:
+        if e.exit_code==BrainflowExitCodes.INVALID_ARGUMENTS_ERROR.value:
+            data=data.copy(order='c')
+            #https://stackoverflow.com/questions/35800242/numpy-c-api-change-ordering-from-column-to-row-major
+            check_memory_layout_row_major(data[2],1)
+            
+    plot_all_channels(data,trialname)
 
+def plot_all_channels(data,trialname):
+    dataloc=data.copy()
+    fig, axs = plt.subplots(4,2)
+    
+    #'''MAKE THIS WORK WITH DATA OF DIFF FORMATS WHETHER DF ALREADY OR NOT'''
+    '''THEN LOOK INTO IT AT DIFFERENT CROP LEVELS AND DIFFERENT PROC STAGES'''
+    '''EG WHAT THE DETREND DOES'''
+    
+    '''To put the plots in a popup, run in the Spyder CONSOLE:'''
+    # %matplotlib qt
+    '''https://stackoverflow.com/questions/29356269/plot-inline-or-a-separate-window-using-matplotlib-in-spyder-ide'''
+    # %matplotlib inline     would put them back
+    
+    chdict={'EEG1':{'Ch':'Fz','plotrow':0,'plotcol':0},
+                 'EEG2':{'Ch':'C3','plotrow':0,'plotcol':1},
+                 'EEG3':{'Ch':'Cz','plotrow':1,'plotcol':0},
+                 'EEG4':{'Ch':'C4','plotrow':1,'plotcol':1},
+                 'EEG5':{'Ch':'Pz','plotrow':2,'plotcol':0},
+                 'EEG6':{'Ch':'PO7','plotrow':2,'plotcol':1},
+                 'EEG7':{'Ch':'Oz','plotrow':3,'plotcol':0},
+                 'EEG8':{'Ch':'PO8','plotrow':3,'plotcol':1}}
+    columns=['Timestamp','EEG1','EEG2','EEG3','EEG4','EEG5','EEG6','EEG7','EEG8']
+    if not isinstance(dataloc, pd.DataFrame):        
+        df = pd.DataFrame(dataloc.transpose(),columns=columns)
+    else:
+        df = dataloc
+    
+    fig.suptitle(trialname)
+    for col in columns[1:]:
+        axloc=axs[chdict[col]['plotrow'],chdict[col]['plotcol']]
+        df.plot(x='Timestamp',y=[col],ax=axloc)#,y=columns[channels_to_plot])
+        #df[col].plot(ax=axloc)
+        #axloc.set_title('time series signal')
+        axloc.legend([chdict[col]['Ch']])
+    for ax in axs.flat:
+        ax.set(ylabel='Amplitude /\u03BCV', xlabel='Time /ms')
+    # Hide x labels and tick labels for top plots and y ticks for right plots.
+    for ax in axs.flat:
+        ax.label_outer()
+        
 def quick_ref_to_avg(dataframe):
     data=dataframe.copy()
     data['mean']=data.drop('Timestamp',axis=1).apply(np.sum,axis=1)
@@ -206,6 +287,15 @@ def quick_ref_to_avg(dataframe):
     return data
 
 if __name__ == '__main__':
+    '''
+    eegfile='/home/michael/Documents/Aston/MultimodalFW/working_dataset/fresh_raw_EEG/001a-grasp-0.csv'
+    plot_all_channels_from_file(eegfile)
+    eegfile2='/home/michael/Documents/Aston/MultimodalFW/working_dataset/fresh_raw_EEG/004a-open-2.csv'
+    plot_all_channels_from_file(eegfile2)
+    eegfile3='/home/michael/Documents/Aston/MultimodalFW/working_dataset/fresh_raw_EEG/011b-lateral-3.csv'
+    plot_all_channels_from_file(eegfile3)
+    '''
+    
     
     '''Setup Unicorn branflow etc'''
     board_id = BoardIds.UNICORN_BOARD.value

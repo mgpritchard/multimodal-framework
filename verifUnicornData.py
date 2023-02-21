@@ -334,9 +334,9 @@ if __name__ == '__main__':
         trialname=trialname[:-4]
     print(trialname)
     
-    '''load matching EMG data'''
-    matched_emgfile='/home/michael/Documents/Aston/MultimodalFW/working_dataset/devset_EMG/Cropped/'+trialname+'.csv'
-    emgdat=handleBF.matrix_from_csv_file(matched_emgfile)
+    '''load matching EMG data''' #SKIPPING TEMPORARILY
+    '''matched_emgfile='/home/michael/Documents/Aston/MultimodalFW/working_dataset/devset_EMG/Cropped/'+trialname+'.csv'
+    emgdat=handleBF.matrix_from_csv_file(matched_emgfile)'''
     
     '''load EEG data and ensure its the right way round'''
     #data,_=handleBF.load_raw_brainflow(datafile=test_datafile)

@@ -401,12 +401,12 @@ def function_fuse_pptn(args,n,plot_confmats=False,emg_set_path=None,eeg_set_path
     
     if emg_set_path is None:
         if args['using_literature_data']:
-            emg_set_path=params.emg_path_waygal_4812
+            emg_set_path=params.emg_waygal
         else:
             emg_set_path=params.emg_set_path_for_system_tests
     if eeg_set_path is None:
          if args['using_literature_data']:
-            eeg_set_path=params.eeg_path_waygal_4812
+            eeg_set_path=params.eeg_waygal
          else:
             eeg_set_path=params.eeg_set_path_for_system_tests
     
@@ -604,14 +604,14 @@ def setup_search_space():
               #   }
                 ]),
             'fusion_alg':hp.choice('fusion algorithm',[
-                #'mean',
-                #'3_1_emg',
-                #'3_1_eeg',
+                'mean',
+                '3_1_emg',
+                '3_1_eeg',
                 'bayes']),
             #'emg_set_path':params.emg_set_path_for_system_tests,
             #'eeg_set_path':params.eeg_set_path_for_system_tests,
-            'emg_set_path':params.emg_path_waygal_4812,
-            'eeg_set_path':params.eeg_path_waygal_4812,
+            'emg_set_path':params.emg_waygal,
+            'eeg_set_path':params.eeg_waygal,
             'using_literature_data':True,
             }
     return space

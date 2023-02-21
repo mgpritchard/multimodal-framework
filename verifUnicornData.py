@@ -313,6 +313,14 @@ if __name__ == '__main__':
     '''pick channel to process'''
     channel_select = 3
     eeg_channel=eeg_channels[channel_select]
+    # 1 = Fz
+    # 2 = C3
+    # 3 = Cz
+    # 4 = C4
+    # 5 = Pz
+    # 6 = PO7
+    # 7 = Oz
+    # 8 = PO8
     
     
     
@@ -333,6 +341,7 @@ if __name__ == '__main__':
     '''load EEG data and ensure its the right way round'''
     #data,_=handleBF.load_raw_brainflow(datafile=test_datafile)
     data,_=handleBF.load_raw_brainflow(datafile=test_datafile,bf_time_moved=True)
+
     if not data.shape[0]==len(eeg_channels)+1:
         data=data.transpose()
     try:
@@ -343,6 +352,9 @@ if __name__ == '__main__':
             #https://stackoverflow.com/questions/35800242/numpy-c-api-change-ordering-from-column-to-row-major
             check_memory_layout_row_major(data[eeg_channel],1)
     
+    #incrementing eeg_channels because Timestamp is now in first column
+    eeg_channels=[ch+1 for ch in eeg_channels]
+ 
     '''chop off start of recording, if not using cropped EEG'''
     #data=data[:,250:] #'''WHAT CAUSES IMPULSE. HARDWARE?'''
     
@@ -353,16 +365,19 @@ if __name__ == '__main__':
     plot_t_and_f(data,eeg_channel,psd,'Before anything',transposed=True)
     #plot_signals(data,eeg_channel,title=(trialname + ' before anything'),transposed=True)
     #plot_psd(psd,title=(trialname + ' before anything'))
+    plot_all_channels(data, trialname)
     
     
     '''DETREND THE DATA'''
     #DC blocking filter may be able to realtime detrend
     #https://dsp.stackexchange.com/questions/25189/detrending-in-real-time
-    DataFilter.detrend(data[eeg_channel], DetrendOperations.CONSTANT.value)
+    for eeg_channel in eeg_channels:
+        DataFilter.detrend(data[eeg_channel], DetrendOperations.CONSTANT.value)
     psd=check_PSD(data,eeg_channel,nfft,sampling_rate)
     
     plot_t_and_f(data,eeg_channel,psd,'Detrended',transposed=True)
     
+    plot_all_channels(data, trialname)
     
     '''
     #TRYING TO REMOVE IMPULSE
@@ -375,21 +390,25 @@ if __name__ == '__main__':
     
     
     '''50 Hz MAINS NOTCH'''
-    DataFilter.perform_bandstop(data[eeg_channel], sampling_rate, 48.0, 52.0, 3,
+    for eeg_channel in eeg_channels:
+        DataFilter.perform_bandstop(data[eeg_channel], sampling_rate, 48.0, 52.0, 3,
                                             FilterTypes.BUTTERWORTH.value, 0) #0 is chebyshev ripple
     psd=check_PSD(data,eeg_channel,nfft,sampling_rate)
     
     plot_t_and_f(data,eeg_channel,psd,'50Hz Mains Notch (3rd order Bwth)',transposed=True)
     
+    plot_all_channels(data, trialname)
+    
     
     '''100 Hz MAINS HARMONIC'''
-    DataFilter.perform_bandstop(data[eeg_channel], sampling_rate, 98.0, 102.0, 3,
+    for eeg_channel in eeg_channels:
+        DataFilter.perform_bandstop(data[eeg_channel], sampling_rate, 98.0, 102.0, 3,
                                             FilterTypes.BUTTERWORTH.value, 0)
     psd=check_PSD(data,eeg_channel,nfft,sampling_rate)
     
     plot_t_and_f(data,eeg_channel,psd,'100Hz Mains Harmonic (3rd order Bwth)',transposed=True)
        
-    
+    plot_all_channels(data, trialname)
     '''HIGH PASS'''
     DataFilter.perform_highpass(data[eeg_channel], sampling_rate, 4.0, 2,
                                             FilterTypes.BUTTERWORTH.value, 0) #maybe 5Hz?? default 2nd order
@@ -417,6 +436,7 @@ if __name__ == '__main__':
     psd=check_PSD(data,eeg_channel,nfft,sampling_rate)
     plot_t_and_f(data,eeg_channel,psd,'Chopping off transient peaks',transposed=True,PSD_xlim=[0, 30])
     
+    plot_all_channels(data, trialname)
     
     
     plot_signals(emgdat,1,title='of the matching emg')

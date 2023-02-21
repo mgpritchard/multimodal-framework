@@ -380,6 +380,26 @@ if __name__ == '__main__':
     plot_all_channels(data, trialname)
     ''''''''
     
+    
+    '''**********************************************'''
+    
+    fully_raw=handleBF.matrix_from_csv_file(test_datafile[:-4]+'-allcols.csv')
+   
+    bf_marker=fully_raw[:,18]
+    markerpos=np.where(bf_marker!=0)[0][0]
+    print(markerpos)
+    data=data[:,markerpos:]
+    
+    '''after cropping from Marker injection onwards'''
+    psd=check_PSD(data,eeg_channel,nfft,sampling_rate)
+    
+    plot_t_and_f(data,eeg_channel,psd,'Cropped to marker',transposed=True)
+    
+    plot_all_channels(data, trialname)
+
+    '''***********************************************'''
+    
+    
     '''DETREND THE DATA'''
     #DC blocking filter may be able to realtime detrend
     #https://dsp.stackexchange.com/questions/25189/detrending-in-real-time

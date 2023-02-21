@@ -297,6 +297,20 @@ if __name__ == '__main__':
     '''
     
     
+    ''' #for processing a fully raw file:
+    import handleBFSigProc as bfsig
+    rawfile1='/home/michael/Documents/Aston/MultimodalFW/working_dataset/fresh_raw_EEG/001a-grasp-0-allcols.csv'
+    raw_eeg,_=bfsig.load_raw_brainflow(rawfile1,0)
+    fully_raw=bfsig.matrix_from_csv_file(rawfile1)
+    np.savetxt('/home/michael/Documents/Aston/MultimodalFW/working_dataset/fresh_raw_EEG/001a-grasp-0.csv',raw_eeg,delimiter=',')
+    
+    rawfile2='/home/michael/Documents/Aston/MultimodalFW/working_dataset/fresh_raw_EEG/0001junea-close-1-allcols.csv'
+    raw_eeg_2,_=bfsig.load_raw_brainflow(rawfile2,0)
+    fully_raw_2=bfsig.matrix_from_csv_file(rawfile2)
+    np.savetxt('/home/michael/Documents/Aston/MultimodalFW/working_dataset/fresh_raw_EEG/0001a-close-1.csv',raw_eeg_2,delimiter=',')
+    '''
+    
+    
     '''Setup Unicorn branflow etc'''
     board_id = BoardIds.UNICORN_BOARD.value
     params = BrainFlowInputParams()
@@ -311,8 +325,9 @@ if __name__ == '__main__':
     timestamp_channel = BoardShim.get_timestamp_channel(board_id)
     
     '''pick channel to process'''
-    channel_select = 3
+    channel_select = 7
     eeg_channel=eeg_channels[channel_select]
+    #file:///home/michael/Documents/Aston/EEG/UnicornSuite.pdf
     # 1 = Fz
     # 2 = C3
     # 3 = Cz
@@ -322,11 +337,21 @@ if __name__ == '__main__':
     # 7 = Oz
     # 8 = PO8
     
+    '''plot All sigs on a big 8 way subplot'''
+    '''view em each in turn, manually reject those with large corners?'''
+    '''or can at least see if its channel specific!!'''    
+    
     
     
     '''select datafile to process'''
     #test_datafile='/home/michael/Documents/Aston/MultimodalFW/working_dataset/devset_EEG/Raw/0001a-grasp-2-_EEG.csv'
     test_datafile='/home/michael/Documents/Aston/MultimodalFW/working_dataset/devset_EEG/Cropped/004a-open-2.csv' #0001a-close-2.csv
+    test_datafile='/home/michael/Documents/Aston/MultimodalFW/working_dataset/fresh_raw_EEG/004a-open-2.csv'
+    #test_datafile='/home/michael/Documents/Aston/MultimodalFW/working_dataset/fresh_raw_EEG/001a-grasp-0.csv'
+    #test_datafile='/home/michael/Documents/Aston/MultimodalFW/working_dataset/fresh_raw_EEG/0001a-close-1.csv'
+    
+    test_datafile='/home/michael/Documents/Aston/MultimodalFW/working_dataset/fresh_raw_EEG/011b-lateral-3.csv'
+    
     trialname=test_datafile.split('/')[-1]
     if trialname.endswith('EEG'):
         trialname=trialname[:-9]
@@ -483,6 +508,13 @@ if __name__ == '__main__':
     
     plot_all_channels(data, trialname)
     
+    
+    print('\nCHANNEL 2 LOOKS PLAUSIBLE WITH THIS FILTERING\nCHANNEL 5 SEEMS TO BE JUMPING TO HIGH VOLTAGE?\nChannel 2 may exhibit muscular noise or eyeblinks but otherwise has\noscillations at plausible amplitude.\nChannel 1 likewise is in the right order of magnitude.\nFor reference, the P300 would be expected at around 5 - 10 uV.')
+    #P300 at 6 or 8 uV: P300 amplitude and latency reflect arithmetic skill: An ERP study of the problem size effect
+        #https://www.sciencedirect.com/science/article/pii/S0301051119300146
+    
+    
+    raise
     
     plot_signals(emgdat,1,title='of the matching emg')
     

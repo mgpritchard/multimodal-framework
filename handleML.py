@@ -145,6 +145,17 @@ def train_optimise(training_set,modeltype,args):
         model=train_RF_param(training_set,args)
     elif modeltype=='gaussNB':
         raise ValueError('No Gaussian NB implemented yet')
+        '''Naive Bayes Reading'''
+        # Bayes Net vs NB:
+            #https://stackoverflow.com/questions/12298150/what-is-the-difference-between-a-bayesian-network-and-a-naive-bayes-classifier#:~:text=Bayesian%20Network%20is%20more%20complicated,some%20crucial%20attributes%20are%20discarded.
+        # "it is known to be a bad estimator, so the probability outputs from predict_proba are not to be taken too seriously"
+            #https://scikit-learn.org/stable/modules/naive_bayes.html
+        # Interpreting predict_proba (multinomialNB):
+            #https://stackoverflow.com/questions/60166093/interpreting-predict-proba-multinomial-naive-bayes
+        # "NB are bad estimators?" "LogitReg may be viable"
+            #https://stackoverflow.com/questions/68080288/naive-bayes-classifiers-are-bad-estimators
+        #https://scikit-learn.org/stable/modules/generated/sklearn.linear_model.LogisticRegression.html
+        
         model=train_nb(training_set,args)
     elif modeltype=='LDA':
         #raise ValueError('No LDA implemented yet')

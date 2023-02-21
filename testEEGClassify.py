@@ -56,7 +56,7 @@ def split_train_test(featspath):
 
 
 def eeg_within_ppt(eeg_set_path=None,single_ppt_dataset=False,selected_ppt=1):
-    '''use handleFeats make_feats on a dir of data for a manual featset gen
+    '''use handleFeats make_feats on a dir of data for a manual featset gen.
     selected_ppt not needed if single_ppt_dataset is True'''
     
     args={'eeg_model_type':'RF',
@@ -91,6 +91,12 @@ def eeg_within_ppt(eeg_set_path=None,single_ppt_dataset=False,selected_ppt=1):
     acc=accuracy_score(eeg_test_labels,preds)
     print(acc)
     tt.confmat(eeg_test_labels,preds,classlabels)
+    
+    '''have verified with pd.merge on train and test that there is no
+    duplication of rows (i.e. windows). in the matlab slicing, there may be
+    one 0.002s datapoint that is found in both the start of grasp and the
+    end of preceding rest etc. However that is 2 milliseconds of one 1 second
+    window out of 5 - 10 seconds worth of grasp or rest'''
     
 
 '''def train(train_path): #deprecated, now moved to handleTrainTestPipeline
@@ -165,7 +171,14 @@ def eeg_within_ppt(eeg_set_path=None,single_ppt_dataset=False,selected_ppt=1):
 if __name__ == '__main__':
     
     WAYGAL_P4_set='/home/michael/Documents/Aston/EEG/WAY-EEG-GAL Data/WAYGAL_P4_Feats.csv'
-    eeg_within_ppt(WAYGAL_P4_set,single_ppt_dataset=True)
+    WAYGAL_P4_8ch_set='/home/michael/Documents/Aston/EEG/WAY-EEG-GAL Data/WAYGAL_P4_8channelFeats.csv'
+    
+    eeg_wayg_set='/home/michael/Documents/Aston/EEG/WAY-EEG-GAL Data/P4_CSVs/P4_EEG8chFeats.csv'
+    emg_wayg_set='/home/michael/Documents/Aston/EEG/WAY-EEG-GAL Data/P4_CSVs/P4_EMGFeats.csv'
+    
+    eeg_within_ppt(eeg_wayg_set,single_ppt_dataset=True)
+    print('below is EMG')
+    eeg_within_ppt(emg_wayg_set,single_ppt_dataset=True)
     raise
     
     #test(None)

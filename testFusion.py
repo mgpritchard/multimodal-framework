@@ -586,27 +586,29 @@ def function_fuse_LOO(args):
         
         gest_truth,gest_pred_emg,gest_pred_eeg,gest_pred_fusion,gesturelabels=classes_from_preds(targets,predlist_emg,predlist_eeg,predlist_fusion,classlabels)
         '''could calculate log loss if got the probabilities back''' #https://towardsdatascience.com/comprehensive-guide-on-multiclass-classification-metrics-af94cfb83fbd
+        
         #plot_confmats(gest_truth,gest_pred_emg,gest_pred_eeg,gest_pred_fusion,gesturelabels)
         
-        acc_emg=accuracy_score(gest_truth,gest_pred_emg)
-        acc_eeg=accuracy_score(gest_truth,gest_pred_eeg)
-        acc_fusion=accuracy_score(gest_truth,gest_pred_fusion)
+        #acc_emg=accuracy_score(gest_truth,gest_pred_emg)
+        #acc_eeg=accuracy_score(gest_truth,gest_pred_eeg)
+        #acc_fusion=accuracy_score(gest_truth,gest_pred_fusion)
         
-        f1_emg=f1_score(gest_truth,gest_pred_emg,average='weighted')
-        f1_eeg=f1_score(gest_truth,gest_pred_eeg,average='weighted')
-        f1_fusion=f1_score(gest_truth,gest_pred_fusion,average='weighted')
+        #f1_emg=f1_score(gest_truth,gest_pred_emg,average='weighted')
+        #f1_eeg=f1_score(gest_truth,gest_pred_eeg,average='weighted')
+        #f1_fusion=f1_score(gest_truth,gest_pred_fusion,average='weighted')
         
-        kappa=cohen_kappa_score(gest_truth,gest_pred_fusion)
+        #kappa=cohen_kappa_score(gest_truth,gest_pred_fusion)
         
-        emg_accs.append(acc_emg)
-        eeg_accs.append(acc_eeg)
-        accs.append(acc_fusion)
+        emg_accs.append(accuracy_score(gest_truth,gest_pred_emg))
+        eeg_accs.append(accuracy_score(gest_truth,gest_pred_eeg))
+        accs.append(accuracy_score(gest_truth,gest_pred_fusion))
         
-        emg_f1s.append(f1_emg)
-        eeg_f1s.append(f1_eeg)
-        f1s.append(f1_fusion)
+        emg_f1s.append(f1_score(gest_truth,gest_pred_emg,average='weighted'))
+        eeg_f1s.append(f1_score(gest_truth,gest_pred_eeg,average='weighted'))
+        f1s.append(f1_score(gest_truth,gest_pred_fusion,average='weighted'))
         
-        kappas.append(kappa)
+        kappas.append(cohen_kappa_score(gest_truth,gest_pred_fusion))
+        
     mean_acc=stats.mean(accs)
     median_acc=stats.median(accs)
     mean_emg=stats.mean(emg_accs)
@@ -730,9 +732,9 @@ if __name__ == '__main__':
     print(1-(best_results['loss']))
     plot_stat_in_time(trials, 'emg_mean')
     plot_stat_in_time(trials, 'eeg_mean')
-    plot_stat_in_time(trials, 'loss')
+    #plot_stat_in_time(trials, 'loss')
     plot_stat_in_time(trials,'f1_mean')
-    plot_stat_in_time(trials,'elapsed_time',0,200)
+    #plot_stat_in_time(trials,'elapsed_time',0,200)
     
     table=pd.DataFrame(trials.trials)
     table_readable=pd.concat(

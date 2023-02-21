@@ -186,6 +186,25 @@ def process_all_eeg(dataINdir,dataOUTdir):
             eeg=eeg.transpose()
         np.savetxt(build_path(dataOUTdir,eegfile),eeg,delimiter=',')
 
+def quick_ref_to_avg(dataframe):
+    data=dataframe.copy()
+    data['mean']=data.drop('Timestamp',axis=1).apply(np.sum,axis=1)
+    data['mean']=data['mean']/8
+    columns=data.columns
+    data=data.apply(lambda row : pd.Series([row['Timestamp'],
+                                            row['EEG1']-row['mean'],
+                                            row['EEG2']-row['mean'],
+                                            row['EEG3']-row['mean'],
+                                            row['EEG4']-row['mean'],
+                                            row['EEG5']-row['mean'],
+                                            row['EEG6']-row['mean'],
+                                            row['EEG7']-row['mean'],
+                                            row['EEG8']-row['mean'],
+                                            row['mean']]),axis=1)
+    data.columns=columns
+    data=data.drop(['mean'],axis=1)
+    return data
+
 if __name__ == '__main__':
     
     '''Setup Unicorn branflow etc'''

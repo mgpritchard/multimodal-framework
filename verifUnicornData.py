@@ -389,6 +389,21 @@ if __name__ == '__main__':
     '''
     
     
+    '''HIGH PASS'''
+    cutoff_HPF=1.5
+    order_HPF=2
+    for eeg_channel in eeg_channels:
+        DataFilter.perform_highpass(data[eeg_channel], sampling_rate, cutoff_HPF,
+                                order_HPF,FilterTypes.BUTTERWORTH.value, 0) #maybe 5Hz?? default 2nd order
+    #data=data[:,100:]
+    psd=check_PSD(data,eeg_channel,nfft,sampling_rate)
+    
+    plot_t_and_f(data,eeg_channel,psd,f"{cutoff_HPF}Hz HPF ({order_HPF}nd order Bwth)",
+                 transposed=True,PSD_xlim=[0, 30])
+    
+    plot_all_channels(data, trialname)
+    
+    
     '''50 Hz MAINS NOTCH'''
     for eeg_channel in eeg_channels:
         DataFilter.perform_bandstop(data[eeg_channel], sampling_rate, 48.0, 52.0, 3,
@@ -409,13 +424,6 @@ if __name__ == '__main__':
     plot_t_and_f(data,eeg_channel,psd,'100Hz Mains Harmonic (3rd order Bwth)',transposed=True)
        
     plot_all_channels(data, trialname)
-    '''HIGH PASS'''
-    DataFilter.perform_highpass(data[eeg_channel], sampling_rate, 4.0, 2,
-                                            FilterTypes.BUTTERWORTH.value, 0) #maybe 5Hz?? default 2nd order
-    #data=data[:,100:]
-    psd=check_PSD(data,eeg_channel,nfft,sampling_rate)
-    
-    plot_t_and_f(data,eeg_channel,psd,'2.0Hz HPF (2nd order Bwth)',transposed=True,PSD_xlim=[0, 30])
     
     
     '''LOW PASS'''
@@ -430,9 +438,14 @@ if __name__ == '__main__':
     #plot_psd(psd,title=(trialname + ' after 90.0Hz LPF'))
     '''
     
+    
+    '''#because of the large near-DC component, filters introduce a transient response
+    #https://uk.mathworks.com/matlabcentral/answers/407690-why-is-there-a-ripple-in-the-response-of-the-low-pass-butterworth-filter
+    #https://forums.ni.com/t5/Signal-Conditioning/transient-response-in-filter/td-p/3242386'''
+    
     peaks,_=find_peaks(data[eeg_channel]) #plot below to verify how many peaks to chop
     #plt.figure();plt.plot(data[eeg_channel]);plt.plot(peaks,data[eeg_channel][peaks],"x");plt.show()
-    data=data[:,peaks[1]:] #this is HPF Order - 1 ??
+    data=data[:,peaks[2]:] #this is HPF Order - 1 ??
     psd=check_PSD(data,eeg_channel,nfft,sampling_rate)
     plot_t_and_f(data,eeg_channel,psd,'Chopping off transient peaks',transposed=True,PSD_xlim=[0, 30])
     

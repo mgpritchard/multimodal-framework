@@ -84,22 +84,32 @@ def process_all_data():
     return feats_emg,feats_eeg
     #then later can stratify at the features level
 
-def inspect_set_balance(emg_set_path,eeg_set_path,emg_set=None,eeg_set=None):
+def inspect_set_balance(emg_set_path=None,eeg_set_path=None,emg_set=None,eeg_set=None):
     #emg_set_path='/home/michael/Documents/Aston/MultimodalFW/working_dataset/devset_EMG/featsEMG_Labelled.csv'
     #eeg_set_path='/home/michael/Documents/Aston/MultimodalFW/working_dataset/devset_EEG/featsEEG_Labelled.csv'
     if emg_set is None:
+        if emg_set_path is None:
+            raise ValueError
         emg_set=ml.pd.read_csv(emg_set_path,delimiter=',')
     emg_set.sort_values(['ID_pptID','ID_run','Label','ID_gestrep','ID_tend'],ascending=[True,True,True,True,True],inplace=True)
-    print(emg_set_path.split('/')[-1])
+    if emg_set_path:
+        print(emg_set_path.split('/')[-1])
+    else:
+        print('EMG:')
     print(emg_set['Label'].value_counts())
     print(emg_set['ID_pptID'].value_counts())
     #print(emg_set['ID_run'].value_counts())
     #print(emg_set['ID_gestrep'].value_counts())
     
     if eeg_set is None:
+        if eeg_set_path is None:
+            raise ValueError
         eeg_set=ml.pd.read_csv(eeg_set_path,delimiter=',')
     eeg_set.sort_values(['ID_pptID','ID_run','Label','ID_gestrep','ID_tend'],ascending=[True,True,True,True,True],inplace=True)
-    print(eeg_set_path.split('/')[-1])
+    if eeg_set_path:
+        print(eeg_set_path.split('/')[-1])
+    else:
+        print('EEG:')
     print(eeg_set['Label'].value_counts())
     print(eeg_set['ID_pptID'].value_counts())
     #print(eeg_set['ID_run'].value_counts())

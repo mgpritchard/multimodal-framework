@@ -26,6 +26,7 @@ from hyperopt import fmin, tpe, hp, space_eval, STATUS_OK, Trials
 from hyperopt.pyll import scope, stochastic
 import time
 import pandas as pd
+import pickle as pickle
 
 def process_all_data():
     
@@ -739,19 +740,35 @@ if __name__ == '__main__':
          pd.DataFrame(pd.DataFrame(table['misc'].tolist())['vals'].values.tolist())],
         axis=1,join='outer')
     
-    print('plotting ppt1 just to get a confmat')
-    ppt1acc=function_fuse_pptn(space_eval(space,best),1,plot_confmats=True)
     
-    raise KeyboardInterrupt('ending execution here!')
+    #print('plotting ppt1 just to get a confmat')
+    #ppt1acc=function_fuse_pptn(space_eval(space,best),1,plot_confmats=True)
+    
     
     '''PICKLING THE TRIALS OBJ'''
-    #import pickle as pickle
-    #filename='/home/michael/Documents/Aston/MultimodalFW/working_dataset/demo_trials_obj.p'
-    #pickle.dump(trials,open(filename,'wb'))
+    
+    currentpath=os.path.dirname(__file__)
+    result_dir=params.waygal_results_dir
+    resultpath=os.path.join(currentpath,result_dir)
+    
+    trials_obj_path=os.path.join(resultpath,'trials_obj.p')
+    pickle.dump(trials,open(trials_obj_path,'wb'))
+    
+    
     #load_trials_var=pickle.load(open(filename,'rb'))
     
     
     #for properly evaluating results later: https://towardsdatascience.com/multiclass-classification-evaluation-with-roc-curves-and-roc-auc-294fd4617e3a
+    
+    raise KeyboardInterrupt('ending execution here!')
+    
+    
+    
+    
+    
+    
+    
+    
     
     #emgfeats,eegfeats=process_all_data()
     emgpath='/home/michael/Documents/Aston/MultimodalFW/working_dataset/devset_EMG/featsEMG.csv'

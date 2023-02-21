@@ -32,6 +32,9 @@ if platform =='win32':
     
     emg_set_path_for_system_tests='C:/Users/pritcham/Documents/mm-framework/working_dataset/devset_EMG/featsEMG.csv'
     eeg_set_path_for_system_tests='C:/Users/pritcham/Documents/mm-framework/working_dataset/devset_EEG/featsEEG.csv'
+    
+    emg_waygal='C:/Users/pritcham/Documents/mm-framework/WAYGAL/WaygalAllEMGFeats.csv'
+    eeg_waygal='C:/Users/pritcham/Documents/mm-framework/WAYGAL/WayGalAllEEGFeats.csv'
 elif platform == 'darwin':
     #mac
     path='macpath'
@@ -58,3 +61,5 @@ elif platform == 'linux' or 'linux32':
     
     eeg_waygal='/home/michael/Documents/Aston/EEG/WAY-EEG-GAL Data/All_CSVs/WayGalAllEEGFeats.csv'
     emg_waygal='/home/michael/Documents/Aston/EEG/WAY-EEG-GAL Data/All_CSVs/WaygalAllEMGFeats.csv'
+    
+    waygal_results_dir='lit_data_expts/waygal/results/'

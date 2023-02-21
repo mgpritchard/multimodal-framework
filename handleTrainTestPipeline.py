@@ -12,11 +12,15 @@ import handleDatawrangle as wrangle
 import handleFeats as feats
 import handleML as ml
 import handleComposeDataset as comp
+import handleFusion as fus
+import testFusion as testFus
 import params
 from tkinter import Tk
 from tkinter.filedialog import askopenfilename, askopenfilenames, askdirectory, asksaveasfilename
-from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay #plot_confusion_matrix
+from sklearn.metrics import accuracy_score, confusion_matrix, ConfusionMatrixDisplay #plot_confusion_matrix
+from sklearn.model_selection import train_test_split
 import matplotlib.pyplot as plt
+from random import randint
 
 
 def process_data(datatype,datain=None,overwrite=True,bf_time_moved=False,dataout=None):
@@ -49,6 +53,7 @@ def process_data(datatype,datain=None,overwrite=True,bf_time_moved=False,dataout
 
 
 def make_feats(datatype,data_path):
+    '''handleFeats make_feats is cleaner for a manual feature pull'''
     feats_file=asksaveasfilename(initialdir=root,title='Save featureset as')
     feats.make_feats(directory_path=data_path,output_file=feats_file,datatype=datatype)
     print('**made '+datatype+' featureset**')
@@ -137,9 +142,141 @@ def copy_files(filelist,emg_dest,eeg_dest):
         source=os.path.join(path,file)
         if not os.path.exists(dest):
             comp.copyfile(source,dest)
+            
+
+def within_ppt_fuse(eeg_set_path=None,emg_set_path=None,single_ppt_dataset=False,selected_ppt=1,args=None):
+    '''use handleFeats make_feats on a dir of data for a manual featset gen.
+    selected_ppt not needed if single_ppt_dataset is True'''
+    
+    if args is None:
+        args={'eeg_model_type':'RF','emg_model_type':'RF','fusion_alg':'mean',
+                 'n_trees':20}
+    if eeg_set_path is None:
+        eeg_set_path='/home/michael/Documents/Aston/EEG/WAY-EEG-GAL Data/P4_CSVs/P4_EEG8chFeats.csv'
+    eeg_set=ml.pd.read_csv(eeg_set_path,delimiter=',')
+    
+    if emg_set_path is None:
+        emg_set_path='/home/michael/Documents/Aston/EEG/WAY-EEG-GAL Data/P4_CSVs/P4_EMGFeats.csv'
+    emg_set=ml.pd.read_csv(emg_set_path,delimiter=',')
+    
+    if not single_ppt_dataset:
+        eeg_masks=fus.get_ppt_split(eeg_set)
+        emg_masks=fus.get_ppt_split(emg_set)
+        eeg_ppt_mask=eeg_masks[selected_ppt]
+        emg_ppt_mask=emg_masks[selected_ppt]
+        eeg_ppt = eeg_set[eeg_ppt_mask]
+        emg_ppt=emg_set[emg_ppt_mask]
+    else:
+        eeg_ppt=eeg_set
+        emg_ppt=emg_set
+    
+    #eeg_others.sort_values(['ID_pptID','ID_run','Label','ID_gestrep','ID_tend'],ascending=[True,True,True,True,True],inplace=True)
+    #index_eeg=ml.pd.MultiIndex.from_arrays([eeg_others[col] for col in ['ID_pptID','ID_run','Label','ID_gestrep','ID_tend']])
+    eeg_ppt['ID_stratID']=eeg_ppt['ID_run']+eeg_ppt['Label']+eeg_ppt['ID_gestrep']
+    emg_ppt['ID_stratID']=emg_ppt['ID_run']+emg_ppt['Label']+emg_ppt['ID_gestrep']
+    random_split=randint(0,100)
+    train_split,test_split=train_test_split(eeg_ppt['ID_stratID'].unique(),test_size=0.33,random_state=random_split)
+    
+    eeg_train=eeg_ppt[eeg_ppt['ID_stratID'].isin(train_split)]
+    eeg_test=eeg_ppt[eeg_ppt['ID_stratID'].isin(test_split)]
+    eeg_train=ml.drop_ID_cols(eeg_train)
+    
+    emg_train=emg_ppt[emg_ppt['ID_stratID'].isin(train_split)]
+    emg_test=emg_ppt[emg_ppt['ID_stratID'].isin(test_split)]
+    emg_train=ml.drop_ID_cols(emg_train)
+    
+    
+    
+    eeg_model_type=args['eeg_model_type']
+    eeg_model = ml.train_optimise(eeg_train, eeg_model_type, args)
+    emg_model_type=args['emg_model_type']
+    emg_model = ml.train_optimise(emg_train, emg_model_type, args)
+    classlabels = eeg_model.classes_
+    
+    eeg_test_set=ml.drop_ID_cols(eeg_test)
+    eeg_test_labels=eeg_test_set['Label'].values
+    eeg_test_set=eeg_test_set.drop(['Label'],axis=1)
+    preds=eeg_model.predict(eeg_test_set)
+    eeg_acc=accuracy_score(eeg_test_labels,preds)
+    print('EEG accuracy: '+str(eeg_acc))
+    confmat(eeg_test_labels,preds,classlabels)
+    
+    emg_test_set=ml.drop_ID_cols(emg_test)
+    emg_test_labels=emg_test_set['Label'].values
+    emg_test_set=emg_test_set.drop(['Label'],axis=1)
+    preds=emg_model.predict(emg_test_set)
+    emg_acc=accuracy_score(emg_test_labels,preds)
+    print('EMG accuracy: '+str(emg_acc))
+    confmat(emg_test_labels,preds,classlabels)
+    
+    
+    '''fusion.refactor_synced drops ID cols so have to pass the one with the IDcols'''
+    targets, _, _, predlist_fusion = testFus.refactor_synced_predict(emg_test,eeg_test,emg_model,eeg_model,classlabels,args)
+    gest_truth=[params.idx_to_gestures[gest] for gest in targets]
+    gest_pred_fusion=[params.idx_to_gestures[pred] for pred in predlist_fusion]
+    gesturelabels=[params.idx_to_gestures[label] for label in classlabels]
+    
+    fusion_acc=accuracy_score(gest_truth,gest_pred_fusion)
+    print('Fusion accuracy: '+str(fusion_acc))
+    confmat(gest_truth,gest_pred_fusion,gesturelabels)
+
+            
+def within_ppt_test(set_path=None,single_ppt_dataset=False,selected_ppt=1,args=None,datatype=''):
+    '''use handleFeats make_feats on a dir of data for a manual featset gen.
+    selected_ppt not needed if single_ppt_dataset is True'''
+    
+    if args is None:
+        args={'model_type':'RF',
+                     'n_trees':20}
+    if set_path is None:
+        set_path='/home/michael/Documents/Aston/MultimodalFW/working_dataset/devset_EEG/featsEEGNewDecImpulseKill.csv'
+    dataset=ml.pd.read_csv(set_path,delimiter=',')
+    
+    if not single_ppt_dataset:
+        ppt_masks=fus.get_ppt_split(dataset)
+        ppt=ppt_masks[selected_ppt]
+        data_ppt = dataset[ppt]
+    else:
+        data_ppt=dataset
+    
+    #eeg_others.sort_values(['ID_pptID','ID_run','Label','ID_gestrep','ID_tend'],ascending=[True,True,True,True,True],inplace=True)
+    #index_eeg=ml.pd.MultiIndex.from_arrays([eeg_others[col] for col in ['ID_pptID','ID_run','Label','ID_gestrep','ID_tend']])
+    data_ppt['ID_stratID']=data_ppt['ID_run']+data_ppt['Label']+data_ppt['ID_gestrep']
+    '''DOES THE ABOVE NEED TO BE .astype(str) EVERYTHING?????'''
+    train_split,test_split=train_test_split(data_ppt['ID_stratID'].unique(),test_size=0.33)
+    data_train=data_ppt[data_ppt['ID_stratID'].isin(train_split)]
+    data_test=data_ppt[data_ppt['ID_stratID'].isin(test_split)]
+    data_train=ml.drop_ID_cols(data_train)
+    
+    model_type=args['model_type']
+    model = ml.train_optimise(data_train, model_type, args)
+    classlabels = model.classes_
+    
+    test_set=ml.drop_ID_cols(data_test)
+    test_labels=test_set['Label'].values
+    test_set=test_set.drop(['Label'],axis=1)
+    preds=model.predict(test_set)
+    acc=accuracy_score(test_labels,preds)
+    print(datatype+'accuracy: '+str(acc))
+    confmat(test_labels,preds,classlabels)
 
 
 if __name__ == '__main__':
+    
+    eeg_wayg_set='/home/michael/Documents/Aston/EEG/WAY-EEG-GAL Data/P4_CSVs/P4_EEG8chFeats.csv'
+    emg_wayg_set='/home/michael/Documents/Aston/EEG/WAY-EEG-GAL Data/P4_CSVs/P4_EMGFeats.csv'
+    
+    eeg_wayg_set='/home/michael/Documents/Aston/EEG/WAY-EEG-GAL Data/P8_CSVs/P8_EEGFeats.csv'
+    emg_wayg_set='/home/michael/Documents/Aston/EEG/WAY-EEG-GAL Data/P8_CSVs/P8_EMGFeats.csv'
+    
+    eeg_wayg_set='/home/michael/Documents/Aston/EEG/WAY-EEG-GAL Data/P8_CSVs/P8_EEGFeats.csv'
+    emg_wayg_set='/home/michael/Documents/Aston/EEG/WAY-EEG-GAL Data/P8_CSVs/P8_EMGFeats.csv'
+    
+    
+    #within_ppt_test(eeg_wayg_set,single_ppt_dataset=True,datatype='EEG')
+    #within_ppt_test(emg_wayg_set,single_ppt_dataset=True,datatype='EMG')
+    
+    within_ppt_fuse(eeg_wayg_set,emg_wayg_set,single_ppt_dataset=True)
     raise
     #run handleComposeDataset
     #need some way of doing leave-ppt-out crosseval.

@@ -30,7 +30,7 @@ spec.loader.exec_module(toClass)
 #foo.MyClass()
 
 
-def gen_training_matrix(directory_path, output_file, cols_to_ignore, singleFrame=1,period=1000):
+def gen_training_matrix(directory_path, output_file, cols_to_ignore, singleFrame=1,period=1000,auto_skip_all_fails=False):
     """
     Reads the csv files in directory_path and assembles the training matrix with 
     the features extracted using the functions from EEG_feature_extraction.
@@ -121,14 +121,22 @@ def gen_training_matrix(directory_path, output_file, cols_to_ignore, singleFrame
                                                                     cols_to_ignore = cols_to_ignore)
         except UnboundLocalError as e:
             print(traceback.format_exc())
-            skip=input('The above error was encountered when trying to generate '
-                  'features from the following data file:\n'+full_file_path+
-                  '\nWould you like to skip the file and continue? [Y/N]')
-            if skip == 'Y':
+            if auto_skip_all_fails==True:
+                print('Skipping the data file:\n'+full_file_path)
                 rejected_by_feat_script.append(full_file_path)
                 continue
             else:
-                raise e
+                skip=input('The above error was encountered when trying to generate '
+                      'features from the following data file:\n'+full_file_path+
+                      '\nWould you like to skip the file and continue? [Y/N]')
+                if skip == 'Y':
+                    rejected_by_feat_script.append(full_file_path)
+                    continue
+                elif skip == 'y':
+                    rejected_by_feat_script.append(full_file_path)
+                    continue
+                else:
+                    raise e
         print ('resulting vector shape for the file', vectors.shape)
         
         

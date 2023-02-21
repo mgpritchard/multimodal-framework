@@ -32,12 +32,12 @@ def ask_for_savefile(datatype=""):
     savefile=asksaveasfilename(title=title,initialdir=homepath)
     return savefile
 
-def make_feats(directory_path=None, output_file=None, datatype="",period=1000):
+def make_feats(directory_path=None, output_file=None, datatype="",period=1000,skipfails=False):
     if directory_path is None:
         directory_path=ask_for_dir(datatype)
     if output_file is None:
         output_file=ask_for_savefile(datatype)
-    featset=genfeats.gen_training_matrix(directory_path, output_file, cols_to_ignore=None, singleFrame=0,period=period)
+    featset=genfeats.gen_training_matrix(directory_path, output_file, cols_to_ignore=None, singleFrame=0,period=period,auto_skip_all_fails=skipfails)
     return featset
     
 def feats_pipeline():
@@ -45,6 +45,9 @@ def feats_pipeline():
     make_feats(datatype='eeg')
     
 if __name__ == '__main__':
+    WAYGAL_P4_path='/home/michael/Documents/Aston/EEG/WAY-EEG-GAL Data/EEG_CSVs/'
+    make_feats(directory_path=WAYGAL_P4_path,datatype='eeg',period=1,skipfails=True)
+    raise
     emg_data_path='/home/michael/Documents/Aston/MultimodalFW/repo/multimodal-framework/testbench/emg/dupes_removed'
     emg_feats_file='/home/michael/Documents/Aston/MultimodalFW/repo/multimodal-framework/testbench/emg/emg_test_feats.csv'
     make_feats(directory_path=emg_data_path,output_file=emg_feats_file,datatype='emg')

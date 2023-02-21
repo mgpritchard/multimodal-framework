@@ -84,28 +84,90 @@ def process_all_data():
     return feats_emg,feats_eeg
     #then later can stratify at the features level
 
-def inspect_set_balance(emg_set_path,eeg_set_path,emg_set=None,eeg_set=None):
+def inspect_set_balance(emg_set_path=None,eeg_set_path=None,emg_set=None,eeg_set=None):
     #emg_set_path='/home/michael/Documents/Aston/MultimodalFW/working_dataset/devset_EMG/featsEMG_Labelled.csv'
     #eeg_set_path='/home/michael/Documents/Aston/MultimodalFW/working_dataset/devset_EEG/featsEEG_Labelled.csv'
     if emg_set is None:
+        if emg_set_path is None:
+            raise ValueError
         emg_set=ml.pd.read_csv(emg_set_path,delimiter=',')
     emg_set.sort_values(['ID_pptID','ID_run','Label','ID_gestrep','ID_tend'],ascending=[True,True,True,True,True],inplace=True)
-    print(emg_set_path.split('/')[-1])
+    if emg_set_path:
+        print(emg_set_path.split('/')[-1])
+    else:
+        print('EMG:')
     print(emg_set['Label'].value_counts())
     print(emg_set['ID_pptID'].value_counts())
     #print(emg_set['ID_run'].value_counts())
     #print(emg_set['ID_gestrep'].value_counts())
     
     if eeg_set is None:
+        if eeg_set_path is None:
+            raise ValueError
         eeg_set=ml.pd.read_csv(eeg_set_path,delimiter=',')
     eeg_set.sort_values(['ID_pptID','ID_run','Label','ID_gestrep','ID_tend'],ascending=[True,True,True,True,True],inplace=True)
-    print(eeg_set_path.split('/')[-1])
+    if eeg_set_path:
+        print(eeg_set_path.split('/')[-1])
+    else:
+        print('EEG:')
     print(eeg_set['Label'].value_counts())
     print(eeg_set['ID_pptID'].value_counts())
     #print(eeg_set['ID_run'].value_counts())
     #print(eeg_set['ID_gestrep'].value_counts())
     
     return emg_set,eeg_set
+
+def balance_set(emg_set,eeg_set):
+    #print('initial')
+    #_,_=inspect_set_balance(emg_set=emg_set,eeg_set=eeg_set)
+    
+    index_emg=ml.pd.MultiIndex.from_arrays([emg_set[col] for col in ['ID_pptID','ID_run','Label','ID_gestrep','ID_tend']])
+    index_eeg=ml.pd.MultiIndex.from_arrays([eeg_set[col] for col in ['ID_pptID','ID_run','Label','ID_gestrep','ID_tend']])
+    emg=emg_set.loc[index_emg.isin(index_eeg)].reset_index(drop=True)
+    eeg=eeg_set.loc[index_eeg.isin(index_emg)].reset_index(drop=True)
+    
+    emg.sort_values(['ID_pptID','ID_run','Label','ID_gestrep','ID_tend'],ascending=[True,True,True,True,True],inplace=True)
+    eeg.sort_values(['ID_pptID','ID_run','Label','ID_gestrep','ID_tend'],ascending=[True,True,True,True,True],inplace=True)
+    
+    eeg['ID_stratID']=eeg['ID_pptID'].astype(str)+eeg['Label'].astype(str)
+    emg['ID_stratID']=emg['ID_pptID'].astype(str)+emg['Label'].astype(str)
+    
+    stratsize=np.min(emg['ID_stratID'].value_counts())
+    balemg = emg.groupby('ID_stratID')
+    #g.apply(lambda x: x.sample(g.size().min()))
+    #https://stackoverflow.com/questions/45839316/pandas-balancing-data
+    balemg=balemg.apply(lambda x: x.sample(stratsize))
+    print('subsampling to ',str(stratsize),' per combo of ppt and class')
+   
+    #print('----------\nEMG Balanced')
+    #_,_=inspect_set_balance(emg_set=balemg,eeg_set=eeg)
+    
+    index_balemg=ml.pd.MultiIndex.from_arrays([balemg[col] for col in ['ID_pptID','ID_run','Label','ID_gestrep','ID_tend']])
+    baleeg=eeg_set.loc[index_eeg.isin(index_balemg)].reset_index(drop=True)
+   
+    #print('----------\nBoth Balanced')
+    #_,_=inspect_set_balance(emg_set=balemg,eeg_set=baleeg)
+    
+    if 0:   #manual checking, almost certainly unnecessary
+        for index,emgrow in balemg.iterrows():
+            eegrow = baleeg[(baleeg['ID_pptID']==emgrow['ID_pptID'])
+                                  & (baleeg['ID_run']==emgrow['ID_run'])
+                                  & (baleeg['Label']==emgrow['Label'])
+                                  & (baleeg['ID_gestrep']==emgrow['ID_gestrep'])
+                                  & (baleeg['ID_tend']==emgrow['ID_tend'])]
+            #syntax like the below would do it closer to a .where
+            #eegrow=test_set_eeg[test_set_eeg[['ID_pptID','Label']]==emgrow[['ID_pptID','Label']]]
+            if eegrow.empty:
+                print('No matching EEG window for EMG window '+str(emgrow['ID_pptID'])+str(emgrow['ID_run'])+str(emgrow['Label'])+str(emgrow['ID_gestrep'])+str(emgrow['ID_tend']))
+                continue
+            
+            TargetLabel=emgrow['Label']
+            if TargetLabel != eegrow['Label'].values:
+                raise Exception('Sense check failed, target label should agree between modes')
+        print('checked all for window matching')
+    
+    balemg.drop(columns='ID_stratID',inplace=True)
+    return balemg,baleeg
 
 def identify_rejects(rejectlog=None):
     if rejectlog is None:
@@ -133,22 +195,30 @@ def purge_rejects(rejects,featset):
         featset.drop(rejectrows.index,inplace=True)
     return featset
 
-def get_ppt_split(featset):
-    #print(featset['ID_pptID'].unique())
-    msk_ppt1=(featset['ID_pptID']==1)
-    msk_ppt2=(featset['ID_pptID']==15) #ppt2 retrial was labelled 15
-    msk_ppt4=(featset['ID_pptID']==4)
-    msk_ppt7=(featset['ID_pptID']==7)
-    msk_ppt8=(featset['ID_pptID']==8)
-    msk_ppt9=(featset['ID_pptID']==9)
-    msk_ppt11=(featset['ID_pptID']==11)
-    msk_ppt13=(featset['ID_pptID']==13)
-    msk_ppt14=(featset['ID_pptID']==14)
-    #return these and then as necessary to featset[mask]
-    #https://stackoverflow.com/questions/33742588/pandas-split-dataframe-by-column-value
-    #so can do different permutations of assembling train/test sets
-    #can also invert a mask (see link above) to get the rest for all-except-n
-    return [msk_ppt1,msk_ppt2,msk_ppt4,msk_ppt7,msk_ppt8,msk_ppt9,msk_ppt11,msk_ppt13,msk_ppt14]
+def get_ppt_split(featset,args={'using_literature_data':True}):
+    if args['using_literature_data']:
+        masks=get_ppt_split_flexi(featset)
+        return masks
+    else:
+        #print(featset['ID_pptID'].unique())
+        msk_ppt1=(featset['ID_pptID']==1)
+        msk_ppt2=(featset['ID_pptID']==15) #ppt2 retrial was labelled 15
+        msk_ppt4=(featset['ID_pptID']==4)
+        msk_ppt7=(featset['ID_pptID']==7)
+        msk_ppt8=(featset['ID_pptID']==8)
+        msk_ppt9=(featset['ID_pptID']==9)
+        msk_ppt11=(featset['ID_pptID']==11)
+        msk_ppt13=(featset['ID_pptID']==13)
+        msk_ppt14=(featset['ID_pptID']==14)
+        #return these and then as necessary to featset[mask]
+        #https://stackoverflow.com/questions/33742588/pandas-split-dataframe-by-column-value
+        #so can do different permutations of assembling train/test sets
+        #can also invert a mask (see link above) to get the rest for all-except-n
+        return [msk_ppt1,msk_ppt2,msk_ppt4,msk_ppt7,msk_ppt8,msk_ppt9,msk_ppt11,msk_ppt13,msk_ppt14]
+
+def get_ppt_split_flexi(featset):
+    masks=[featset['ID_pptID']== n_ppt for n_ppt in np.sort(featset['ID_pptID'].unique())] 
+    return masks
 
 def synchronously_classify(test_set_emg,test_set_eeg,model_emg,model_eeg,classlabels,args):
     distrolist_emg=[]
@@ -389,23 +459,34 @@ def train_models_opt(emg_train_set,eeg_train_set,args):
     eeg_model = ml.train_optimise(eeg_train_set, eeg_model_type, args['eeg'])
     return emg_model,eeg_model
 
-def function_fuse_ppt1(args):
-    emg_set_path='/home/michael/Documents/Aston/MultimodalFW/working_dataset/devset_EMG/featsEMG.csv'
-    eeg_set_path='/home/michael/Documents/Aston/MultimodalFW/working_dataset/devset_EEG/featsEEG.csv'
+def function_fuse_pptn(args,n,plot_confmats=False,emg_set_path=None,eeg_set_path=None):
+    
+    if emg_set_path is None:
+        if args['using_literature_data']:
+            emg_set_path=params.emg_waygal
+        else:
+            emg_set_path=params.emg_set_path_for_system_tests
+    if eeg_set_path is None:
+         if args['using_literature_data']:
+            eeg_set_path=params.eeg_waygal
+         else:
+            eeg_set_path=params.eeg_set_path_for_system_tests
     
     emg_set=ml.pd.read_csv(emg_set_path,delimiter=',')
     eeg_set=ml.pd.read_csv(eeg_set_path,delimiter=',')
     
-    eeg_masks=get_ppt_split(eeg_set)
-    emg_masks=get_ppt_split(emg_set)
+    emg_set,eeg_set=balance_set(emg_set,eeg_set)
     
-    emg_mask_1=emg_masks[0]
-    eeg_mask_1=eeg_masks[0]
+    eeg_masks=get_ppt_split(eeg_set,args)
+    emg_masks=get_ppt_split(emg_set,args)
     
-    emg_ppt = emg_set[emg_mask_1]
-    emg_others = emg_set[~emg_mask_1]
-    eeg_ppt = eeg_set[eeg_mask_1]
-    eeg_others = eeg_set[~eeg_mask_1]
+    emg_mask_n=emg_masks[n-1]
+    eeg_mask_n=eeg_masks[n-1]
+    
+    emg_ppt = emg_set[emg_mask_n]
+    emg_others = emg_set[~emg_mask_n]
+    eeg_ppt = eeg_set[eeg_mask_n]
+    eeg_others = eeg_set[~eeg_mask_n]
     #emg_ppt=ml.drop_ID_cols(emg_ppt)
     emg_others=ml.drop_ID_cols(emg_others)
     #eeg_ppt=ml.drop_ID_cols(eeg_ppt)
@@ -420,7 +501,7 @@ def function_fuse_ppt1(args):
         
     targets, predlist_emg, correctness_emg, predlist_eeg, correctness_eeg, predlist_fusion, correctness_fusion = synchronously_classify(emg_ppt, eeg_ppt, emg_model, eeg_model, classlabels,args)
         
-    acc_emg,acc_eeg,acc_fusion=evaluate_results(targets, predlist_emg, correctness_emg, predlist_eeg, correctness_eeg, predlist_fusion, correctness_fusion, classlabels)
+    acc_emg,acc_eeg,acc_fusion=evaluate_results(targets, predlist_emg, correctness_emg, predlist_eeg, correctness_eeg, predlist_fusion, correctness_fusion, classlabels, plot_confmats)
     
     return 1-acc_fusion
 
@@ -440,8 +521,10 @@ def function_fuse_LOO(args):
     emg_set=ml.pd.read_csv(emg_set_path,delimiter=',')
     eeg_set=ml.pd.read_csv(eeg_set_path,delimiter=',')
     
-    eeg_masks=get_ppt_split(eeg_set)
-    emg_masks=get_ppt_split(emg_set)
+    emg_set,eeg_set=balance_set(emg_set,eeg_set)
+    
+    eeg_masks=get_ppt_split(eeg_set,args)
+    emg_masks=get_ppt_split(emg_set,args)
     
     accs=[]
     emg_accs=[] #https://stackoverflow.com/questions/13520876/how-can-i-make-multiple-empty-lists-in-python
@@ -587,12 +670,15 @@ def setup_search_space():
               #   }
                 ]),
             'fusion_alg':hp.choice('fusion algorithm',[
-                #'mean',
-                #'3_1_emg',
-                #'3_1_eeg',
+                'mean',
+                '3_1_emg',
+                '3_1_eeg',
                 'bayes']),
-            'emg_set_path':params.emg_set_path_for_system_tests,
-            'eeg_set_path':params.eeg_set_path_for_system_tests,
+            #'emg_set_path':params.emg_set_path_for_system_tests,
+            #'eeg_set_path':params.eeg_set_path_for_system_tests,
+            'emg_set_path':params.emg_waygal,
+            'eeg_set_path':params.eeg_waygal,
+            'using_literature_data':True,
             }
     return space
 
@@ -602,7 +688,7 @@ def optimise_fusion():
     best = fmin(function_fuse_LOO,
                 space=space,
                 algo=tpe.suggest,
-                max_evals=25,
+                max_evals=2,
                 trials=trials)
     return best, space, trials
 
@@ -624,6 +710,10 @@ def plot_stat_in_time(trials,stat,ylower=0,yupper=1):
     ax.set(title=stat+' over time')
     ax.set_ylim(ylower,yupper)
     plt.show()
+    
+    # Plot something showing which were which models?
+    # eg with vertical fill
+    # https://stackoverflow.com/questions/23248435/fill-between-two-vertical-lines-in-matplotlib
 
 
 if __name__ == '__main__':
@@ -648,6 +738,9 @@ if __name__ == '__main__':
         [pd.DataFrame(table['result'].tolist()),
          pd.DataFrame(pd.DataFrame(table['misc'].tolist())['vals'].values.tolist())],
         axis=1,join='outer')
+    
+    print('plotting ppt1 just to get a confmat')
+    ppt1acc=function_fuse_pptn(space_eval(space,best),1,plot_confmats=True)
     
     raise KeyboardInterrupt('ending execution here!')
     

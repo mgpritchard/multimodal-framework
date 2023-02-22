@@ -553,8 +553,8 @@ def function_fuse_LOO(args):
             emg_others=emg_others.loc[index_emg.isin(index_eeg)].reset_index(drop=True)
             eeg_others=eeg_others.loc[index_eeg.isin(index_emg)].reset_index(drop=True)
                     
-            emg_others['ID_splitIndex']=emg_others['Label']+emg_others['ID_pptID']
-            eeg_others['ID_splitIndex']=eeg_others['Label']+eeg_others['ID_pptID']
+            emg_others['ID_splitIndex']=emg_others['Label'].astype(str)+emg_others['ID_pptID'].astype(str)
+            eeg_others['ID_splitIndex']=eeg_others['Label'].astype(str)+eeg_others['ID_pptID'].astype(str)
             #https://stackoverflow.com/questions/45516424/sklearn-train-test-split-on-pandas-stratify-by-multiple-columns
             random_split=random.randint(0,100)
             emg_train_split_ML,emg_train_split_fusion=train_test_split(emg_others,test_size=0.33,random_state=random_split,stratify=emg_others[['ID_splitIndex']])

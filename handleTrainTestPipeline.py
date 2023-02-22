@@ -172,8 +172,8 @@ def within_ppt_fuse(eeg_set_path=None,emg_set_path=None,single_ppt_dataset=False
     
     #eeg_others.sort_values(['ID_pptID','ID_run','Label','ID_gestrep','ID_tend'],ascending=[True,True,True,True,True],inplace=True)
     #index_eeg=ml.pd.MultiIndex.from_arrays([eeg_others[col] for col in ['ID_pptID','ID_run','Label','ID_gestrep','ID_tend']])
-    eeg_ppt['ID_stratID']=eeg_ppt['ID_run']+eeg_ppt['Label']+eeg_ppt['ID_gestrep']
-    emg_ppt['ID_stratID']=emg_ppt['ID_run']+emg_ppt['Label']+emg_ppt['ID_gestrep']
+    eeg_ppt['ID_stratID']=eeg_ppt['ID_run'].astype(str)+eeg_ppt['Label'].astype(str)+eeg_ppt['ID_gestrep'].astype(str)
+    emg_ppt['ID_stratID']=emg_ppt['ID_run'].astype(str)+emg_ppt['Label'].astype(str)+emg_ppt['ID_gestrep'].astype(str)
     random_split=randint(0,100)
     train_split,test_split=train_test_split(eeg_ppt['ID_stratID'].unique(),test_size=0.33,random_state=random_split)
     
@@ -241,8 +241,8 @@ def within_ppt_test(set_path=None,single_ppt_dataset=False,selected_ppt=1,args=N
     
     #eeg_others.sort_values(['ID_pptID','ID_run','Label','ID_gestrep','ID_tend'],ascending=[True,True,True,True,True],inplace=True)
     #index_eeg=ml.pd.MultiIndex.from_arrays([eeg_others[col] for col in ['ID_pptID','ID_run','Label','ID_gestrep','ID_tend']])
-    data_ppt['ID_stratID']=data_ppt['ID_run']+data_ppt['Label']+data_ppt['ID_gestrep']
-    '''DOES THE ABOVE NEED TO BE .astype(str) EVERYTHING?????'''
+    #data_ppt['ID_stratID']=data_ppt['ID_run']+data_ppt['Label']+data_ppt['ID_gestrep']
+    data_ppt['ID_stratID']=data_ppt['ID_run'].astype(str)+data_ppt['Label'].astype(str)+data_ppt['ID_gestrep'].astype(str)
     train_split,test_split=train_test_split(data_ppt['ID_stratID'].unique(),test_size=0.33)
     data_train=data_ppt[data_ppt['ID_stratID'].isin(train_split)]
     data_test=data_ppt[data_ppt['ID_stratID'].isin(test_split)]
@@ -273,10 +273,10 @@ if __name__ == '__main__':
     emg_wayg_set='/home/michael/Documents/Aston/EEG/WAY-EEG-GAL Data/P8_CSVs/P8_EMGFeats.csv'
     
     
-    #within_ppt_test(eeg_wayg_set,single_ppt_dataset=True,datatype='EEG')
+    within_ppt_test(eeg_wayg_set,single_ppt_dataset=True,datatype='EEG')
     #within_ppt_test(emg_wayg_set,single_ppt_dataset=True,datatype='EMG')
     
-    within_ppt_fuse(eeg_wayg_set,emg_wayg_set,single_ppt_dataset=True)
+    #within_ppt_fuse(eeg_wayg_set,emg_wayg_set,single_ppt_dataset=True)
     raise
     #run handleComposeDataset
     #need some way of doing leave-ppt-out crosseval.

@@ -74,7 +74,7 @@ def eeg_within_ppt(eeg_set_path=None,single_ppt_dataset=False,selected_ppt=1):
     
     #eeg_others.sort_values(['ID_pptID','ID_run','Label','ID_gestrep','ID_tend'],ascending=[True,True,True,True,True],inplace=True)
     #index_eeg=ml.pd.MultiIndex.from_arrays([eeg_others[col] for col in ['ID_pptID','ID_run','Label','ID_gestrep','ID_tend']])
-    eeg_ppt['ID_stratID']=eeg_ppt['ID_run']+eeg_ppt['Label']+eeg_ppt['ID_gestrep']
+    eeg_ppt['ID_stratID']=eeg_ppt['ID_run'].astype(str)+eeg_ppt['Label'].astype(str)+eeg_ppt['ID_gestrep'].astype(str)
     train_split,test_split=train_test_split(eeg_ppt['ID_stratID'].unique(),test_size=0.33)
     eeg_train=eeg_ppt[eeg_ppt['ID_stratID'].isin(train_split)]
     eeg_test=eeg_ppt[eeg_ppt['ID_stratID'].isin(test_split)]

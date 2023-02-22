@@ -644,7 +644,7 @@ def plot_opt_in_time(trials):
     ax.set(title='accuracy over time')
     plt.show()
     
-def plot_stat_in_time(trials,stat,ylower=0,yupper=1):
+def plot_stat_in_time(trials,stat,ylower=0,yupper=1,showplot=True):
     fig,ax=plt.subplots()
     ax.plot(range(1, len(trials) + 1),
             [x['result'][stat] for x in trials], 
@@ -652,7 +652,9 @@ def plot_stat_in_time(trials,stat,ylower=0,yupper=1):
     #https://www.kaggle.com/code/fanvacoolt/tutorial-on-hyperopt?scriptVersionId=12981074&cellId=97
     ax.set(title=stat+' over time')
     ax.set_ylim(ylower,yupper)
-    plt.show()
+    if showplot:
+        plt.show()
+    return fig
     
     # Plot something showing which were which models?
     # eg with vertical fill
@@ -1105,10 +1107,10 @@ if __name__ == '__main__':
     #print(best)
     print(space_eval(space,best))
     print(1-(best_results['loss']))
-    plot_stat_in_time(trials, 'emg_mean')
-    plot_stat_in_time(trials, 'eeg_mean')
+    emg_acc_plot=plot_stat_in_time(trials, 'emg_mean_acc')
+    eeg_acc_plot=plot_stat_in_time(trials, 'eeg_mean_acc')
     #plot_stat_in_time(trials, 'loss')
-    plot_stat_in_time(trials,'f1_mean')
+    fus_f1_plot=plot_stat_in_time(trials,'fusion_f1_mean')
     #plot_stat_in_time(trials,'elapsed_time',0,200)
     
     table=pd.DataFrame(trials.trials)
@@ -1131,6 +1133,10 @@ if __name__ == '__main__':
     trials_obj_path=os.path.join(resultpath,'trials_obj.p')
     pickle.dump(trials,open(trials_obj_path,'wb'))
     
+    '''saving figures of performance over time'''
+    emg_acc_plot.savefig(os.path.join(resultpath,'emg_acc.png'))
+    eeg_acc_plot.savefig(os.path.join(resultpath,'emg_acc.png'))
+    fus_f1_plot.savefig(os.path.join(resultpath,'fusion_f1.png'))
     
     #load_trials_var=pickle.load(open(filename,'rb'))
     

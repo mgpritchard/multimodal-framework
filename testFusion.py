@@ -635,69 +635,6 @@ def function_fuse_LOO(args):
         'f1_mean':mean_f1_fusion,
         'elapsed_time':end-start,}
 
-def setup_search_space():
-    space = {
-            'emg':hp.choice('emg model',[
-                {'emg_model_type':'RF',
-                 'n_trees':scope.int(hp.quniform('emg.RF.ntrees',10,50,q=10)),
-                 #integerising search space https://github.com/hyperopt/hyperopt/issues/566#issuecomment-549510376
-                 },
-                {'emg_model_type':'kNN',
-                 'knn_k':scope.int(hp.quniform('emg.knn.k',1,5,q=1)),
-                 },
-                {'emg_model_type':'LDA',
-                 'LDA_solver':hp.choice('emg.LDA_solver',['svd','lsqr','eigen']),
-                 'shrinkage':hp.uniform('emg.lda.shrinkage',0.0,1.0),
-                 },
-                {'emg_model_type':'QDA',
-                 'regularisation':hp.uniform('emg.qda.regularisation',0.0,1.0), #https://www.kaggle.com/code/code1110/best-parameter-s-for-qda/notebook
-                 },
-            #    {'emg_model_type':'SVM',
-             #    'svm_C':hp.uniform('emg.svm.c',0.1,100),
-              #   }
-                ]),
-            'eeg':hp.choice('eeg model',[
-                {'eeg_model_type':'RF',
-                 'n_trees':scope.int(hp.quniform('eeg_ntrees',10,50,q=10)),
-                 },
-                {'eeg_model_type':'kNN',
-                 'knn_k':scope.int(hp.quniform('eeg.knn.k',1,5,q=1)),
-                 },
-                {'eeg_model_type':'LDA',
-                 'LDA_solver':hp.choice('eeg.LDA_solver',['svd','lsqr','eigen']),
-                 'shrinkage':hp.uniform('eeg.lda.shrinkage',0.0,1.0),
-                 },
-                {'eeg_model_type':'QDA',
-                 'regularisation':hp.uniform('eeg.qda.regularisation',0.0,1.0),
-                 },
-             #   {'eeg_model_type':'SVM',
-              #   'svm_C':hp.uniform('eeg.svm.c',0.1,100),
-                 # naming convention https://github.com/hyperopt/hyperopt/issues/380#issuecomment-685173200
-              #   }
-                ]),
-            'fusion_alg':hp.choice('fusion algorithm',[
-                'mean',
-                '3_1_emg',
-                '3_1_eeg',
-                'bayes']),
-            #'emg_set_path':params.emg_set_path_for_system_tests,
-            #'eeg_set_path':params.eeg_set_path_for_system_tests,
-            'emg_set_path':params.emg_waygal,
-            'eeg_set_path':params.eeg_waygal,
-            'using_literature_data':True,
-            }
-    return space
-
-def optimise_fusion():
-    space=setup_search_space()
-    trials=Trials() #http://hyperopt.github.io/hyperopt/getting-started/minimizing_functions/#attaching-extra-information-via-the-trials-object
-    best = fmin(function_fuse_LOO,
-                space=space,
-                algo=tpe.suggest,
-                max_evals=100,
-                trials=trials)
-    return best, space, trials
-
 def plot_opt_in_time(trials):
     fig,ax=plt.subplots()
     ax.plot(range(1, len(trials) + 1),
@@ -1064,16 +1001,18 @@ def deprecated_initial_fusion_pipeline():
     
     
     raise #below is just for a one and done not stratifying
+    '''
     print('stop')
     Tk().withdraw()
     
-    processed_eeg_path=process_eeg()
-    eeg_feats_filepath=make_eeg_feats(processed_eeg_path)
-    train_set_path, test_set_path = split_train_test(eeg_feats_filepath)
+    processed_eeg_path=wrangle.process_eeg()
+    eeg_feats_filepath=make_eeg_feats(processed_eeg_path) #from testEEGClassify
+    train_set_path, test_set_path = tt.split_train_test(eeg_feats_filepath)
     tt.train(train_set_path)
-    test(test_set_path=None)
+    tt.test(test_set_path=None)
     
-    '''can do manually with the following steps'''
+    #can do manually with the following steps
+    
     #run script with the __main__ raising error immediately
     #run lines 94-ish (root dir etc)
     #train_eeg=process+eeg((working+'dev/EEG/')
@@ -1082,12 +1021,75 @@ def deprecated_initial_fusion_pipeline():
     #train_set_path, test_set_path = split_train_test(eeg_featset)
     #train(train_set_path)
     #test(test_set_path)
-    y_true,y_distro,y_pred=test(test_set_path)
+    y_true,y_distro,y_pred=tt.test(test_set_path)
     #ConfusionMatrixDisplay.from_predictions(y_true,y_pred) #need to update to sklearn 1.0.x
     conf=confusion_matrix(y_true,y_pred)
     ConfusionMatrixDisplay(conf)
     plt.show()
+    '''
     
+def setup_search_space():
+    space = {
+            'emg':hp.choice('emg model',[
+                {'emg_model_type':'RF',
+                 'n_trees':scope.int(hp.quniform('emg.RF.ntrees',10,50,q=10)),
+                 #integerising search space https://github.com/hyperopt/hyperopt/issues/566#issuecomment-549510376
+                 },
+                {'emg_model_type':'kNN',
+                 'knn_k':scope.int(hp.quniform('emg.knn.k',1,5,q=1)),
+                 },
+                {'emg_model_type':'LDA',
+                 'LDA_solver':hp.choice('emg.LDA_solver',['svd','lsqr','eigen']),
+                 'shrinkage':hp.uniform('emg.lda.shrinkage',0.0,1.0),
+                 },
+                {'emg_model_type':'QDA',
+                 'regularisation':hp.uniform('emg.qda.regularisation',0.0,1.0), #https://www.kaggle.com/code/code1110/best-parameter-s-for-qda/notebook
+                 },
+            #    {'emg_model_type':'SVM',
+             #    'svm_C':hp.uniform('emg.svm.c',0.1,100),
+              #   }
+                ]),
+            'eeg':hp.choice('eeg model',[
+                {'eeg_model_type':'RF',
+                 'n_trees':scope.int(hp.quniform('eeg_ntrees',10,50,q=10)),
+                 },
+                {'eeg_model_type':'kNN',
+                 'knn_k':scope.int(hp.quniform('eeg.knn.k',1,5,q=1)),
+                 },
+                {'eeg_model_type':'LDA',
+                 'LDA_solver':hp.choice('eeg.LDA_solver',['svd','lsqr','eigen']),
+                 'shrinkage':hp.uniform('eeg.lda.shrinkage',0.0,1.0),
+                 },
+                {'eeg_model_type':'QDA',
+                 'regularisation':hp.uniform('eeg.qda.regularisation',0.0,1.0),
+                 },
+             #   {'eeg_model_type':'SVM',
+              #   'svm_C':hp.uniform('eeg.svm.c',0.1,100),
+                 # naming convention https://github.com/hyperopt/hyperopt/issues/380#issuecomment-685173200
+              #   }
+                ]),
+            'fusion_alg':hp.choice('fusion algorithm',[
+                'mean',
+                '3_1_emg',
+                '3_1_eeg',
+                'bayes']),
+            #'emg_set_path':params.emg_set_path_for_system_tests,
+            #'eeg_set_path':params.eeg_set_path_for_system_tests,
+            'emg_set_path':params.emg_waygal,
+            'eeg_set_path':params.eeg_waygal,
+            'using_literature_data':True,
+            }
+    return space
+
+def optimise_fusion():
+    space=setup_search_space()
+    trials=Trials() #http://hyperopt.github.io/hyperopt/getting-started/minimizing_functions/#attaching-extra-information-via-the-trials-object
+    best = fmin(function_fuse_LOO,
+                space=space,
+                algo=tpe.suggest,
+                max_evals=100,
+                trials=trials)
+    return best, space, trials
     
 
 if __name__ == '__main__':

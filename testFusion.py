@@ -452,6 +452,9 @@ def plot_confmats(gest_truth,gest_pred_emg,gest_pred_eeg,gest_pred_fusion,gestur
         tt.confmat(gest_truth,gest_pred_emg,gesturelabels)
         tt.confmat(gest_truth,gest_pred_eeg,gesturelabels)
         tt.confmat(gest_truth,gest_pred_fusion,gesturelabels)
+    #CAN you have a consistent gradation of the colour heatmap across confmats?
+    #ie yellow is always a fixed % not relative to the highest in that given
+    #confmat
 
 def train_models_opt(emg_train_set,eeg_train_set,args):
     emg_model_type=args['emg']['emg_model_type']
@@ -691,7 +694,7 @@ def optimise_fusion():
     best = fmin(function_fuse_LOO,
                 space=space,
                 algo=tpe.suggest,
-                max_evals=2,
+                max_evals=100,
                 trials=trials)
     return best, space, trials
 
@@ -719,58 +722,7 @@ def plot_stat_in_time(trials,stat,ylower=0,yupper=1):
     # https://stackoverflow.com/questions/23248435/fill-between-two-vertical-lines-in-matplotlib
 
 
-if __name__ == '__main__':
-    
-    #space=stochastic.sample(setup_search_space())
-    #best_results=function_fuse_LOO(space)
-    
-    
-    best,space,trials=optimise_fusion()
-    best_results=function_fuse_LOO(space_eval(space,best))
-    #print(best)
-    print(space_eval(space,best))
-    print(1-(best_results['loss']))
-    plot_stat_in_time(trials, 'emg_mean')
-    plot_stat_in_time(trials, 'eeg_mean')
-    #plot_stat_in_time(trials, 'loss')
-    plot_stat_in_time(trials,'f1_mean')
-    #plot_stat_in_time(trials,'elapsed_time',0,200)
-    
-    table=pd.DataFrame(trials.trials)
-    table_readable=pd.concat(
-        [pd.DataFrame(table['result'].tolist()),
-         pd.DataFrame(pd.DataFrame(table['misc'].tolist())['vals'].values.tolist())],
-        axis=1,join='outer')
-    
-    
-    #print('plotting ppt1 just to get a confmat')
-    #ppt1acc=function_fuse_pptn(space_eval(space,best),1,plot_confmats=True)
-    
-    
-    '''PICKLING THE TRIALS OBJ'''
-    
-    currentpath=os.path.dirname(__file__)
-    result_dir=params.waygal_results_dir
-    resultpath=os.path.join(currentpath,result_dir)
-    
-    trials_obj_path=os.path.join(resultpath,'trials_obj.p')
-    pickle.dump(trials,open(trials_obj_path,'wb'))
-    
-    
-    #load_trials_var=pickle.load(open(filename,'rb'))
-    
-    
-    #for properly evaluating results later: https://towardsdatascience.com/multiclass-classification-evaluation-with-roc-curves-and-roc-auc-294fd4617e3a
-    
-    raise KeyboardInterrupt('ending execution here!')
-    
-    
-    
-    
-    
-    
-    
-    
+def deprecated_non_opt_pipeline():
     
     #emgfeats,eegfeats=process_all_data()
     emgpath='/home/michael/Documents/Aston/MultimodalFW/working_dataset/devset_EMG/featsEMG.csv'
@@ -828,14 +780,9 @@ if __name__ == '__main__':
     #https://stackoverflow.com/a/61217963
     raise KeyboardInterrupt('ending execution here!')
     
+def deprecated_pipeline_from_raw():
+    '''Build or find a dir of raw data, separating train and test'''
     
-    
-    
-    '''Build or find a dataset, separating train and test'''
-
-    
-
-
     '''Process the data *including* cropping to time'''
     #however might want to be able to look at EEG from t-1.
     
@@ -1047,6 +994,9 @@ if __name__ == '__main__':
     '''End of protocol'''
     
     raise
+    
+    
+def deprecated_initial_fusion_pipeline():
     #run handleComposeDataset
     #need some way of doing leave-ppt-out crosseval.
     #maybe just n runs of ComposeDataset but skipping the gui?
@@ -1137,5 +1087,68 @@ if __name__ == '__main__':
     conf=confusion_matrix(y_true,y_pred)
     ConfusionMatrixDisplay(conf)
     plt.show()
+    
+    
+
+if __name__ == '__main__':
+    
+    #space=stochastic.sample(setup_search_space())
+    #best_results=function_fuse_LOO(space)
+    
+    
+    best,space,trials=optimise_fusion()
+    best_results=function_fuse_LOO(space_eval(space,best))
+    #could just get trials.results?
+    
+    #print(best)
+    print(space_eval(space,best))
+    print(1-(best_results['loss']))
+    plot_stat_in_time(trials, 'emg_mean')
+    plot_stat_in_time(trials, 'eeg_mean')
+    #plot_stat_in_time(trials, 'loss')
+    plot_stat_in_time(trials,'f1_mean')
+    #plot_stat_in_time(trials,'elapsed_time',0,200)
+    
+    table=pd.DataFrame(trials.trials)
+    table_readable=pd.concat(
+        [pd.DataFrame(table['result'].tolist()),
+         pd.DataFrame(pd.DataFrame(table['misc'].tolist())['vals'].values.tolist())],
+        axis=1,join='outer')
+    
+    
+    #print('plotting ppt1 just to get a confmat')
+    #ppt1acc=function_fuse_pptn(space_eval(space,best),1,plot_confmats=True)
+    
+    
+    '''PICKLING THE TRIALS OBJ'''
+    
+    currentpath=os.path.dirname(__file__)
+    result_dir=params.waygal_results_dir
+    resultpath=os.path.join(currentpath,result_dir)
+    
+    trials_obj_path=os.path.join(resultpath,'trials_obj.p')
+    pickle.dump(trials,open(trials_obj_path,'wb'))
+    
+    
+    #load_trials_var=pickle.load(open(filename,'rb'))
+    
+    
+    #for properly evaluating results later: https://towardsdatascience.com/multiclass-classification-evaluation-with-roc-curves-and-roc-auc-294fd4617e3a
+    
+    raise KeyboardInterrupt('ending execution here!')
+    
+    
+    
+    
+    '''per_ppt_accs = ml.pd.DataFrame(list(zip(pptIDs,emg_accs,eeg_accs,fus_accs)),columns=['pptID','emg_acc','eeg_acc','fusion_acc'])'''
+    
+    
+    
+    
+    
+    
+    
+    
+    
     
 

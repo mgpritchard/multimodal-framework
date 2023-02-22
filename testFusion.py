@@ -626,8 +626,9 @@ def function_fuse_LOO(args):
     return {
         'loss': 1-median_kappa,
         'status': STATUS_OK,
-        'fusion_mean':mean_acc,
-        'fusion_median':median_acc,
+        'median_kappa':median_kappa,
+        'fusion_mean_acc':mean_acc,
+        'fusion_median_acc':median_acc,
         'emg_mean_acc':mean_emg,
         'eeg_mean_acc':mean_eeg,
         'emg_f1_mean':mean_f1_emg,
@@ -720,10 +721,25 @@ def optimise_fusion():
     best = fmin(function_fuse_LOO,
                 space=space,
                 algo=tpe.suggest,
-                max_evals=100,
+                max_evals=1,
                 trials=trials)
     return best, space, trials
     
+def save_resultdict(filepath,resultdict):
+    #https://stackoverflow.com/questions/61894745/write-dictionary-to-text-file-with-newline
+    f=open(filepath,'w')
+    f.write('EEG Parameters:\n')
+    for k in resultdict['Chosen parameters']['eeg'].keys():
+        f.write(f"\t'{k}':'{resultdict['Chosen parameters']['eeg'][k]}'\n")
+    f.write('EMG Parameters:\n')
+    for k in resultdict['Chosen parameters']['emg'].keys():
+        f.write(f"\t'{k}':'{resultdict['Chosen parameters']['emg'][k]}'\n")
+    f.write('Fusion algorithm:\n')
+    f.write(f"\t'{'fusion_alg'}':'{resultdict['Chosen parameters']['fusion_alg']}'\n")
+    f.write('Results:\n')
+    for k in resultdict['Results'].keys():
+        f.write(f"\t'{k}':'{resultdict['Results'][k]}'\n")
+    f.close()
 
 if __name__ == '__main__':
     
@@ -732,12 +748,26 @@ if __name__ == '__main__':
     
     
     best,space,trials=optimise_fusion()
-    best_results=function_fuse_LOO(space_eval(space,best))
+    
+    if 0:
+        '''performing a whole fresh evaluation with the chosen params'''
+        best_results=function_fuse_LOO(space_eval(space,best))
+    else:
+        best_results=trials.best_trial['result']
+        #https://stackoverflow.com/questions/20776502/where-to-find-the-loss-corresponding-to-the-best-configuration-with-hyperopt
     #could just get trials.results?
     
-    #print(best)
-    print(space_eval(space,best))
-    print(1-(best_results['loss']))
+    bestparams=space_eval(space,best)
+    print(bestparams)
+    print('Best Coehns Kappa between ground truth and fusion predictions: ',
+          1-(best_results['loss']))
+    
+    for static in ['eeg_set_path','emg_set_path','using_literature_data']:
+        bestparams.pop(static)
+        
+    winner={'Chosen parameters':bestparams,
+            'Results':best_results}
+    
     emg_acc_plot=plot_stat_in_time(trials, 'emg_mean_acc')
     eeg_acc_plot=plot_stat_in_time(trials, 'eeg_mean_acc')
     #plot_stat_in_time(trials, 'loss')
@@ -749,7 +779,6 @@ if __name__ == '__main__':
         [pd.DataFrame(table['result'].tolist()),
          pd.DataFrame(pd.DataFrame(table['misc'].tolist())['vals'].values.tolist())],
         axis=1,join='outer')
-    
     
     #print('plotting ppt1 just to get a confmat')
     #ppt1acc=function_fuse_pptn(space_eval(space,best),1,plot_confmats=True)
@@ -764,13 +793,16 @@ if __name__ == '__main__':
     trials_obj_path=os.path.join(resultpath,'trials_obj.p')
     pickle.dump(trials,open(trials_obj_path,'wb'))
     
-    '''saving figures of performance over time'''
-    emg_acc_plot.savefig(os.path.join(resultpath,'emg_acc.png'))
-    eeg_acc_plot.savefig(os.path.join(resultpath,'emg_acc.png'))
-    fus_f1_plot.savefig(os.path.join(resultpath,'fusion_f1.png'))
-    
     #load_trials_var=pickle.load(open(filename,'rb'))
     
+    '''saving figures of performance over time'''
+    emg_acc_plot.savefig(os.path.join(resultpath,'emg_acc.png'))
+    eeg_acc_plot.savefig(os.path.join(resultpath,'eeg_acc.png'))
+    fus_f1_plot.savefig(os.path.join(resultpath,'fusion_f1.png'))
+    
+    '''saving best parameters & results'''
+    reportpath=os.path.join(resultpath,'params_results_report.txt')
+    save_resultdict(reportpath,winner)
     
     #for properly evaluating results later: https://towardsdatascience.com/multiclass-classification-evaluation-with-roc-curves-and-roc-auc-294fd4617e3a
     

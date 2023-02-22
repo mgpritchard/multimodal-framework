@@ -628,11 +628,11 @@ def function_fuse_LOO(args):
         'status': STATUS_OK,
         'fusion_mean':mean_acc,
         'fusion_median':median_acc,
-        'emg_mean':mean_emg,
-        'eeg_mean':mean_eeg,
+        'emg_mean_acc':mean_emg,
+        'eeg_mean_acc':mean_eeg,
         'emg_f1_mean':mean_f1_emg,
         'eeg_f1_mean':mean_f1_eeg,
-        'f1_mean':mean_f1_fusion,
+        'fusion_f1_mean':mean_f1_fusion,
         'elapsed_time':end-start,}
 
 def plot_opt_in_time(trials):

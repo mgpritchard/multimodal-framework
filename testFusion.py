@@ -673,6 +673,16 @@ def function_fuse_LOO(args):
             eeg_train_split_ML=ml.drop_ID_cols(eeg_train_split_ML)
             
             emg_model,eeg_model=train_models_opt(emg_train_split_ML,eeg_train_split_ML,args)
+            
+            classlabels = emg_model.classes_
+        
+            emg_ppt.sort_values(['ID_pptID','ID_run','Label','ID_gestrep','ID_tend'],ascending=[True,True,True,True,True],inplace=True)
+            eeg_ppt.sort_values(['ID_pptID','ID_run','Label','ID_gestrep','ID_tend'],ascending=[True,True,True,True,True],inplace=True)                
+            targets, predlist_emg, predlist_eeg, _ = refactor_synced_predict(emg_ppt, eeg_ppt, emg_model, eeg_model, classlabels,args)
+            
+            fuser,onehotEncoder=train_bayes_fuser(emg_model,eeg_model,emg_train_split_fusion,eeg_train_split_fusion,classlabels,args)
+            predlist_fusion=fusion.bayesian_fusion(fuser,onehotEncoder,predlist_emg,predlist_eeg,classlabels)
+        
         elif args['fusion_alg']=='hierarchical':
             
             targets, predlist_emg, predlist_eeg, predlist_fusion, classlabels=fusion_hierarchical(emg_others, eeg_others, emg_ppt, eeg_ppt, args)
@@ -682,35 +692,21 @@ def function_fuse_LOO(args):
             eeg_others=ml.drop_ID_cols(eeg_others)
             emg_model,eeg_model=train_models_opt(emg_others,eeg_others,args)
         
-        classlabels = emg_model.classes_
-        
-        emg_ppt.sort_values(['ID_pptID','ID_run','Label','ID_gestrep','ID_tend'],ascending=[True,True,True,True,True],inplace=True)
-        eeg_ppt.sort_values(['ID_pptID','ID_run','Label','ID_gestrep','ID_tend'],ascending=[True,True,True,True,True],inplace=True)
+            classlabels = emg_model.classes_
             
-        #targets, predlist_emg, predlist_eeg, predlist_fusion = synced_predict(emg_ppt, eeg_ppt, emg_model, eeg_model, classlabels,args)
-        targets, predlist_emg, predlist_eeg, predlist_fusion = refactor_synced_predict(emg_ppt, eeg_ppt, emg_model, eeg_model, classlabels,args)
-        
-        if args['fusion_alg']=='bayes':
-            fuser,onehotEncoder=train_bayes_fuser(emg_model,eeg_model,emg_train_split_fusion,eeg_train_split_fusion,classlabels,args)
-            predlist_fusion=fusion.bayesian_fusion(fuser,onehotEncoder,predlist_emg,predlist_eeg,classlabels)
-        
+            emg_ppt.sort_values(['ID_pptID','ID_run','Label','ID_gestrep','ID_tend'],ascending=[True,True,True,True,True],inplace=True)
+            eeg_ppt.sort_values(['ID_pptID','ID_run','Label','ID_gestrep','ID_tend'],ascending=[True,True,True,True,True],inplace=True)
+                
+            #targets, predlist_emg, predlist_eeg, predlist_fusion = synced_predict(emg_ppt, eeg_ppt, emg_model, eeg_model, classlabels,args)
+            targets, predlist_emg, predlist_eeg, predlist_fusion = refactor_synced_predict(emg_ppt, eeg_ppt, emg_model, eeg_model, classlabels,args)
+
         #acc_emg,acc_eeg,acc_fusion=evaluate_results(targets, predlist_emg, correctness_emg, predlist_eeg, correctness_eeg, predlist_fusion, correctness_fusion, classlabels)
         
         gest_truth,gest_pred_emg,gest_pred_eeg,gest_pred_fusion,gesturelabels=classes_from_preds(targets,predlist_emg,predlist_eeg,predlist_fusion,classlabels)
         '''could calculate log loss if got the probabilities back''' #https://towardsdatascience.com/comprehensive-guide-on-multiclass-classification-metrics-af94cfb83fbd
         
         #plot_confmats(gest_truth,gest_pred_emg,gest_pred_eeg,gest_pred_fusion,gesturelabels)
-        
-        #acc_emg=accuracy_score(gest_truth,gest_pred_emg)
-        #acc_eeg=accuracy_score(gest_truth,gest_pred_eeg)
-        #acc_fusion=accuracy_score(gest_truth,gest_pred_fusion)
-        
-        #f1_emg=f1_score(gest_truth,gest_pred_emg,average='weighted')
-        #f1_eeg=f1_score(gest_truth,gest_pred_eeg,average='weighted')
-        #f1_fusion=f1_score(gest_truth,gest_pred_fusion,average='weighted')
-        
-        #kappa=cohen_kappa_score(gest_truth,gest_pred_fusion)
-        
+            
         emg_accs.append(accuracy_score(gest_truth,gest_pred_emg))
         eeg_accs.append(accuracy_score(gest_truth,gest_pred_eeg))
         accs.append(accuracy_score(gest_truth,gest_pred_fusion))

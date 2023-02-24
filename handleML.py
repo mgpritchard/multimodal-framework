@@ -139,7 +139,8 @@ def train_rf(train_dat,model_path):
     return winner
 
 def train_optimise(training_set,modeltype,args):
-    '''where training_set has had ID columns dropped'''
+    '''where training_set is a Pandas dataframe
+    which has Label as the last column but has had ID columns dropped'''
     
     if modeltype=='RF':
         model=train_RF_param(training_set,args)

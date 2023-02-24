@@ -111,6 +111,9 @@ def fuse_select(emg,eeg,args):
     elif alg=='bayes':
         '''bayesian fusion is not done here, just keeping system happy'''
         fusion = fuse_mean(emg,eeg)
+    elif alg=='featlevel':
+        '''feature level fusion is not done here, just keeping system happy'''
+        fusion = fuse_mean(emg,eeg)
     return fusion
 
 def fuse_mean(mode1,mode2):

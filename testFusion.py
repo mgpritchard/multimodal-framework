@@ -517,6 +517,76 @@ def train_bayes_fuser(model_emg,model_eeg,emg_set,eeg_set,classlabels,args):
     fuser=fusion.train_catNB_fuser(onehot_pred_emg, onehot_pred_eeg, targets)
     return fuser, onehot
 
+def feature_fusion(emg_others,eeg_others,emg_ppt,eeg_ppt,args):
+    '''TRAINING ON NON-PPT DATA'''
+    emg_others.sort_values(['ID_pptID','ID_run','Label','ID_gestrep','ID_tend'],ascending=[True,True,True,True,True],inplace=True)
+    eeg_others.sort_values(['ID_pptID','ID_run','Label','ID_gestrep','ID_tend'],ascending=[True,True,True,True,True],inplace=True)
+    
+    index_emg=ml.pd.MultiIndex.from_arrays([emg_others[col] for col in ['ID_pptID','ID_run','Label','ID_gestrep','ID_tend']])
+    index_eeg=ml.pd.MultiIndex.from_arrays([eeg_others[col] for col in ['ID_pptID','ID_run','Label','ID_gestrep','ID_tend']])
+    emg_others=emg_others.loc[index_emg.isin(index_eeg)].reset_index(drop=True)
+    eeg_others=eeg_others.loc[index_eeg.isin(index_emg)].reset_index(drop=True)
+    
+    if emg_others['Label'].equals(eeg_others['Label']):
+        print('Target classes match, ok to merge sets')
+    else:
+        raise RuntimeError('Target classes should match, training sets are misaligned')
+    
+     
+    eeg_others=ml.drop_ID_cols(eeg_others)
+    emg_others=ml.drop_ID_cols(emg_others)
+    emg_model = ml.train_optimise(emg_others, args['emg']['emg_model_type'], args['emg'])
+    eeg_model = ml.train_optimise(eeg_others, args['eeg']['eeg_model_type'], args['eeg'])
+    
+    eeg_others.drop('Label',axis='columns',inplace=True)
+    eeg_others.rename(columns=lambda x: 'EEG_'+x, inplace=True)
+    #emg_others[('EEG_',varname)]=eeg_others[varname] for varname in eeg_others.columns.values()
+    labelcol=emg_others.pop('Label')
+    emgeeg_others=pd.concat([emg_others,eeg_others],axis=1)
+    emgeeg_others['Label']=labelcol
+    emgeeg_model = ml.train_optimise(emgeeg_others, args['featfuse']['featfuse_model_type'],args['featfuse'])
+    
+    classlabels = emg_model.classes_
+    
+        
+    emg_ppt.sort_values(['ID_pptID','ID_run','Label','ID_gestrep','ID_tend'],ascending=[True,True,True,True,True],inplace=True)
+    eeg_ppt.sort_values(['ID_pptID','ID_run','Label','ID_gestrep','ID_tend'],ascending=[True,True,True,True,True],inplace=True)                
+    targets, predlist_emg, predlist_eeg, _ = refactor_synced_predict(emg_ppt, eeg_ppt, emg_model, eeg_model, classlabels,args)
+    
+    index_emg_ppt=ml.pd.MultiIndex.from_arrays([emg_ppt[col] for col in ['ID_pptID','ID_run','Label','ID_gestrep','ID_tend']])
+    index_eeg_ppt=ml.pd.MultiIndex.from_arrays([eeg_ppt[col] for col in ['ID_pptID','ID_run','Label','ID_gestrep','ID_tend']])
+    emg_ppt=emg_ppt.loc[index_emg_ppt.isin(index_eeg_ppt)].reset_index(drop=True)
+    eeg_ppt=eeg_ppt.loc[index_eeg_ppt.isin(index_emg_ppt)].reset_index(drop=True)
+    
+    if emg_ppt['Label'].equals(eeg_ppt['Label']):
+        print('Target classes match, ok to merge sets')
+    else:
+        raise RuntimeError('Target classes should match, testing sets are misaligned')
+    
+    eeg_ppt=ml.drop_ID_cols(eeg_ppt)
+    eeg_ppt.drop('Label',axis='columns',inplace=True)
+    eeg_ppt.rename(columns=lambda x: 'EEG_'+x, inplace=True)
+    #emg_others[('EEG_',varname)]=eeg_others[varname] for varname in eeg_others.columns.values()
+    labelcol_ppt=emg_ppt.pop('Label')
+    emgeeg_ppt=pd.concat([emg_ppt,eeg_ppt],axis=1)
+    emgeeg_ppt['Label']=labelcol_ppt
+    
+    emgeeg_ppt.sort_values(['ID_pptID','ID_run','Label','ID_gestrep','ID_tend'],ascending=[True,True,True,True,True],inplace=True)
+    predlist_fusion=[]
+        
+    '''Get values from instances'''
+    IDs=list(emgeeg_ppt.filter(regex='^ID_').keys())
+    IDs.append('Label')
+    emgeeg_vals=emgeeg_ppt.drop(IDs,axis='columns').values
+        
+    '''Pass values to models'''    
+    distros_fusion=ml.prob_dist(emgeeg_model,emgeeg_vals)
+    for distro in distros_fusion:
+        pred_fusion=ml.pred_from_distro(classlabels,distro)
+        predlist_fusion.append(pred_fusion) 
+    
+    return targets, predlist_emg, predlist_eeg, predlist_fusion, classlabels
+
 def fusion_hierarchical(emg_others,eeg_others,emg_ppt,eeg_ppt,args):
     '''TRAINING ON NON-PPT DATA'''
     emg_others.sort_values(['ID_pptID','ID_run','Label','ID_gestrep','ID_tend'],ascending=[True,True,True,True,True],inplace=True)
@@ -687,6 +757,10 @@ def function_fuse_LOO(args):
             
             targets, predlist_emg, predlist_eeg, predlist_fusion, classlabels=fusion_hierarchical(emg_others, eeg_others, emg_ppt, eeg_ppt, args)
                  
+        elif args['fusion_alg']=='featlevel':
+            
+            targets, predlist_emg, predlist_eeg, predlist_fusion, classlabels=feature_fusion(emg_others, eeg_others, emg_ppt, eeg_ppt, args)
+        
         else:
             emg_others=ml.drop_ID_cols(emg_others)
             eeg_others=ml.drop_ID_cols(eeg_others)
@@ -807,12 +881,29 @@ def setup_search_space():
                  # naming convention https://github.com/hyperopt/hyperopt/issues/380#issuecomment-685173200
               #   }
                 ]),
+            'featfuse':hp.choice('featfuse model',[
+                {'featfuse_model_type':'RF',
+                 'n_trees':scope.int(hp.quniform('featfuse.RF.ntrees',10,50,q=10)),
+                 #integerising search space https://github.com/hyperopt/hyperopt/issues/566#issuecomment-549510376
+                 },
+                {'featfuse_model_type':'kNN',
+                 'knn_k':scope.int(hp.quniform('featfuse.knn.k',1,5,q=1)),
+                 },
+                {'featfuse_model_type':'LDA',
+                 'LDA_solver':hp.choice('featfuse.LDA_solver',['svd','lsqr','eigen']),
+                 'shrinkage':hp.uniform('featfuse.lda.shrinkage',0.0,1.0),
+                 },
+                {'featfuse_model_type':'QDA',
+                 'regularisation':hp.uniform('featfuse.qda.regularisation',0.0,1.0), #https://www.kaggle.com/code/code1110/best-parameter-s-for-qda/notebook
+                 },
+                ]),
             'fusion_alg':hp.choice('fusion algorithm',[
                 'mean',
                 '3_1_emg',
                 '3_1_eeg',
-                #'bayes',
+                'bayes',
                 'hierarchical',
+                'featlevel',
                 ]),
             #'emg_set_path':params.emg_set_path_for_system_tests,
             #'eeg_set_path':params.eeg_set_path_for_system_tests,
@@ -843,6 +934,10 @@ def save_resultdict(filepath,resultdict):
         f.write(f"\t'{k}':'{resultdict['Chosen parameters']['emg'][k]}'\n")
     f.write('Fusion algorithm:\n')
     f.write(f"\t'{'fusion_alg'}':'{resultdict['Chosen parameters']['fusion_alg']}'\n")
+    if resultdict['Chosen parameters']['fusion_alg']=='featlevel':
+        f.write('Feature-level Fusion Parameters:\n')
+        for k in resultdict['Chosen parameters']['featfuse'].keys():
+            f.write(f"\t'{k}':'{resultdict['Chosen parameters']['featfuse'][k]}'\n")
     f.write('Results:\n')
     for k in resultdict['Results'].keys():
         f.write(f"\t'{k}':'{resultdict['Results'][k]}'\n")
@@ -852,7 +947,7 @@ if __name__ == '__main__':
     
     #space=stochastic.sample(setup_search_space())
     #best_results=function_fuse_LOO(space)
-    
+    #raise
     
     best,space,trials=optimise_fusion()
     

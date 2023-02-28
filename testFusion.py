@@ -970,10 +970,10 @@ if __name__ == '__main__':
     winner={'Chosen parameters':bestparams,
             'Results':best_results}
     
-    emg_acc_plot=plot_stat_in_time(trials, 'emg_mean_acc')
-    eeg_acc_plot=plot_stat_in_time(trials, 'eeg_mean_acc')
+    emg_acc_plot=plot_stat_in_time(trials, 'emg_mean_acc',showplot=False)
+    eeg_acc_plot=plot_stat_in_time(trials, 'eeg_mean_acc',showplot=False)
     #plot_stat_in_time(trials, 'loss')
-    fus_f1_plot=plot_stat_in_time(trials,'fusion_f1_mean')
+    fus_f1_plot=plot_stat_in_time(trials,'fusion_f1_mean',showplot=False)
     #plot_stat_in_time(trials,'elapsed_time',0,200)
     
     table=pd.DataFrame(trials.trials)

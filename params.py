@@ -31,13 +31,17 @@ if platform =='win32':
     prompt_grasp="C:/Users/pritcham/Documents/python/mm-prompts/multimodal-prompts/grasp.jpg"
     prompt_lateral="C:/Users/pritcham/Documents/python/mm-prompts/multimodal-prompts/lateral.jpg"
     prompt_tripod="C:/Users/pritcham/Documents/python/mm-prompts/multimodal-prompts/tripod.jpg"
-    gen_trainmat_spec_SpellLoc="C:/Users/pritcham/Documents/python/labelstoClass/labelstoClassEMGSpell.py"
+    #gen_trainmat_spec_SpellLoc="C:/Users/pritcham/Documents/python/labelstoClass/labelstoClassEMGSpell.py"
+    gen_trainmat_spec_SpellLoc=os.path.join(currentpath,'labelstoClassEMGSpell.py')
+
     
     emg_set_path_for_system_tests='C:/Users/pritcham/Documents/mm-framework/working_dataset/devset_EMG/featsEMG.csv'
     eeg_set_path_for_system_tests='C:/Users/pritcham/Documents/mm-framework/working_dataset/devset_EEG/featsEEG.csv'
     
     emg_waygal='C:/Users/pritcham/Documents/mm-framework/WAYGAL/WaygalAllEMGFeats.csv'
     eeg_waygal='C:/Users/pritcham/Documents/mm-framework/WAYGAL/WayGalAllEEGFeats.csv'
+    
+    waygal_results_dir='lit_data_expts/waygal/results/'
 elif platform == 'darwin':
     #mac
     path='macpath'

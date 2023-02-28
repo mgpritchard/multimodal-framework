@@ -538,7 +538,8 @@ def feature_fusion(emg_others,eeg_others,emg_ppt,eeg_ppt,args):
     eeg_others=eeg_others.loc[index_eeg.isin(index_emg)].reset_index(drop=True)
     
     if emg_others['Label'].equals(eeg_others['Label']):
-        print('Target classes match, ok to merge sets')
+        #print('Target classes match, ok to merge sets')
+        pass
     else:
         raise RuntimeError('Target classes should match, training sets are misaligned')
     
@@ -569,7 +570,8 @@ def feature_fusion(emg_others,eeg_others,emg_ppt,eeg_ppt,args):
     eeg_ppt=eeg_ppt.loc[index_eeg_ppt.isin(index_emg_ppt)].reset_index(drop=True)
     
     if emg_ppt['Label'].equals(eeg_ppt['Label']):
-        print('Target classes match, ok to merge sets')
+        #print('Target classes match, ok to merge sets')
+        pass
     else:
         raise RuntimeError('Target classes should match, testing sets are misaligned')
     

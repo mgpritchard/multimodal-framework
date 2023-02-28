@@ -17,9 +17,15 @@ import testFusion as fus
 import params
 from tkinter import Tk
 from tkinter.filedialog import askopenfilename, askopenfilenames, askdirectory, asksaveasfilename
-from sklearn.metrics import accuracy_score, confusion_matrix, ConfusionMatrixDisplay #plot_confusion_matrix
+from sklearn.metrics import accuracy_score, f1_score, cohen_kappa_score, log_loss, confusion_matrix, ConfusionMatrixDisplay #plot_confusion_matrix
 from sklearn.model_selection import train_test_split
 import matplotlib.pyplot as plt
+from hyperopt import fmin, tpe, hp, space_eval, STATUS_OK, Trials
+from hyperopt.pyll import scope, stochastic
+import pandas as pd
+import time
+import pickle
+import statistics as stats
 
 
 
@@ -97,70 +103,127 @@ def eeg_within_ppt(eeg_set_path=None,single_ppt_dataset=False,selected_ppt=1):
     one 0.002s datapoint that is found in both the start of grasp and the
     end of preceding rest etc. However that is 2 milliseconds of one 1 second
     window out of 5 - 10 seconds worth of grasp or rest'''
-    
 
-'''def train(train_path): #deprecated, now moved to handleTrainTestPipeline
-    ml.train_offline('RF',train_path)
-    print('**trained a model**')'''
+def single_mode_predict(test_set,model,classlabels,args):
 
-'''def test(test_set_path=None): #deprecated, now moved to handleTrainTestPipeline
-    root="/home/michael/Documents/Aston/MultimodalFW/"
-    if (not 'test' in locals()) and (test_set_path is None):
-        # could this just be set test as a param=None, and then if is None?
-        testset_loc=askopenfilename(initialdir=root,title='Select test set')
-        test=ml.matrix_from_csv_file_drop_ID(testset_loc)[0]
-    else:
-        test=ml.matrix_from_csv_file_drop_ID(test_set_path)[0]    
-    testset_values = test[:,0:-1]
-    testset_labels = test[:,-1]
+    predlist=[]         
+    '''Get values & targets from dataframe'''
+    targets=test_set.pop('Label').values
+    vals=ml.drop_ID_cols(test_set)
     
-    model = ml.load_model('testing eeg',root)
-    labels=model.classes_
-    
-    distrolist=[]
-    predlist=[]
-    correctness=[]
-    
-    for inst_count, instance in enumerate(testset_values):
-        distro=ml.prob_dist(model, instance.reshape(1,-1))  
-        predlabel=ml.pred_from_distro(labels, distro)
-        distrolist.append(distro)
-        predlist.append(predlabel)
-        if predlabel == testset_labels[inst_count]:
-            correctness.append(True)
-        else:
-            correctness.append(False)
-    accuracy = sum(correctness)/len(correctness)
-    print(accuracy)
-    
-    gest_truth=[params.idx_to_gestures[gest] for gest in testset_labels]
-    gest_pred=[params.idx_to_gestures[pred] for pred in predlist]
-    gesturelabels=[params.idx_to_gestures[label] for label in labels]
-    
-    confmat(gest_truth,gest_pred,gesturelabels,testset=test_set_path)
-    return gest_truth,distrolist,gest_pred'''
+    '''Pass values to model'''
+    distros=ml.prob_dist(model,vals)
+    for distro in distros:
+        predlist.append(ml.pred_from_distro(classlabels,distro))
+        
+    return targets, predlist
 
-'''def confmat(y_true,y_pred,labels,modelname="",testset=""): #deprecated, now moved to handleTrainTestPipeline
-    conf=confusion_matrix(y_true,y_pred,labels=labels)
-    cm=ConfusionMatrixDisplay(conf,labels).plot()
-    cm.figure_.suptitle=(modelname+'\n'+testset)
-    plt.show()'''
+def classifyEEG_LOO(args):
+    start=time.time()
+    eeg_set_path=args['eeg_set_path']
+    eeg_set=ml.pd.read_csv(eeg_set_path,delimiter=',')
     
-'''def copy_files(filelist,emg_dest,eeg_dest): #deprecated, now moved to handleTrainTestPipeline
-    for file in filelist:
-        if file[-7:-4]=='EEG':
-            dest=os.path.join(eeg_dest,file)
-        else:
-            dest=os.path.join(emg_dest,file)
-        source=os.path.join(path,file)
-        if not os.path.exists(dest):
-            comp.copyfile(source,dest)'''
+    eeg_set=fus.balance_single_mode(eeg_set)
+    eeg_masks=fus.get_ppt_split(eeg_set,args)
+    
+    accs=[]
+    f1s=[]
+    kappas=[]
+    for idx,eeg_mask in enumerate(eeg_masks):
+        eeg_ppt = eeg_set[eeg_mask]
+        eeg_others = eeg_set[~eeg_mask]
+        
+        eeg_others=ml.drop_ID_cols(eeg_others)
+        eeg_model = ml.train_optimise(eeg_others, args['eeg']['eeg_model_type'], args['eeg'])
+        classlabels = eeg_model.classes_
+        
+        eeg_ppt.sort_values(['ID_pptID','ID_run','Label','ID_gestrep','ID_tend'],ascending=[True,True,True,True,True],inplace=True)
+        targets, predlist_eeg = single_mode_predict(eeg_ppt,eeg_model,classlabels,args)
 
-'''def ditch_EEG_suffix(eegdir): #deprecated, now moved to handleComposeDataset
-    for file in os.listdir(eegdir):
-        if file.endswith('_EEG',0,-4):
-            os.remove(os.path.join(eegdir,file))'''
+        gest_truth=[params.idx_to_gestures[gest] for gest in targets]
+        gest_pred_eeg=[params.idx_to_gestures[pred] for pred in predlist_eeg]
+        #gesturelabels=[params.idx_to_gestures[label] for label in classlabels]
+        #plot_confmats(gest_truth,gest_pred_emg,gest_pred_eeg,gest_pred_fusion,gesturelabels)
+                   
+        accs.append(accuracy_score(gest_truth,gest_pred_eeg))
+        f1s.append(f1_score(gest_truth,gest_pred_eeg,average='weighted'))        
+        kappas.append(cohen_kappa_score(gest_truth,gest_pred_eeg))
+        
+    mean_acc=stats.mean(accs)
+    median_acc=stats.median(accs)
+    mean_f1_fusion=stats.mean(f1s)
+    median_f1=stats.median(f1s)
+    median_kappa=stats.median(kappas)
+    end=time.time()
+    #return 1-mean_acc
+    return {
+        #'loss': 1-median_kappa,
+        'loss':1-median_acc,
+        'status': STATUS_OK,
+        'median_kappa':median_kappa,
+        'mean_acc':mean_acc,
+        'median_acc':median_acc,
+        'max_acc':max(accs),
+        'max_acc_index':np.argmax(accs),
+        'f1_mean':mean_f1_fusion,
+        'elapsed_time':end-start,}
 
+    
+def setup_search_space():
+    space = {
+            'eeg':hp.choice('eeg model',[
+                {'eeg_model_type':'RF',
+                 'n_trees':scope.int(hp.quniform('eeg_ntrees',10,50,q=10)),
+                 },
+                {'eeg_model_type':'kNN',
+                 'knn_k':scope.int(hp.quniform('eeg.knn.k',1,5,q=1)),
+                 },
+                {'eeg_model_type':'LDA',
+                 'LDA_solver':hp.choice('eeg.LDA_solver',['svd','lsqr','eigen']),
+                 'shrinkage':hp.uniform('eeg.lda.shrinkage',0.0,1.0),
+                 },
+                {'eeg_model_type':'QDA',
+                 'regularisation':hp.uniform('eeg.qda.regularisation',0.0,1.0),
+                 },
+             #   {'eeg_model_type':'SVM',
+              #   'svm_C':hp.uniform('eeg.svm.c',0.1,100),
+                 # naming convention https://github.com/hyperopt/hyperopt/issues/380#issuecomment-685173200
+              #   }
+                ]),
+            'eeg_set_path':params.eeg_waygal,
+            'using_literature_data':True,
+            }
+    return space
+
+def optimise_EEG():
+    space=setup_search_space()
+    trials=Trials() #http://hyperopt.github.io/hyperopt/getting-started/minimizing_functions/#attaching-extra-information-via-the-trials-object
+    best = fmin(classifyEEG_LOO,
+                space=space,
+                algo=tpe.suggest,
+                max_evals=3,
+                trials=trials)
+    return best, space, trials
+    
+def save_resultdict(filepath,resultdict):
+    #https://stackoverflow.com/questions/61894745/write-dictionary-to-text-file-with-newline
+    status=resultdict['Results'].pop('status')
+    f=open(filepath,'w')
+    try:
+        target=list(resultdict['Results'].keys())[list(resultdict['Results'].values()).index(1-resultdict['Results']['loss'])]
+        f.write(f"Optimising for {target}\n\n")
+    except ValueError:
+        target, _ = min(resultdict['Results'].items(), key=lambda x: abs(1-resultdict['Results']['loss'] - x[1]))
+        f.write(f"Probably optimising for {target}\n\n")
+    f.write('EEG Parameters:\n')
+    for k in resultdict['Chosen parameters']['eeg'].keys():
+        f.write(f"\t'{k}':'{resultdict['Chosen parameters']['eeg'][k]}'\n")
+    f.write('Results:\n')
+    resultdict['Results']['status']=status
+    for k in resultdict['Results'].keys():
+        f.write(f"\t'{k}':'{resultdict['Results'][k]}'\n")
+    f.close()
+    
 
 ## Testing the suspiciously hihgh accuracy:
 #load model with testset,testset_attribs=ml.matrixdropID(testsetfile.csv)
@@ -170,6 +233,58 @@ def eeg_within_ppt(eeg_set_path=None,single_ppt_dataset=False,selected_ppt=1):
 
 if __name__ == '__main__':
     
+    best,space,trials=optimise_EEG()
+    
+    if 0:
+        '''performing a whole fresh evaluation with the chosen params'''
+        best_results=classifyEEG_LOO(space_eval(space,best))
+    else:
+        best_results=trials.best_trial['result']
+        #https://stackoverflow.com/questions/20776502/where-to-find-the-loss-corresponding-to-the-best-configuration-with-hyperopt
+    #could just get trials.results?
+    
+    bestparams=space_eval(space,best)
+    print(bestparams)
+    print('Best Coehns Kappa between ground truth and predictions: ',
+          best_results['median_kappa'])
+    #https://datascience.stackexchange.com/questions/24372/low-kappa-score-but-high-accuracy
+    
+    for static in ['eeg_set_path','using_literature_data']:
+        bestparams.pop(static)
+        
+    winner={'Chosen parameters':bestparams,
+            'Results':best_results}
+    
+    eeg_acc_plot=fus.plot_stat_in_time(trials, 'mean_acc',showplot=False)
+    #plot_stat_in_time(trials, 'loss')
+    #plot_stat_in_time(trials,'elapsed_time',0,200)
+    '''
+    table=pd.DataFrame(trials.trials)
+    table_readable=pd.concat(
+        [pd.DataFrame(table['result'].tolist()),
+         pd.DataFrame(pd.DataFrame(table['misc'].tolist())['vals'].values.tolist())],
+        axis=1,join='outer')
+    '''
+    #print('plotting ppt1 just to get a confmat')
+    #ppt1acc=function_fuse_pptn(space_eval(space,best),1,plot_confmats=True)
+    
+    currentpath=os.path.dirname(__file__)
+    result_dir=params.waygal_results_dir
+    resultpath=os.path.join(currentpath,result_dir,'EEGOnly','LOO')
+        
+    '''saving figures of performance over time'''
+    eeg_acc_plot.savefig(os.path.join(resultpath,'eeg_acc.png'))
+    
+    '''saving best parameters & results'''
+    reportpath=os.path.join(resultpath,'params_results_report.txt')
+    save_resultdict(reportpath,winner)
+        
+    raise KeyboardInterrupt('ending execution here!')
+    
+    
+    
+    
+    '''
     WAYGAL_P4_set='/home/michael/Documents/Aston/EEG/WAY-EEG-GAL Data/WAYGAL_P4_Feats.csv'
     WAYGAL_P4_8ch_set='/home/michael/Documents/Aston/EEG/WAY-EEG-GAL Data/WAYGAL_P4_8channelFeats.csv'
     
@@ -180,6 +295,7 @@ if __name__ == '__main__':
     print('below is EMG')
     eeg_within_ppt(emg_wayg_set,single_ppt_dataset=True)
     raise
+    '''
     
     #test(None)
     #raise

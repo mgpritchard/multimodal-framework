@@ -8,6 +8,7 @@ module for OS-dependent parameters
 """
 
 from sys import platform
+import os
 #import glob    #unused approach that allows us to be extension-agnostic if we have mixed jpgs and pngs
 
 gestures_to_idx = {'close':1.,'open':2.,'grasp':3.,'lateral':4.,'tripod':5.,'neutral':0.}
@@ -15,6 +16,8 @@ idx_to_gestures = {1.:'close',2.:'open',3.:'grasp',4.:'lateral',5.:'tripod',0.:'
 
 runletter_to_num = {'a':1,'b':2,'c':3,'d':4,'e':5,'f':6,'g':7,'h':8,'i':9,'j':10,'k':11,'l':12,'m':13,'n':14,'o':15,'p':16}
 runnum_to_letter = {1:'a',2:'b',3:'c',4:'d',5:'e',6:'f',7:'g',8:'h',9:'i',10:'j',11:'k',12:'l',13:'m',14:'n',15:'o',16:'p'}
+
+currentpath=os.path.dirname(__file__)
 
 if platform =='win32':
     #windows
@@ -48,7 +51,8 @@ elif platform == 'linux' or 'linux32':
     prompt_grasp="/home/michael/Documents/Aston/MultimodalFW/prompts/grasp.png"
     prompt_lateral="/home/michael/Documents/Aston/MultimodalFW/prompts/lateral.png"
     prompt_tripod="/home/michael/Documents/Aston/MultimodalFW/prompts/tripod.png"
-    gen_trainmat_spec_SpellLoc="/home/michael/github/labelstoClass/labelstoClassEMGSpell.py"
+    #gen_trainmat_spec_SpellLoc="/home/michael/github/labelstoClass/labelstoClassEMGSpell.py"
+    gen_trainmat_spec_SpellLoc=os.path.join(currentpath,'labelstoClassEMGSpell.py')
     
     emg_set_path_for_system_tests='/home/michael/Documents/Aston/MultimodalFW/working_dataset/devset_EMG/featsEMG.csv'
     #eeg_set_path_for_system_tests='/home/michael/Documents/Aston/MultimodalFW/working_dataset/devset_EEG/featsEEG.csv'
@@ -59,7 +63,9 @@ elif platform == 'linux' or 'linux32':
     emg_path_waygal_4812='/home/michael/Documents/Aston/EEG/WAY-EEG-GAL Data/P4_8_12/P4812_emg_Feats.csv'
     eeg_path_waygal_4812='/home/michael/Documents/Aston/EEG/WAY-EEG-GAL Data/P4_8_12/P4812_eeg_Feats.csv'
     
-    eeg_waygal='/home/michael/Documents/Aston/EEG/WAY-EEG-GAL Data/All_CSVs/WayGalAllEEGFeats.csv'
-    emg_waygal='/home/michael/Documents/Aston/EEG/WAY-EEG-GAL Data/All_CSVs/WaygalAllEMGFeats.csv'
+    #eeg_waygal='/home/michael/Documents/Aston/EEG/WAY-EEG-GAL Data/All_CSVs/WayGalAllEEGFeats.csv'
+    #emg_waygal='/home/michael/Documents/Aston/EEG/WAY-EEG-GAL Data/All_CSVs/WaygalAllEMGFeats.csv'
+    eeg_waygal=os.path.join(currentpath,'lit_data_expts/waygal/datasets/waygalAllEEGFeats.csv')
+    emg_waygal=os.path.join(currentpath,'lit_data_expts/waygal/datasets/waygalAllEMGFeats.csv')
     
     waygal_results_dir='lit_data_expts/waygal/results/'

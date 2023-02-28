@@ -118,6 +118,16 @@ def inspect_set_balance(emg_set_path=None,eeg_set_path=None,emg_set=None,eeg_set
     
     return emg_set,eeg_set
 
+def balance_single_mode(dataset):
+    dataset['ID_stratID']=dataset['ID_pptID'].astype(str)+dataset['Label'].astype(str)
+    stratsize=np.min(dataset['ID_stratID'].value_counts())
+    balanced = dataset.groupby('ID_stratID')
+    #g.apply(lambda x: x.sample(g.size().min()))
+    #https://stackoverflow.com/questions/45839316/pandas-balancing-data
+    balanced=balanced.apply(lambda x: x.sample(stratsize))
+    print('subsampling to ',str(stratsize),' per combo of ppt and class')
+    return balanced
+
 def balance_set(emg_set,eeg_set):
     #print('initial')
     #_,_=inspect_set_balance(emg_set=emg_set,eeg_set=eeg_set)
@@ -902,8 +912,8 @@ def setup_search_space():
                 '3_1_emg',
                 '3_1_eeg',
                 'bayes',
-                'hierarchical',
-                'featlevel',
+                #'hierarchical', #DON'T DO THESE IN THE SAME PARAM SPACE
+                #'featlevel',
                 ]),
             #'emg_set_path':params.emg_set_path_for_system_tests,
             #'eeg_set_path':params.eeg_set_path_for_system_tests,
@@ -970,10 +980,10 @@ if __name__ == '__main__':
     winner={'Chosen parameters':bestparams,
             'Results':best_results}
     
-    emg_acc_plot=plot_stat_in_time(trials, 'emg_mean_acc')
-    eeg_acc_plot=plot_stat_in_time(trials, 'eeg_mean_acc')
+    emg_acc_plot=plot_stat_in_time(trials, 'emg_mean_acc',showplot=False)
+    eeg_acc_plot=plot_stat_in_time(trials, 'eeg_mean_acc',showplot=False)
     #plot_stat_in_time(trials, 'loss')
-    fus_f1_plot=plot_stat_in_time(trials,'fusion_f1_mean')
+    fus_f1_plot=plot_stat_in_time(trials,'fusion_f1_mean',showplot=False)
     #plot_stat_in_time(trials,'elapsed_time',0,200)
     
     table=pd.DataFrame(trials.trials)

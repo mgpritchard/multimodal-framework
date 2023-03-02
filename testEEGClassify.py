@@ -118,6 +118,58 @@ def single_mode_predict(test_set,model,classlabels,args):
         
     return targets, predlist
 
+def classifyEEG_withinsubject(args):
+    start=time.time()
+    eeg_set_path=args['eeg_set_path']
+    eeg_set=ml.pd.read_csv(eeg_set_path,delimiter=',')
+    
+    eeg_set=fus.balance_single_mode(eeg_set)
+    eeg_masks=fus.get_ppt_split(eeg_set,args)
+    
+    accs=[]
+    f1s=[]
+    kappas=[]
+    for idx,eeg_mask in enumerate(eeg_masks):
+        eeg_ppt = eeg_set[eeg_mask]
+        
+        eeg_ppt['ID_stratID']=eeg_ppt['ID_run'].astype(str)+eeg_ppt['Label'].astype(str)+eeg_ppt['ID_gestrep'].astype(str)
+        train_split,test_split=train_test_split(eeg_ppt['ID_stratID'].unique(),test_size=0.33)
+        eeg_train=eeg_ppt[eeg_ppt['ID_stratID'].isin(train_split)]
+        eeg_test=eeg_ppt[eeg_ppt['ID_stratID'].isin(test_split)]
+        eeg_train=ml.drop_ID_cols(eeg_train)
+        
+        eeg_model = ml.train_optimise(eeg_train, args['eeg']['eeg_model_type'], args['eeg'])
+        classlabels = eeg_model.classes_
+        
+        targets, predlist_eeg = single_mode_predict(eeg_test,eeg_model,classlabels,args)
+
+        gest_truth=[params.idx_to_gestures[gest] for gest in targets]
+        gest_pred_eeg=[params.idx_to_gestures[pred] for pred in predlist_eeg]
+                   
+        accs.append(accuracy_score(gest_truth,gest_pred_eeg))
+        f1s.append(f1_score(gest_truth,gest_pred_eeg,average='weighted'))        
+        kappas.append(cohen_kappa_score(gest_truth,gest_pred_eeg))
+        
+    mean_acc=stats.mean(accs)
+    median_acc=stats.median(accs)
+    mean_f1_fusion=stats.mean(f1s)
+    median_f1=stats.median(f1s)
+    median_kappa=stats.median(kappas)
+    end=time.time()
+    #return 1-mean_acc
+    return {
+        #'loss': 1-median_kappa,
+        'loss':1-median_acc,
+        'status': STATUS_OK,
+        'median_kappa':median_kappa,
+        'mean_acc':mean_acc,
+        'median_acc':median_acc,
+        'max_acc':max(accs),
+        'max_acc_index':np.argmax(accs),
+        'f1_mean':mean_f1_fusion,
+        'elapsed_time':end-start,}
+
+
 def classifyEEG_LOO(args):
     start=time.time()
     eeg_set_path=args['eeg_set_path']
@@ -137,7 +189,7 @@ def classifyEEG_LOO(args):
         eeg_model = ml.train_optimise(eeg_others, args['eeg']['eeg_model_type'], args['eeg'])
         classlabels = eeg_model.classes_
         
-        eeg_ppt.sort_values(['ID_pptID','ID_run','Label','ID_gestrep','ID_tend'],ascending=[True,True,True,True,True],inplace=True)
+        #eeg_ppt.sort_values(['ID_pptID','ID_run','Label','ID_gestrep','ID_tend'],ascending=[True,True,True,True,True],inplace=True)
         targets, predlist_eeg = single_mode_predict(eeg_ppt,eeg_model,classlabels,args)
 
         gest_truth=[params.idx_to_gestures[gest] for gest in targets]
@@ -195,10 +247,20 @@ def setup_search_space():
             }
     return space
 
-def optimise_EEG():
+def optimise_EEG_LOO():
     space=setup_search_space()
     trials=Trials() #http://hyperopt.github.io/hyperopt/getting-started/minimizing_functions/#attaching-extra-information-via-the-trials-object
     best = fmin(classifyEEG_LOO,
+                space=space,
+                algo=tpe.suggest,
+                max_evals=3,
+                trials=trials)
+    return best, space, trials
+
+def optimise_EEG_withinsubject():
+    space=setup_search_space()
+    trials=Trials() #http://hyperopt.github.io/hyperopt/getting-started/minimizing_functions/#attaching-extra-information-via-the-trials-object
+    best = fmin(classifyEEG_withinsubject,
                 space=space,
                 algo=tpe.suggest,
                 max_evals=3,
@@ -233,7 +295,12 @@ def save_resultdict(filepath,resultdict):
 
 if __name__ == '__main__':
     
-    best,space,trials=optimise_EEG()
+    trialmode='WithinPpt'
+    
+    if trialmode=='LOO':
+        best,space,trials=optimise_EEG_LOO()
+    elif trialmode=='WithinPpt':
+        best,space,trials=optimise_EEG_withinsubject()
     
     if 0:
         '''performing a whole fresh evaluation with the chosen params'''
@@ -257,7 +324,7 @@ if __name__ == '__main__':
     
     eeg_acc_plot=fus.plot_stat_in_time(trials, 'mean_acc',showplot=False)
     #plot_stat_in_time(trials, 'loss')
-    #plot_stat_in_time(trials,'elapsed_time',0,200)
+    #fus.plot_stat_in_time(trials,'elapsed_time',0,200)
     '''
     table=pd.DataFrame(trials.trials)
     table_readable=pd.concat(
@@ -270,7 +337,7 @@ if __name__ == '__main__':
     
     currentpath=os.path.dirname(__file__)
     result_dir=params.waygal_results_dir
-    resultpath=os.path.join(currentpath,result_dir,'EEGOnly','LOO')
+    resultpath=os.path.join(currentpath,result_dir,'EEGOnly',trialmode)
         
     '''saving figures of performance over time'''
     eeg_acc_plot.savefig(os.path.join(resultpath,'eeg_acc.png'))

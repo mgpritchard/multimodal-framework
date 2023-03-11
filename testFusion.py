@@ -914,6 +914,7 @@ def setup_search_space():
                 '3_1_emg',
                 '3_1_eeg',
                 'bayes',
+                'highest_conf',
                 #'hierarchical', #DON'T DO THESE IN THE SAME PARAM SPACE
                 #'featlevel',
                 ]),

@@ -18,6 +18,7 @@ import params
 from sklearn.preprocessing import OneHotEncoder
 from sklearn.naive_bayes import CategoricalNB
 import handleML as ml
+import random
 #try divergence BETWEEN the two modes?? how to distribute this across them?
 
 def setup_onehot(classlabels):
@@ -78,8 +79,11 @@ def fuse_max(mode1,mode2):
     if max(mode1)>=max(mode2):
         fused=mode1
     else:
-        fused=max(mode2)
+        fused=mode2
     return fused
+
+def fuse_max_arr(l1, l2):
+    return np.array([a if max(a)>max(b) else random.choice([a,b]) if max(a)==max(b) else b for a, b in zip(l1, l2)])
 
 def fuse_conf(mode1,mode2):
     fused=[]
@@ -108,6 +112,8 @@ def fuse_select(emg,eeg,args):
         fusion = fuse_linweight(emg,eeg,75,25)
     elif alg=='3_1_eeg':
         fusion = fuse_linweight(emg,eeg,25,75)
+    elif alg=='highest_conf':
+        fusion = fuse_max_arr(emg,eeg)
     elif alg=='bayes':
         '''bayesian fusion is not done here, just keeping system happy'''
         fusion = fuse_mean(emg,eeg)
@@ -420,6 +426,8 @@ def js_div_w(trainmod1, trainmod2, testmod1, testmod2):
 if __name__=='__main__':
     if 1:
         mode1=np.asarray([[0.25, 0.25, 0.5],[0.2, 0.2, 0.6],[0, 0.3, 0.7],[0.1, 0.5, 0.4]])
-        mode2=np.asarray([[0.2, 0.35, 0.45],[0.2, 0.2, 0.6],[0, 0.45, 0.55],[0.1, 0.5, 0.4]])
+        mode2=np.asarray([[0.2, 0.35, 0.45],[0.2, 0.2, 0.6],[0, 0.45, 0.55],[0.5, 0.1, 0.4]])
         #w1,w2=get_initial_js(mode1, mode2,1)
-        w1,w2=get_w_autocorr(mode1, mode2)
+        #w1,w2=get_w_autocorr(mode1, mode2)
+        fusion_mean=fuse_mean(mode1,mode2)
+        fusion_max=fuse_max_arr(mode1,mode2)

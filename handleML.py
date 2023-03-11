@@ -246,6 +246,11 @@ def pred_from_distro(labels,distro):
     label=labels[pred]
     return label
 
+def predlist_from_distrosarr(labels,distros):
+    predcols=np.argmax(distros,axis=1)
+    predlabels=labels[predcols]
+    return predlabels.tolist()
+
 def pred_gesture(prediction,toggle_print):
 
     if isinstance(prediction,int):

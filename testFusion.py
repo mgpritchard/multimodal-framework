@@ -362,13 +362,10 @@ def synced_predict(test_set_emg,test_set_eeg,model_emg,model_eeg,classlabels,arg
 def refactor_synced_predict(test_set_emg,test_set_eeg,model_emg,model_eeg,classlabels,args):
   #  distrolist_emg=[]
     predlist_emg=[]
-    
  #   distrolist_eeg=[]
     predlist_eeg=[]
-    
    # distrolist_fusion=[]
     predlist_fusion=[]
-    
     targets=[]
     
     index_emg=ml.pd.MultiIndex.from_arrays([test_set_emg[col] for col in ['ID_pptID','ID_run','Label','ID_gestrep','ID_tend']])
@@ -401,24 +398,30 @@ def refactor_synced_predict(test_set_emg,test_set_eeg,model_emg,model_eeg,classl
     '''Pass values to models'''
     
     distros_emg=ml.prob_dist(model_emg,emgvals)
+    predlist_emg=ml.predlist_from_distrosarr(classlabels,distros_emg)
+    '''
     for distro in distros_emg:
         pred_emg=ml.pred_from_distro(classlabels,distro)
    # distrolist_emg.append(distro_emg)
         predlist_emg.append(pred_emg)
-    
+    '''
     distros_eeg=ml.prob_dist(model_eeg,eegvals)
+    predlist_eeg=ml.predlist_from_distrosarr(classlabels,distros_eeg)
+    '''
     for distro in distros_eeg:
         pred_eeg=ml.pred_from_distro(classlabels,distro)
    # distrolist_eeg.append(distro_eeg)
         predlist_eeg.append(pred_eeg)
-    
+    '''
     #distro_fusion=fusion.fuse_mean(distro_emg,distro_eeg)
     distros_fusion=fusion.fuse_select(distros_emg, distros_eeg, args)
+    predlist_fusion=ml.predlist_from_distrosarr(classlabels,distros_fusion)
+    '''
     for distro in distros_fusion:
         pred_fusion=ml.pred_from_distro(classlabels,distro)
        # distrolist_fusion.append(distro_fusion)
         predlist_fusion.append(pred_fusion) 
-        
+     '''   
     return targets, predlist_emg, predlist_eeg, predlist_fusion
 
 def evaluate_results(targets, predlist_emg, correctness_emg, predlist_eeg, correctness_eeg, predlist_fusion, correctness_fusion, classlabels, plot_confmats=False):
@@ -896,7 +899,6 @@ def setup_search_space():
             'featfuse':hp.choice('featfuse model',[
                 {'featfuse_model_type':'RF',
                  'n_trees':scope.int(hp.quniform('featfuse.RF.ntrees',10,50,q=10)),
-                 #integerising search space https://github.com/hyperopt/hyperopt/issues/566#issuecomment-549510376
                  },
                 {'featfuse_model_type':'kNN',
                  'knn_k':scope.int(hp.quniform('featfuse.knn.k',1,5,q=1)),

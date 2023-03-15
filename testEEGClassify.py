@@ -229,10 +229,10 @@ def setup_search_space():
     space = {
             'eeg':hp.choice('eeg model',[
                 {'eeg_model_type':'RF',
-                 'n_trees':scope.int(hp.quniform('eeg_ntrees',10,50,q=10)),
+                 'n_trees':scope.int(hp.quniform('eeg_ntrees',10,100,q=5)),
                  },
                 {'eeg_model_type':'kNN',
-                 'knn_k':scope.int(hp.quniform('eeg.knn.k',1,5,q=1)),
+                 'knn_k':scope.int(hp.quniform('eeg.knn.k',1,25,q=1)),
                  },
                 {'eeg_model_type':'LDA',
                  'LDA_solver':hp.choice('eeg.LDA_solver',['svd','lsqr','eigen']),
@@ -246,7 +246,7 @@ def setup_search_space():
                  # naming convention https://github.com/hyperopt/hyperopt/issues/380#issuecomment-685173200
               #   }
                 ]),
-            'eeg_set_path':params.eeg_waygal,
+            'eeg_set_path':params.eeg_32_waygal,
             'using_literature_data':True,
             'data_in_memory':False,
             'prebalanced':False,
@@ -265,7 +265,7 @@ def optimise_EEG_LOO(prebalance=True):
     best = fmin(classifyEEG_LOO,
                 space=space,
                 algo=tpe.suggest,
-                max_evals=3,
+                max_evals=50,
                 trials=trials)
     return best, space, trials
 
@@ -275,7 +275,7 @@ def optimise_EEG_withinsubject():
     best = fmin(classifyEEG_withinsubject,
                 space=space,
                 algo=tpe.suggest,
-                max_evals=3,
+                max_evals=500,
                 trials=trials)
     return best, space, trials
     
@@ -307,7 +307,7 @@ def save_resultdict(filepath,resultdict):
 
 if __name__ == '__main__':
     
-    trialmode='WithinPpt'
+    trialmode='LOO'
     
     if trialmode=='LOO':
         best,space,trials=optimise_EEG_LOO()
@@ -349,7 +349,7 @@ if __name__ == '__main__':
     
     currentpath=os.path.dirname(__file__)
     result_dir=params.waygal_results_dir
-    resultpath=os.path.join(currentpath,result_dir,'EEGOnly',trialmode)
+    resultpath=os.path.join(currentpath,result_dir,'EEG32Ch',trialmode)
         
     '''saving figures of performance over time'''
     eeg_acc_plot.savefig(os.path.join(resultpath,'eeg_acc.png'))

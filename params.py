@@ -40,6 +40,7 @@ if platform =='win32':
     
     emg_waygal='C:/Users/pritcham/Documents/mm-framework/WAYGAL/WaygalAllEMGFeats.csv'
     eeg_waygal='C:/Users/pritcham/Documents/mm-framework/WAYGAL/WayGalAllEEGFeats.csv'
+    eeg_32_waygal='C:/Users/pritcham/Documents/mm-framework/multimodal-framework/lit_data_expts/waygal/datasets/FullChEEGFeats.csv'
     
     waygal_results_dir='lit_data_expts/waygal/results/'
 elif platform == 'darwin':

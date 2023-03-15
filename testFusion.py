@@ -911,9 +911,9 @@ def setup_search_space():
                 ]),
             'fusion_alg':hp.choice('fusion algorithm',[
                 'mean',
-                '3_1_emg',
+                #'3_1_emg', #Excluding those which allow it to ignore EEG
                 '3_1_eeg',
-                'bayes',
+                #'bayes', #Excluding those which allow it to ignore EEG
                 #'hierarchical', #DON'T DO THESE IN THE SAME PARAM SPACE
                 #'featlevel',
                 ]),
@@ -931,7 +931,7 @@ def optimise_fusion():
     best = fmin(function_fuse_LOO,
                 space=space,
                 algo=tpe.suggest,
-                max_evals=1,
+                max_evals=150,
                 trials=trials)
     return best, space, trials
     

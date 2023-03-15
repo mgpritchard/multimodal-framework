@@ -172,10 +172,14 @@ def classifyEEG_withinsubject(args):
 
 def classifyEEG_LOO(args):
     start=time.time()
-    eeg_set_path=args['eeg_set_path']
-    eeg_set=ml.pd.read_csv(eeg_set_path,delimiter=',')
-    
-    eeg_set=fus.balance_single_mode(eeg_set)
+    if args['data_in_memory']:
+        eeg_set=args['eeg_set']
+    else:
+        eeg_set_path=args['eeg_set_path']
+        eeg_set=ml.pd.read_csv(eeg_set_path,delimiter=',')
+    if not args['prebalanced']:
+        eeg_set=fus.balance_single_mode(eeg_set)
+        
     eeg_masks=fus.get_ppt_split(eeg_set,args)
     
     accs=[]
@@ -244,11 +248,19 @@ def setup_search_space():
                 ]),
             'eeg_set_path':params.eeg_waygal,
             'using_literature_data':True,
+            'data_in_memory':False,
+            'prebalanced':False,
             }
     return space
 
-def optimise_EEG_LOO():
+def optimise_EEG_LOO(prebalance=True):
     space=setup_search_space()
+    
+    if prebalance:
+        eeg_set=ml.pd.read_csv(space['eeg_set_path'],delimiter=',')
+        eeg_set=fus.balance_single_mode(eeg_set)
+        space.update({'eeg_set':eeg_set,'data_in_memory':True,'prebalanced':True})
+    
     trials=Trials() #http://hyperopt.github.io/hyperopt/getting-started/minimizing_functions/#attaching-extra-information-via-the-trials-object
     best = fmin(classifyEEG_LOO,
                 space=space,

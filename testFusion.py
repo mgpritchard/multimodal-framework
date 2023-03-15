@@ -917,9 +917,9 @@ def setup_search_space():
                 ]),
             'fusion_alg':hp.choice('fusion algorithm',[
                 'mean',
-                #'3_1_emg', #Excluding those which allow it to ignore EEG
+                '3_1_emg', #Excluding those which allow it to ignore EEG
                 '3_1_eeg',
-                #'bayes', #Excluding those which allow it to ignore EEG
+                'bayes', #Excluding those which allow it to ignore EEG
                 'highest_conf',
                 #'hierarchical', #DON'T DO THESE IN THE SAME PARAM SPACE
                 #'featlevel',

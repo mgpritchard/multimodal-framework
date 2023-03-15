@@ -5,6 +5,10 @@ testbench/eeg/data_from_brainflow/
 testbench/eeg/data_rearranged_cols/
 testbench/eeg/data_after_sigproc/
 
+#Ignore test data files within the testbench folders
+testbench/emg/emg_test_feats.csv
+testbench/emg/emg_test_feats_Labelled.csv
+
 #Ignore any dependency graphs made with pyan
 pyan*
 
@@ -13,8 +17,17 @@ attemptOnehot.py
 callGraph_attempt.py
 hyperopt_playground.py
 
+#Ignore anything in results dir, except a dummy to keep the dir itself tracked
+lit_data_expts/waygal/results/*
+!lit_data_expts/waygal/results/EEGOnly/
+lit_data_expts/waygal/results/EEGOnly/LOO/*
+!lit_data_expts/waygal/results/EEGOnly/LOO/dummy.txt
+lit_data_expts/waygal/results/EEGOnly/WithinPpt/*
+!lit_data_expts/waygal/results/EEGOnly/WithinPpt/dummy.txt
+
 #Ignore datasets
 lit_data_expts/waygal/datasets/*
+!lit_data_expts/waygal/datasets/dummy.txt
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

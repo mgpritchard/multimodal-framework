@@ -13,6 +13,9 @@ attemptOnehot.py
 callGraph_attempt.py
 hyperopt_playground.py
 
+#Ignore datasets
+lit_data_expts/waygal/datasets/*
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]

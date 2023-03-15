@@ -12,11 +12,24 @@ import os
 from tkinter import Tk
 from tkinter.filedialog import askopenfilename, askopenfilenames, askdirectory, asksaveasfilename
 import generate_training_matrix as genfeats
+from sklearn.feature_selection import SelectPercentile, f_classif
 
 def select_feats(featureset,alg=None):
     print('\n\n*no feature selection currently implemented*\n\n')
     #look into MRMR?
     return featureset
+
+def sel_percent_feats_df(data,percent=15):
+    #https://stackoverflow.com/questions/39839112/the-easiest-way-for-getting-feature-names-after-running-selectkbest-in-scikit-le
+    target=data['Label']
+    attribs=data.drop(columns=['Label'])
+    selector=SelectPercentile(f_classif,percentile=percent)
+    selector.fit(attribs,target)
+    col_idxs=selector.get_support(indices=True)
+    #selected=attribs.iloc[:col_idxs]
+    #selected['Label']=target
+    return col_idxs
+    
 
 def ask_for_dir(datatype=""):
     homepath=os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
@@ -33,6 +46,7 @@ def ask_for_savefile(datatype=""):
     return savefile
 
 def make_feats(directory_path=None, output_file=None, datatype="",period=1000,skipfails=False):
+    '''datatype can be in any case, it does not affect mechanical functionality only cosmetic'''
     if directory_path is None:
         directory_path=ask_for_dir(datatype)
     if output_file is None:

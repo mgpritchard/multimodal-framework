@@ -362,13 +362,10 @@ def synced_predict(test_set_emg,test_set_eeg,model_emg,model_eeg,classlabels,arg
 def refactor_synced_predict(test_set_emg,test_set_eeg,model_emg,model_eeg,classlabels,args):
   #  distrolist_emg=[]
     predlist_emg=[]
-    
  #   distrolist_eeg=[]
     predlist_eeg=[]
-    
    # distrolist_fusion=[]
     predlist_fusion=[]
-    
     targets=[]
     
     index_emg=ml.pd.MultiIndex.from_arrays([test_set_emg[col] for col in ['ID_pptID','ID_run','Label','ID_gestrep','ID_tend']])
@@ -401,24 +398,30 @@ def refactor_synced_predict(test_set_emg,test_set_eeg,model_emg,model_eeg,classl
     '''Pass values to models'''
     
     distros_emg=ml.prob_dist(model_emg,emgvals)
+    predlist_emg=ml.predlist_from_distrosarr(classlabels,distros_emg)
+    '''
     for distro in distros_emg:
         pred_emg=ml.pred_from_distro(classlabels,distro)
    # distrolist_emg.append(distro_emg)
         predlist_emg.append(pred_emg)
-    
+    '''
     distros_eeg=ml.prob_dist(model_eeg,eegvals)
+    predlist_eeg=ml.predlist_from_distrosarr(classlabels,distros_eeg)
+    '''
     for distro in distros_eeg:
         pred_eeg=ml.pred_from_distro(classlabels,distro)
    # distrolist_eeg.append(distro_eeg)
         predlist_eeg.append(pred_eeg)
-    
+    '''
     #distro_fusion=fusion.fuse_mean(distro_emg,distro_eeg)
     distros_fusion=fusion.fuse_select(distros_emg, distros_eeg, args)
+    predlist_fusion=ml.predlist_from_distrosarr(classlabels,distros_fusion)
+    '''
     for distro in distros_fusion:
         pred_fusion=ml.pred_from_distro(classlabels,distro)
        # distrolist_fusion.append(distro_fusion)
         predlist_fusion.append(pred_fusion) 
-        
+     '''   
     return targets, predlist_emg, predlist_eeg, predlist_fusion
 
 def evaluate_results(targets, predlist_emg, correctness_emg, predlist_eeg, correctness_eeg, predlist_fusion, correctness_fusion, classlabels, plot_confmats=False):
@@ -706,13 +709,17 @@ def fusion_hierarchical(emg_others,eeg_others,emg_ppt,eeg_ppt,args):
 
 def function_fuse_LOO(args):
     start=time.time()
-    emg_set_path=args['emg_set_path']
-    eeg_set_path=args['eeg_set_path']
+    if not args['data_in_memory']:
+        emg_set_path=args['emg_set_path']
+        eeg_set_path=args['eeg_set_path']
     
-    emg_set=ml.pd.read_csv(emg_set_path,delimiter=',')
-    eeg_set=ml.pd.read_csv(eeg_set_path,delimiter=',')
-    
-    emg_set,eeg_set=balance_set(emg_set,eeg_set)
+        emg_set=ml.pd.read_csv(emg_set_path,delimiter=',')
+        eeg_set=ml.pd.read_csv(eeg_set_path,delimiter=',')
+    else:
+        emg_set=args['emg_set']
+        eeg_set=args['eeg_set']
+    if not args['prebalanced']: 
+        emg_set,eeg_set=balance_set(emg_set,eeg_set)
     
     eeg_masks=get_ppt_split(eeg_set,args)
     emg_masks=get_ppt_split(emg_set,args)
@@ -896,7 +903,6 @@ def setup_search_space():
             'featfuse':hp.choice('featfuse model',[
                 {'featfuse_model_type':'RF',
                  'n_trees':scope.int(hp.quniform('featfuse.RF.ntrees',10,50,q=10)),
-                 #integerising search space https://github.com/hyperopt/hyperopt/issues/566#issuecomment-549510376
                  },
                 {'featfuse_model_type':'kNN',
                  'knn_k':scope.int(hp.quniform('featfuse.knn.k',1,5,q=1)),
@@ -914,6 +920,7 @@ def setup_search_space():
                 #'3_1_emg', #Excluding those which allow it to ignore EEG
                 '3_1_eeg',
                 #'bayes', #Excluding those which allow it to ignore EEG
+                'highest_conf',
                 #'hierarchical', #DON'T DO THESE IN THE SAME PARAM SPACE
                 #'featlevel',
                 ]),
@@ -922,11 +929,20 @@ def setup_search_space():
             'emg_set_path':params.emg_waygal,
             'eeg_set_path':params.eeg_waygal,
             'using_literature_data':True,
+            'data_in_memory':False,
+            'prebalanced':False,
             }
     return space
 
-def optimise_fusion():
+def optimise_fusion(prebalance=True):
     space=setup_search_space()
+    
+    if prebalance:
+        emg_set=ml.pd.read_csv(space['emg_set_path'],delimiter=',')
+        eeg_set=ml.pd.read_csv(space['eeg_set_path'],delimiter=',')
+        emg_set,eeg_set=balance_set(emg_set,eeg_set)
+        space.update({'emg_set':emg_set,'eeg_set':eeg_set,'data_in_memory':True,'prebalanced':True})
+        
     trials=Trials() #http://hyperopt.github.io/hyperopt/getting-started/minimizing_functions/#attaching-extra-information-via-the-trials-object
     best = fmin(function_fuse_LOO,
                 space=space,
@@ -960,7 +976,16 @@ if __name__ == '__main__':
     #space=stochastic.sample(setup_search_space())
     #best_results=function_fuse_LOO(space)
     #raise
+    '''
+    start_prebal=time.time()
+    best,space,trials=optimise_fusion()
+    t_prebal=time.time()-start_prebal
     
+    start_manbal=time.time()
+    best,space,trials=optimise_fusion(prebalance=False)
+    t_manbal=time.time()-start_manbal
+    print(f"Time holding balanced set in memory: {t_prebal}\nTime reading set every time: {t_manbal}")
+    '''
     best,space,trials=optimise_fusion()
     
     if 0:
@@ -985,9 +1010,9 @@ if __name__ == '__main__':
     emg_acc_plot=plot_stat_in_time(trials, 'emg_mean_acc',showplot=False)
     eeg_acc_plot=plot_stat_in_time(trials, 'eeg_mean_acc',showplot=False)
     #plot_stat_in_time(trials, 'loss')
-    fus_f1_plot=plot_stat_in_time(trials,'fusion_f1_mean',showplot=False)
+    fus_f1_plot=plot_stat_in_time(trials,'fusion_f1_mean')#,showplot=False)
     #plot_stat_in_time(trials,'elapsed_time',0,200)
-    
+    raise
     table=pd.DataFrame(trials.trials)
     table_readable=pd.concat(
         [pd.DataFrame(table['result'].tolist()),

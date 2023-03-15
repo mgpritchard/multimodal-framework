@@ -190,6 +190,13 @@ def classifyEEG_LOO(args):
         eeg_others = eeg_set[~eeg_mask]
         
         eeg_others=ml.drop_ID_cols(eeg_others)
+        
+        sel_cols=feats.sel_percent_feats_df(eeg_others,percent=15)
+        sel_cols=np.append(sel_cols,eeg_others.columns.get_loc('Label'))
+        eeg_others=eeg_others.iloc[:,sel_cols]
+        eeg_ppt=ml.drop_ID_cols(eeg_ppt) #this MUST BE DONE before iloc
+        eeg_ppt=eeg_ppt.iloc[:,sel_cols]
+        
         eeg_model = ml.train_optimise(eeg_others, args['eeg']['eeg_model_type'], args['eeg'])
         classlabels = eeg_model.classes_
         

@@ -68,6 +68,7 @@ def matrix_from_csv_file(file):
 def drop_ID_cols(csv_dframe):
     IDs=csv_dframe.filter(regex='^ID_').columns
     csv_dframe=csv_dframe.drop(IDs,axis='columns')
+    '''may benefit from a trycatch in case of keyerror?'''
     return csv_dframe
 
 def matrix_from_csv_file_drop_ID(file):
@@ -245,6 +246,11 @@ def pred_from_distro(labels,distro):
     pred=int(np.argmax(distro))
     label=labels[pred]
     return label
+
+def predlist_from_distrosarr(labels,distros):
+    predcols=np.argmax(distros,axis=1)
+    predlabels=labels[predcols]
+    return predlabels.tolist()
 
 def pred_gesture(prediction,toggle_print):
 

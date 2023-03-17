@@ -864,11 +864,11 @@ def setup_search_space():
     space = {
             'emg':hp.choice('emg model',[
                 {'emg_model_type':'RF',
-                 'n_trees':scope.int(hp.quniform('emg.RF.ntrees',10,50,q=10)),
+                 'n_trees':scope.int(hp.quniform('emg.RF.ntrees',10,100,q=5)),
                  #integerising search space https://github.com/hyperopt/hyperopt/issues/566#issuecomment-549510376
                  },
                 {'emg_model_type':'kNN',
-                 'knn_k':scope.int(hp.quniform('emg.knn.k',1,5,q=1)),
+                 'knn_k':scope.int(hp.quniform('emg.knn.k',1,25,q=1)),
                  },
                 {'emg_model_type':'LDA',
                  'LDA_solver':hp.choice('emg.LDA_solver',['svd','lsqr','eigen']),
@@ -883,10 +883,10 @@ def setup_search_space():
                 ]),
             'eeg':hp.choice('eeg model',[
                 {'eeg_model_type':'RF',
-                 'n_trees':scope.int(hp.quniform('eeg_ntrees',10,50,q=10)),
+                 'n_trees':scope.int(hp.quniform('eeg_ntrees',10,100,q=5)),
                  },
                 {'eeg_model_type':'kNN',
-                 'knn_k':scope.int(hp.quniform('eeg.knn.k',1,5,q=1)),
+                 'knn_k':scope.int(hp.quniform('eeg.knn.k',1,25,q=1)),
                  },
                 {'eeg_model_type':'LDA',
                  'LDA_solver':hp.choice('eeg.LDA_solver',['svd','lsqr','eigen']),
@@ -902,10 +902,10 @@ def setup_search_space():
                 ]),
             'featfuse':hp.choice('featfuse model',[
                 {'featfuse_model_type':'RF',
-                 'n_trees':scope.int(hp.quniform('featfuse.RF.ntrees',10,50,q=10)),
+                 'n_trees':scope.int(hp.quniform('featfuse.RF.ntrees',10,100,q=5)),
                  },
                 {'featfuse_model_type':'kNN',
-                 'knn_k':scope.int(hp.quniform('featfuse.knn.k',1,5,q=1)),
+                 'knn_k':scope.int(hp.quniform('featfuse.knn.k',1,25,q=1)),
                  },
                 {'featfuse_model_type':'LDA',
                  'LDA_solver':hp.choice('featfuse.LDA_solver',['svd','lsqr','eigen']),

@@ -359,7 +359,11 @@ def synced_predict(test_set_emg,test_set_eeg,model_emg,model_eeg,classlabels,arg
         targets.append(TargetLabel)
     return targets, predlist_emg, predlist_eeg, predlist_fusion
 
-def refactor_synced_predict(test_set_emg,test_set_eeg,model_emg,model_eeg,classlabels,args):
+def refactor_synced_predict(test_set_emg,test_set_eeg,model_emg,model_eeg,classlabels,args, chosencolseeg=None, chosencolsemg=None):
+    if chosencolsemg is None:
+        chosencolsemg=np.arange(len(test_set_emg.columns))
+    if chosencolseeg is None:
+        chosencolseeg=np.arange(len(test_set_eeg.columns))
   #  distrolist_emg=[]
     predlist_emg=[]
  #   distrolist_eeg=[]
@@ -391,9 +395,16 @@ def refactor_synced_predict(test_set_emg,test_set_eeg,model_emg,model_eeg,classl
         
     '''Get values from instances'''
     IDs=list(emg.filter(regex='^ID_').keys())
-    IDs.append('Label')
-    emgvals=emg.drop(IDs,axis='columns').values
-    eegvals=eeg.drop(IDs,axis='columns').values
+    emg=emg.drop(IDs,axis='columns')
+    eeg=eeg.drop(IDs,axis='columns')
+    
+    eeg=eeg.iloc[:,chosencolseeg]
+    emg=emg.iloc[:,chosencolsemg]
+    emgvals=emg.drop(['Label'],axis='columns').values
+    eegvals=eeg.drop(['Label'],axis='columns').values
+    #IDs.append('Label')
+    #emgvals=emg.drop(IDs,axis='columns').values
+    #eegvals=eeg.drop(IDs,axis='columns').values
     
     '''Pass values to models'''
     
@@ -783,6 +794,15 @@ def function_fuse_LOO(args):
         else:
             emg_others=ml.drop_ID_cols(emg_others)
             eeg_others=ml.drop_ID_cols(eeg_others)
+            
+            sel_cols_eeg=feats.sel_percent_feats_df(eeg_others,percent=15)
+            sel_cols_eeg=np.append(sel_cols_eeg,eeg_others.columns.get_loc('Label'))
+            eeg_others=eeg_others.iloc[:,sel_cols_eeg]
+            
+            sel_cols_emg=feats.sel_percent_feats_df(emg_others,percent=15)
+            sel_cols_emg=np.append(sel_cols_emg,emg_others.columns.get_loc('Label'))
+            emg_others=emg_others.iloc[:,sel_cols_emg]
+            
             emg_model,eeg_model=train_models_opt(emg_others,eeg_others,args)
         
             classlabels = emg_model.classes_
@@ -791,7 +811,7 @@ def function_fuse_LOO(args):
             eeg_ppt.sort_values(['ID_pptID','ID_run','Label','ID_gestrep','ID_tend'],ascending=[True,True,True,True,True],inplace=True)
                 
             #targets, predlist_emg, predlist_eeg, predlist_fusion = synced_predict(emg_ppt, eeg_ppt, emg_model, eeg_model, classlabels,args)
-            targets, predlist_emg, predlist_eeg, predlist_fusion = refactor_synced_predict(emg_ppt, eeg_ppt, emg_model, eeg_model, classlabels,args)
+            targets, predlist_emg, predlist_eeg, predlist_fusion = refactor_synced_predict(emg_ppt, eeg_ppt, emg_model, eeg_model, classlabels,args, sel_cols_eeg,sel_cols_emg)
 
         #acc_emg,acc_eeg,acc_fusion=evaluate_results(targets, predlist_emg, correctness_emg, predlist_eeg, correctness_eeg, predlist_fusion, correctness_fusion, classlabels)
         

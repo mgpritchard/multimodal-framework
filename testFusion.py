@@ -822,7 +822,7 @@ def function_fuse_LOO(args):
     end=time.time()
     #return 1-mean_acc
     return {
-        'loss': 1-median_kappa,
+        'loss': 1-median_acc,
         'status': STATUS_OK,
         'median_kappa':median_kappa,
         'fusion_mean_acc':mean_acc,

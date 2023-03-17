@@ -947,13 +947,20 @@ def optimise_fusion(prebalance=True):
     best = fmin(function_fuse_LOO,
                 space=space,
                 algo=tpe.suggest,
-                max_evals=150,
+                max_evals=100,
                 trials=trials)
     return best, space, trials
     
 def save_resultdict(filepath,resultdict):
     #https://stackoverflow.com/questions/61894745/write-dictionary-to-text-file-with-newline
+    status=resultdict['Results'].pop('status')
     f=open(filepath,'w')
+    try:
+        target=list(resultdict['Results'].keys())[list(resultdict['Results'].values()).index(1-resultdict['Results']['loss'])]
+        f.write(f"Optimising for {target}\n\n")
+    except ValueError:
+        target, _ = min(resultdict['Results'].items(), key=lambda x: abs(1-resultdict['Results']['loss'] - x[1]))
+        f.write(f"Probably optimising for {target}\n\n")
     f.write('EEG Parameters:\n')
     for k in resultdict['Chosen parameters']['eeg'].keys():
         f.write(f"\t'{k}':'{resultdict['Chosen parameters']['eeg'][k]}'\n")
@@ -967,6 +974,7 @@ def save_resultdict(filepath,resultdict):
         for k in resultdict['Chosen parameters']['featfuse'].keys():
             f.write(f"\t'{k}':'{resultdict['Chosen parameters']['featfuse'][k]}'\n")
     f.write('Results:\n')
+    resultdict['Results']['status']=status
     for k in resultdict['Results'].keys():
         f.write(f"\t'{k}':'{resultdict['Results'][k]}'\n")
     f.close()

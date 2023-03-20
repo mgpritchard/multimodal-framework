@@ -905,8 +905,8 @@ def function_fuse_withinppt(args):
         eeg_train_split,eeg_test_split=train_test_split(eeg_ppt['ID_stratID'].unique(),test_size=0.33,random_state=random_split)
         eeg_train=eeg_ppt[eeg_ppt['ID_stratID'].isin(eeg_train_split)]
         eeg_test=eeg_ppt[eeg_ppt['ID_stratID'].isin(eeg_test_split)]
-        emg_train=eeg_ppt[emg_ppt['ID_stratID'].isin(emg_train_split)]
-        emg_test=eeg_ppt[emg_ppt['ID_stratID'].isin(emg_test_split)]
+        emg_train=emg_ppt[emg_ppt['ID_stratID'].isin(emg_train_split)]
+        emg_test=emg_ppt[emg_ppt['ID_stratID'].isin(emg_test_split)]
         
         if args['fusion_alg']=='bayes':
             emg_train.sort_values(['ID_pptID','ID_run','Label','ID_gestrep','ID_tend'],ascending=[True,True,True,True,True],inplace=True)
@@ -1174,7 +1174,7 @@ def save_resultdict(filepath,resultdict):
     f.close()
 
 if __name__ == '__main__':
-    trialmode='LOO'
+    #trialmode='LOO'
     trialmode='WithinPpt'
     if trialmode=='LOO':
         best,space,trials=optimise_fusion_LOO()
@@ -1193,7 +1193,7 @@ if __name__ == '__main__':
     t_manbal=time.time()-start_manbal
     print(f"Time holding balanced set in memory: {t_prebal}\nTime reading set every time: {t_manbal}")
     '''
-    best,space,trials=optimise_fusion()
+    #best,space,trials=optimise_fusion()
     
     if 0:
         '''performing a whole fresh evaluation with the chosen params'''

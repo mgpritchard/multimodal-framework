@@ -937,9 +937,9 @@ def setup_search_space():
                 ]),
             'fusion_alg':hp.choice('fusion algorithm',[
                 'mean',
-                '3_1_emg', #Excluding those which allow it to ignore EEG
+                #'3_1_emg', #Excluding those which allow it to ignore EEG
                 '3_1_eeg',
-                'bayes', #Excluding those which allow it to ignore EEG
+                #'bayes', #Excluding those which allow it to ignore EEG
                 'highest_conf',
                 #'hierarchical', #DON'T DO THESE IN THE SAME PARAM SPACE
                 #'featlevel',
@@ -947,7 +947,8 @@ def setup_search_space():
             #'emg_set_path':params.emg_set_path_for_system_tests,
             #'eeg_set_path':params.eeg_set_path_for_system_tests,
             'emg_set_path':params.emg_waygal,
-            'eeg_set_path':params.eeg_waygal,
+            #'eeg_set_path':params.eeg_waygal,
+            'eeg_set_path':params.eeg_32_waygal,
             'using_literature_data':True,
             'data_in_memory':False,
             'prebalanced':False,
@@ -1040,7 +1041,7 @@ if __name__ == '__main__':
     #plot_stat_in_time(trials, 'loss')
     fus_f1_plot=plot_stat_in_time(trials,'fusion_f1_mean')#,showplot=False)
     #plot_stat_in_time(trials,'elapsed_time',0,200)
-    raise
+    
     table=pd.DataFrame(trials.trials)
     table_readable=pd.concat(
         [pd.DataFrame(table['result'].tolist()),
@@ -1056,6 +1057,8 @@ if __name__ == '__main__':
     currentpath=os.path.dirname(__file__)
     result_dir=params.waygal_results_dir
     resultpath=os.path.join(currentpath,result_dir)
+    
+    resultpath=os.path.join(resultpath,'Fusion_32EEG',trialmode)
     
     trials_obj_path=os.path.join(resultpath,'trials_obj.p')
     pickle.dump(trials,open(trials_obj_path,'wb'))

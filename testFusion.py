@@ -854,6 +854,162 @@ def function_fuse_LOO(args):
         'fusion_f1_mean':mean_f1_fusion,
         'elapsed_time':end-start,}
 
+def function_fuse_withinppt(args):
+    start=time.time()
+    if not args['data_in_memory']:
+        emg_set_path=args['emg_set_path']
+        eeg_set_path=args['eeg_set_path']
+    
+        emg_set=ml.pd.read_csv(emg_set_path,delimiter=',')
+        eeg_set=ml.pd.read_csv(eeg_set_path,delimiter=',')
+    else:
+        emg_set=args['emg_set']
+        eeg_set=args['eeg_set']
+    if not args['prebalanced']: 
+        emg_set,eeg_set=balance_set(emg_set,eeg_set)
+    
+    eeg_masks=get_ppt_split(eeg_set,args)
+    emg_masks=get_ppt_split(emg_set,args)
+    
+    accs=[]
+    emg_accs=[] #https://stackoverflow.com/questions/13520876/how-can-i-make-multiple-empty-lists-in-python
+    eeg_accs=[]
+    
+    f1s=[]
+    emg_f1s=[]
+    eeg_f1s=[]
+    
+    kappas=[]
+    for idx,emg_mask in enumerate(emg_masks):
+        eeg_mask=eeg_masks[idx]
+        
+        emg_ppt = emg_set[emg_mask]
+        #emg_others = emg_set[~emg_mask]
+        eeg_ppt = eeg_set[eeg_mask]
+        #eeg_others = eeg_set[~eeg_mask]
+        
+        emg_ppt.sort_values(['ID_pptID','ID_run','Label','ID_gestrep','ID_tend'],ascending=[True,True,True,True,True],inplace=True)
+        eeg_ppt.sort_values(['ID_pptID','ID_run','Label','ID_gestrep','ID_tend'],ascending=[True,True,True,True,True],inplace=True)
+        
+        index_emg=ml.pd.MultiIndex.from_arrays([emg_ppt[col] for col in ['ID_pptID','ID_run','Label','ID_gestrep','ID_tend']])
+        index_eeg=ml.pd.MultiIndex.from_arrays([eeg_ppt[col] for col in ['ID_pptID','ID_run','Label','ID_gestrep','ID_tend']])
+        emg_ppt=emg_ppt.loc[index_emg.isin(index_eeg)].reset_index(drop=True)
+        eeg_ppt=eeg_ppt.loc[index_eeg.isin(index_emg)].reset_index(drop=True)
+        
+        eeg_ppt['ID_stratID']=eeg_ppt['ID_run'].astype(str)+eeg_ppt['Label'].astype(str)+eeg_ppt['ID_gestrep'].astype(str)
+        emg_ppt['ID_stratID']=emg_ppt['ID_run'].astype(str)+eeg_ppt['Label'].astype(str)+eeg_ppt['ID_gestrep'].astype(str)
+        random_split=random.randint(0,100)
+        #emg_train,emg_test=train_test_split(emg_ppt,test_size=0.33,random_state=random_split,stratify=emg_ppt[['ID_stratID']])
+        #eeg_train,eeg_test=train_test_split(eeg_ppt,test_size=0.33,random_state=random_split,stratify=eeg_ppt[['ID_stratID']])
+        emg_train_split,emg_test_split=train_test_split(emg_ppt['ID_stratID'].unique(),test_size=0.33,random_state=random_split)
+        eeg_train_split,eeg_test_split=train_test_split(eeg_ppt['ID_stratID'].unique(),test_size=0.33,random_state=random_split)
+        eeg_train=eeg_ppt[eeg_ppt['ID_stratID'].isin(eeg_train_split)]
+        eeg_test=eeg_ppt[eeg_ppt['ID_stratID'].isin(eeg_test_split)]
+        emg_train=eeg_ppt[emg_ppt['ID_stratID'].isin(emg_train_split)]
+        emg_test=eeg_ppt[emg_ppt['ID_stratID'].isin(emg_test_split)]
+        
+        if args['fusion_alg']=='bayes':
+            emg_train.sort_values(['ID_pptID','ID_run','Label','ID_gestrep','ID_tend'],ascending=[True,True,True,True,True],inplace=True)
+            emg_train.sort_values(['ID_pptID','ID_run','Label','ID_gestrep','ID_tend'],ascending=[True,True,True,True,True],inplace=True)
+            
+            index_emg=ml.pd.MultiIndex.from_arrays([emg_train[col] for col in ['ID_pptID','ID_run','Label','ID_gestrep','ID_tend']])
+            index_eeg=ml.pd.MultiIndex.from_arrays([eeg_others[col] for col in ['ID_pptID','ID_run','Label','ID_gestrep','ID_tend']])
+            emg_train=emg_train.loc[index_emg.isin(index_eeg)].reset_index(drop=True)
+            eeg_train=eeg_train.loc[index_eeg.isin(index_emg)].reset_index(drop=True)
+                    
+            emg_train['ID_splitIndex']=emg_train['Label'].astype(str)+emg_train['ID_pptID'].astype(str)
+            eeg_train['ID_splitIndex']=eeg_train['Label'].astype(str)+eeg_train['ID_pptID'].astype(str)
+            #https://stackoverflow.com/questions/45516424/sklearn-train-test-split-on-pandas-stratify-by-multiple-columns
+            random_split=random.randint(0,100)
+            emg_train_split_ML,emg_train_split_fusion=train_test_split(emg_train,test_size=0.33,random_state=random_split,stratify=emg_train[['ID_splitIndex']])
+            eeg_train_split_ML,eeg_train_split_fusion=train_test_split(eeg_train,test_size=0.33,random_state=random_split,stratify=eeg_train[['ID_splitIndex']])
+            #https://stackoverflow.com/questions/43095076/scikit-learn-train-test-split-can-i-ensure-same-splits-on-different-datasets
+            
+            emg_train_split_ML=ml.drop_ID_cols(emg_train_split_ML)
+            eeg_train_split_ML=ml.drop_ID_cols(eeg_train_split_ML)
+            
+            emg_model,eeg_model=train_models_opt(emg_train_split_ML,eeg_train_split_ML,args)
+            
+            classlabels = emg_model.classes_
+        
+            emg_test.sort_values(['ID_pptID','ID_run','Label','ID_gestrep','ID_tend'],ascending=[True,True,True,True,True],inplace=True)
+            eeg_test.sort_values(['ID_pptID','ID_run','Label','ID_gestrep','ID_tend'],ascending=[True,True,True,True,True],inplace=True)                
+            targets, predlist_emg, predlist_eeg, _ = refactor_synced_predict(emg_test, eeg_test, emg_model, eeg_model, classlabels,args)
+            
+            fuser,onehotEncoder=train_bayes_fuser(emg_model,eeg_model,emg_train_split_fusion,eeg_train_split_fusion,classlabels,args)
+            predlist_fusion=fusion.bayesian_fusion(fuser,onehotEncoder,predlist_emg,predlist_eeg,classlabels)
+        
+        elif args['fusion_alg']=='hierarchical':
+            
+            targets, predlist_emg, predlist_eeg, predlist_fusion, classlabels=fusion_hierarchical(emg_train, eeg_train, emg_test, eeg_test, args)
+                 
+        elif args['fusion_alg']=='featlevel':
+            
+            targets, predlist_emg, predlist_eeg, predlist_fusion, classlabels=feature_fusion(emg_train, eeg_train, emg_test, eeg_test, args)
+        
+        else:
+            emg_train=ml.drop_ID_cols(emg_train)
+            eeg_train=ml.drop_ID_cols(eeg_train)
+            
+            sel_cols_eeg=feats.sel_percent_feats_df(eeg_train,percent=15)
+            sel_cols_eeg=np.append(sel_cols_eeg,eeg_train.columns.get_loc('Label'))
+            eeg_train=eeg_train.iloc[:,sel_cols_eeg]
+            
+            sel_cols_emg=feats.sel_percent_feats_df(emg_train,percent=15)
+            sel_cols_emg=np.append(sel_cols_emg,emg_train.columns.get_loc('Label'))
+            emg_train=emg_train.iloc[:,sel_cols_emg]
+            
+            emg_model,eeg_model=train_models_opt(emg_train,eeg_train,args)
+        
+            classlabels = emg_model.classes_
+            
+            emg_test.sort_values(['ID_pptID','ID_run','Label','ID_gestrep','ID_tend'],ascending=[True,True,True,True,True],inplace=True)
+            eeg_test.sort_values(['ID_pptID','ID_run','Label','ID_gestrep','ID_tend'],ascending=[True,True,True,True,True],inplace=True)
+                
+            #targets, predlist_emg, predlist_eeg, predlist_fusion = synced_predict(emg_ppt, eeg_ppt, emg_model, eeg_model, classlabels,args)
+            targets, predlist_emg, predlist_eeg, predlist_fusion = refactor_synced_predict(emg_test, eeg_test, emg_model, eeg_model, classlabels,args, sel_cols_eeg,sel_cols_emg)
+
+        #acc_emg,acc_eeg,acc_fusion=evaluate_results(targets, predlist_emg, correctness_emg, predlist_eeg, correctness_eeg, predlist_fusion, correctness_fusion, classlabels)
+        
+        gest_truth,gest_pred_emg,gest_pred_eeg,gest_pred_fusion,gesturelabels=classes_from_preds(targets,predlist_emg,predlist_eeg,predlist_fusion,classlabels)
+        '''could calculate log loss if got the probabilities back''' #https://towardsdatascience.com/comprehensive-guide-on-multiclass-classification-metrics-af94cfb83fbd
+        
+        #plot_confmats(gest_truth,gest_pred_emg,gest_pred_eeg,gest_pred_fusion,gesturelabels)
+            
+        emg_accs.append(accuracy_score(gest_truth,gest_pred_emg))
+        eeg_accs.append(accuracy_score(gest_truth,gest_pred_eeg))
+        accs.append(accuracy_score(gest_truth,gest_pred_fusion))
+        
+        emg_f1s.append(f1_score(gest_truth,gest_pred_emg,average='weighted'))
+        eeg_f1s.append(f1_score(gest_truth,gest_pred_eeg,average='weighted'))
+        f1s.append(f1_score(gest_truth,gest_pred_fusion,average='weighted'))
+        
+        kappas.append(cohen_kappa_score(gest_truth,gest_pred_fusion))
+        
+    mean_acc=stats.mean(accs)
+    median_acc=stats.median(accs)
+    mean_emg=stats.mean(emg_accs)
+    mean_eeg=stats.mean(eeg_accs)
+    mean_f1_emg=stats.mean(emg_f1s)
+    mean_f1_eeg=stats.mean(eeg_f1s)
+    mean_f1_fusion=stats.mean(f1s)
+    median_f1=stats.median(f1s)
+    median_kappa=stats.median(kappas)
+    end=time.time()
+    #return 1-mean_acc
+    return {
+        'loss': 1-median_acc,
+        'status': STATUS_OK,
+        'median_kappa':median_kappa,
+        'fusion_mean_acc':mean_acc,
+        'fusion_median_acc':median_acc,
+        'emg_mean_acc':mean_emg,
+        'eeg_mean_acc':mean_eeg,
+        'emg_f1_mean':mean_f1_emg,
+        'eeg_f1_mean':mean_f1_eeg,
+        'fusion_f1_mean':mean_f1_fusion,
+        'elapsed_time':end-start,}
+
 def plot_opt_in_time(trials):
     fig,ax=plt.subplots()
     ax.plot(range(1, len(trials) + 1),
@@ -965,7 +1121,7 @@ def optimise_fusion(prebalance=True):
         space.update({'emg_set':emg_set,'eeg_set':eeg_set,'data_in_memory':True,'prebalanced':True})
         
     trials=Trials() #http://hyperopt.github.io/hyperopt/getting-started/minimizing_functions/#attaching-extra-information-via-the-trials-object
-    best = fmin(function_fuse_LOO,
+    best = fmin(function_fuse_withinppt,
                 space=space,
                 algo=tpe.suggest,
                 max_evals=100,

@@ -359,7 +359,11 @@ def synced_predict(test_set_emg,test_set_eeg,model_emg,model_eeg,classlabels,arg
         targets.append(TargetLabel)
     return targets, predlist_emg, predlist_eeg, predlist_fusion
 
-def refactor_synced_predict(test_set_emg,test_set_eeg,model_emg,model_eeg,classlabels,args):
+def refactor_synced_predict(test_set_emg,test_set_eeg,model_emg,model_eeg,classlabels,args, chosencolseeg=None, chosencolsemg=None):
+    if chosencolsemg is None:
+        chosencolsemg=np.arange(len(test_set_emg.columns))
+    if chosencolseeg is None:
+        chosencolseeg=np.arange(len(test_set_eeg.columns))
   #  distrolist_emg=[]
     predlist_emg=[]
  #   distrolist_eeg=[]
@@ -391,9 +395,16 @@ def refactor_synced_predict(test_set_emg,test_set_eeg,model_emg,model_eeg,classl
         
     '''Get values from instances'''
     IDs=list(emg.filter(regex='^ID_').keys())
-    IDs.append('Label')
-    emgvals=emg.drop(IDs,axis='columns').values
-    eegvals=eeg.drop(IDs,axis='columns').values
+    emg=emg.drop(IDs,axis='columns')
+    eeg=eeg.drop(IDs,axis='columns')
+    
+    eeg=eeg.iloc[:,chosencolseeg]
+    emg=emg.iloc[:,chosencolsemg]
+    emgvals=emg.drop(['Label'],axis='columns').values
+    eegvals=eeg.drop(['Label'],axis='columns').values
+    #IDs.append('Label')
+    #emgvals=emg.drop(IDs,axis='columns').values
+    #eegvals=eeg.drop(IDs,axis='columns').values
     
     '''Pass values to models'''
     
@@ -783,6 +794,15 @@ def function_fuse_LOO(args):
         else:
             emg_others=ml.drop_ID_cols(emg_others)
             eeg_others=ml.drop_ID_cols(eeg_others)
+            
+            sel_cols_eeg=feats.sel_percent_feats_df(eeg_others,percent=15)
+            sel_cols_eeg=np.append(sel_cols_eeg,eeg_others.columns.get_loc('Label'))
+            eeg_others=eeg_others.iloc[:,sel_cols_eeg]
+            
+            sel_cols_emg=feats.sel_percent_feats_df(emg_others,percent=15)
+            sel_cols_emg=np.append(sel_cols_emg,emg_others.columns.get_loc('Label'))
+            emg_others=emg_others.iloc[:,sel_cols_emg]
+            
             emg_model,eeg_model=train_models_opt(emg_others,eeg_others,args)
         
             classlabels = emg_model.classes_
@@ -791,7 +811,7 @@ def function_fuse_LOO(args):
             eeg_ppt.sort_values(['ID_pptID','ID_run','Label','ID_gestrep','ID_tend'],ascending=[True,True,True,True,True],inplace=True)
                 
             #targets, predlist_emg, predlist_eeg, predlist_fusion = synced_predict(emg_ppt, eeg_ppt, emg_model, eeg_model, classlabels,args)
-            targets, predlist_emg, predlist_eeg, predlist_fusion = refactor_synced_predict(emg_ppt, eeg_ppt, emg_model, eeg_model, classlabels,args)
+            targets, predlist_emg, predlist_eeg, predlist_fusion = refactor_synced_predict(emg_ppt, eeg_ppt, emg_model, eeg_model, classlabels,args, sel_cols_eeg,sel_cols_emg)
 
         #acc_emg,acc_eeg,acc_fusion=evaluate_results(targets, predlist_emg, correctness_emg, predlist_eeg, correctness_eeg, predlist_fusion, correctness_fusion, classlabels)
         
@@ -822,7 +842,7 @@ def function_fuse_LOO(args):
     end=time.time()
     #return 1-mean_acc
     return {
-        'loss': 1-median_kappa,
+        'loss': 1-median_acc,
         'status': STATUS_OK,
         'median_kappa':median_kappa,
         'fusion_mean_acc':mean_acc,
@@ -864,11 +884,11 @@ def setup_search_space():
     space = {
             'emg':hp.choice('emg model',[
                 {'emg_model_type':'RF',
-                 'n_trees':scope.int(hp.quniform('emg.RF.ntrees',10,50,q=10)),
+                 'n_trees':scope.int(hp.quniform('emg.RF.ntrees',10,100,q=5)),
                  #integerising search space https://github.com/hyperopt/hyperopt/issues/566#issuecomment-549510376
                  },
                 {'emg_model_type':'kNN',
-                 'knn_k':scope.int(hp.quniform('emg.knn.k',1,5,q=1)),
+                 'knn_k':scope.int(hp.quniform('emg.knn.k',1,25,q=1)),
                  },
                 {'emg_model_type':'LDA',
                  'LDA_solver':hp.choice('emg.LDA_solver',['svd','lsqr','eigen']),
@@ -883,10 +903,10 @@ def setup_search_space():
                 ]),
             'eeg':hp.choice('eeg model',[
                 {'eeg_model_type':'RF',
-                 'n_trees':scope.int(hp.quniform('eeg_ntrees',10,50,q=10)),
+                 'n_trees':scope.int(hp.quniform('eeg_ntrees',10,100,q=5)),
                  },
                 {'eeg_model_type':'kNN',
-                 'knn_k':scope.int(hp.quniform('eeg.knn.k',1,5,q=1)),
+                 'knn_k':scope.int(hp.quniform('eeg.knn.k',1,25,q=1)),
                  },
                 {'eeg_model_type':'LDA',
                  'LDA_solver':hp.choice('eeg.LDA_solver',['svd','lsqr','eigen']),
@@ -902,10 +922,10 @@ def setup_search_space():
                 ]),
             'featfuse':hp.choice('featfuse model',[
                 {'featfuse_model_type':'RF',
-                 'n_trees':scope.int(hp.quniform('featfuse.RF.ntrees',10,50,q=10)),
+                 'n_trees':scope.int(hp.quniform('featfuse.RF.ntrees',10,100,q=5)),
                  },
                 {'featfuse_model_type':'kNN',
-                 'knn_k':scope.int(hp.quniform('featfuse.knn.k',1,5,q=1)),
+                 'knn_k':scope.int(hp.quniform('featfuse.knn.k',1,25,q=1)),
                  },
                 {'featfuse_model_type':'LDA',
                  'LDA_solver':hp.choice('featfuse.LDA_solver',['svd','lsqr','eigen']),
@@ -917,9 +937,9 @@ def setup_search_space():
                 ]),
             'fusion_alg':hp.choice('fusion algorithm',[
                 'mean',
-                '3_1_emg',
+                '3_1_emg', #Excluding those which allow it to ignore EEG
                 '3_1_eeg',
-                'bayes',
+                'bayes', #Excluding those which allow it to ignore EEG
                 'highest_conf',
                 #'hierarchical', #DON'T DO THESE IN THE SAME PARAM SPACE
                 #'featlevel',
@@ -947,13 +967,20 @@ def optimise_fusion(prebalance=True):
     best = fmin(function_fuse_LOO,
                 space=space,
                 algo=tpe.suggest,
-                max_evals=1,
+                max_evals=100,
                 trials=trials)
     return best, space, trials
     
 def save_resultdict(filepath,resultdict):
     #https://stackoverflow.com/questions/61894745/write-dictionary-to-text-file-with-newline
+    status=resultdict['Results'].pop('status')
     f=open(filepath,'w')
+    try:
+        target=list(resultdict['Results'].keys())[list(resultdict['Results'].values()).index(1-resultdict['Results']['loss'])]
+        f.write(f"Optimising for {target}\n\n")
+    except ValueError:
+        target, _ = min(resultdict['Results'].items(), key=lambda x: abs(1-resultdict['Results']['loss'] - x[1]))
+        f.write(f"Probably optimising for {target}\n\n")
     f.write('EEG Parameters:\n')
     for k in resultdict['Chosen parameters']['eeg'].keys():
         f.write(f"\t'{k}':'{resultdict['Chosen parameters']['eeg'][k]}'\n")
@@ -967,6 +994,7 @@ def save_resultdict(filepath,resultdict):
         for k in resultdict['Chosen parameters']['featfuse'].keys():
             f.write(f"\t'{k}':'{resultdict['Chosen parameters']['featfuse'][k]}'\n")
     f.write('Results:\n')
+    resultdict['Results']['status']=status
     for k in resultdict['Results'].keys():
         f.write(f"\t'{k}':'{resultdict['Results'][k]}'\n")
     f.close()

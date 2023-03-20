@@ -120,10 +120,13 @@ def single_mode_predict(test_set,model,classlabels,args):
 
 def classifyEEG_withinsubject(args):
     start=time.time()
-    eeg_set_path=args['eeg_set_path']
-    eeg_set=ml.pd.read_csv(eeg_set_path,delimiter=',')
-    
-    eeg_set=fus.balance_single_mode(eeg_set)
+    if args['data_in_memory']:
+        eeg_set=args['eeg_set']
+    else:
+        eeg_set_path=args['eeg_set_path']
+        eeg_set=ml.pd.read_csv(eeg_set_path,delimiter=',')
+    if not args['prebalanced']:
+        eeg_set=fus.balance_single_mode(eeg_set)
     eeg_masks=fus.get_ppt_split(eeg_set,args)
     
     accs=[]
@@ -137,6 +140,12 @@ def classifyEEG_withinsubject(args):
         eeg_train=eeg_ppt[eeg_ppt['ID_stratID'].isin(train_split)]
         eeg_test=eeg_ppt[eeg_ppt['ID_stratID'].isin(test_split)]
         eeg_train=ml.drop_ID_cols(eeg_train)
+        
+        sel_cols=feats.sel_percent_feats_df(eeg_train,percent=15)
+        sel_cols=np.append(sel_cols,eeg_train.columns.get_loc('Label'))
+        eeg_train=eeg_train.iloc[:,sel_cols]
+        eeg_test=ml.drop_ID_cols(eeg_test) #this MUST BE DONE before iloc
+        eeg_test=eeg_test.iloc[:,sel_cols]
         
         eeg_model = ml.train_optimise(eeg_train, args['eeg']['eeg_model_type'], args['eeg'])
         classlabels = eeg_model.classes_
@@ -172,10 +181,14 @@ def classifyEEG_withinsubject(args):
 
 def classifyEEG_LOO(args):
     start=time.time()
-    eeg_set_path=args['eeg_set_path']
-    eeg_set=ml.pd.read_csv(eeg_set_path,delimiter=',')
-    
-    eeg_set=fus.balance_single_mode(eeg_set)
+    if args['data_in_memory']:
+        eeg_set=args['eeg_set']
+    else:
+        eeg_set_path=args['eeg_set_path']
+        eeg_set=ml.pd.read_csv(eeg_set_path,delimiter=',')
+    if not args['prebalanced']:
+        eeg_set=fus.balance_single_mode(eeg_set)
+        
     eeg_masks=fus.get_ppt_split(eeg_set,args)
     
     accs=[]
@@ -232,10 +245,10 @@ def setup_search_space():
     space = {
             'eeg':hp.choice('eeg model',[
                 {'eeg_model_type':'RF',
-                 'n_trees':scope.int(hp.quniform('eeg_ntrees',10,50,q=10)),
+                 'n_trees':scope.int(hp.quniform('eeg_ntrees',10,100,q=5)),
                  },
                 {'eeg_model_type':'kNN',
-                 'knn_k':scope.int(hp.quniform('eeg.knn.k',1,5,q=1)),
+                 'knn_k':scope.int(hp.quniform('eeg.knn.k',1,25,q=1)),
                  },
                 {'eeg_model_type':'LDA',
                  'LDA_solver':hp.choice('eeg.LDA_solver',['svd','lsqr','eigen']),
@@ -249,28 +262,42 @@ def setup_search_space():
                  # naming convention https://github.com/hyperopt/hyperopt/issues/380#issuecomment-685173200
               #   }
                 ]),
-            'eeg_set_path':params.eeg_waygal,
+            'eeg_set_path':params.eeg_32_waygal,
             'using_literature_data':True,
+            'data_in_memory':False,
+            'prebalanced':False,
             }
     return space
 
-def optimise_EEG_LOO():
+def optimise_EEG_LOO(prebalance=True):
     space=setup_search_space()
+    
+    if prebalance:
+        eeg_set=ml.pd.read_csv(space['eeg_set_path'],delimiter=',')
+        eeg_set=fus.balance_single_mode(eeg_set)
+        space.update({'eeg_set':eeg_set,'data_in_memory':True,'prebalanced':True})
+    
     trials=Trials() #http://hyperopt.github.io/hyperopt/getting-started/minimizing_functions/#attaching-extra-information-via-the-trials-object
     best = fmin(classifyEEG_LOO,
                 space=space,
                 algo=tpe.suggest,
-                max_evals=3,
+                max_evals=50,
                 trials=trials)
     return best, space, trials
 
-def optimise_EEG_withinsubject():
+def optimise_EEG_withinsubject(prebalance=True):
     space=setup_search_space()
+    
+    if prebalance:
+        eeg_set=ml.pd.read_csv(space['eeg_set_path'],delimiter=',')
+        eeg_set=fus.balance_single_mode(eeg_set)
+        space.update({'eeg_set':eeg_set,'data_in_memory':True,'prebalanced':True})
+    
     trials=Trials() #http://hyperopt.github.io/hyperopt/getting-started/minimizing_functions/#attaching-extra-information-via-the-trials-object
     best = fmin(classifyEEG_withinsubject,
                 space=space,
                 algo=tpe.suggest,
-                max_evals=3,
+                max_evals=50,
                 trials=trials)
     return best, space, trials
     
@@ -302,7 +329,7 @@ def save_resultdict(filepath,resultdict):
 
 if __name__ == '__main__':
     
-    trialmode='LOO'
+    trialmode='WithinPpt'
     
     if trialmode=='LOO':
         best,space,trials=optimise_EEG_LOO()
@@ -344,7 +371,7 @@ if __name__ == '__main__':
     
     currentpath=os.path.dirname(__file__)
     result_dir=params.waygal_results_dir
-    resultpath=os.path.join(currentpath,result_dir,'EEGOnly',trialmode)
+    resultpath=os.path.join(currentpath,result_dir,'EEG32Ch',trialmode)
         
     '''saving figures of performance over time'''
     eeg_acc_plot.savefig(os.path.join(resultpath,'eeg_acc.png'))

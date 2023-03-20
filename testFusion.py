@@ -913,7 +913,7 @@ def function_fuse_withinppt(args):
             emg_train.sort_values(['ID_pptID','ID_run','Label','ID_gestrep','ID_tend'],ascending=[True,True,True,True,True],inplace=True)
             
             index_emg=ml.pd.MultiIndex.from_arrays([emg_train[col] for col in ['ID_pptID','ID_run','Label','ID_gestrep','ID_tend']])
-            index_eeg=ml.pd.MultiIndex.from_arrays([eeg_others[col] for col in ['ID_pptID','ID_run','Label','ID_gestrep','ID_tend']])
+            index_eeg=ml.pd.MultiIndex.from_arrays([eeg_train[col] for col in ['ID_pptID','ID_run','Label','ID_gestrep','ID_tend']])
             emg_train=emg_train.loc[index_emg.isin(index_eeg)].reset_index(drop=True)
             eeg_train=eeg_train.loc[index_eeg.isin(index_emg)].reset_index(drop=True)
                     
@@ -1111,7 +1111,24 @@ def setup_search_space():
             }
     return space
 
-def optimise_fusion(prebalance=True):
+def optimise_fusion_LOO(prebalance=True):
+    space=setup_search_space()
+    
+    if prebalance:
+        emg_set=ml.pd.read_csv(space['emg_set_path'],delimiter=',')
+        eeg_set=ml.pd.read_csv(space['eeg_set_path'],delimiter=',')
+        emg_set,eeg_set=balance_set(emg_set,eeg_set)
+        space.update({'emg_set':emg_set,'eeg_set':eeg_set,'data_in_memory':True,'prebalanced':True})
+        
+    trials=Trials() #http://hyperopt.github.io/hyperopt/getting-started/minimizing_functions/#attaching-extra-information-via-the-trials-object
+    best = fmin(function_fuse_withinppt,
+                space=space,
+                algo=tpe.suggest,
+                max_evals=100,
+                trials=trials)
+    return best, space, trials
+
+def optimise_fusion_withinsubject(prebalance=True):
     space=setup_search_space()
     
     if prebalance:
@@ -1157,7 +1174,12 @@ def save_resultdict(filepath,resultdict):
     f.close()
 
 if __name__ == '__main__':
-    
+    trialmode='LOO'
+    trialmode='WithinPpt'
+    if trialmode=='LOO':
+        best,space,trials=optimise_fusion_LOO()
+    elif trialmode=='WithinPpt':
+        best,space,trials=optimise_fusion_withinsubject()
     #space=stochastic.sample(setup_search_space())
     #best_results=function_fuse_LOO(space)
     #raise

@@ -172,7 +172,7 @@ def train_optimise(training_set,modeltype,args):
         model = train_svm(training_set,args)
     elif modeltype=='QDA':
         model = train_QDA(training_set,args)
-    elif modeltype=='SVM':
+    elif modeltype=='SVM_PlattScale':
         model = train_SVC_Platt(training_set,args)
    
     return model

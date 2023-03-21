@@ -1042,6 +1042,8 @@ def setup_search_space():
                 {'emg_model_type':'RF',
                  'n_trees':scope.int(hp.quniform('emg.RF.ntrees',10,100,q=5)),
                  #integerising search space https://github.com/hyperopt/hyperopt/issues/566#issuecomment-549510376
+                {'emg_model_type':'SVM',    #SKL SVC likely unviable, excessively slow
+                 'svm_C':hp.uniform('emg.svm.c',0.1,100), #use loguniform?
                  },
                 {'emg_model_type':'kNN',
                  'knn_k':scope.int(hp.quniform('emg.knn.k',1,25,q=1)),
@@ -1069,6 +1071,8 @@ def setup_search_space():
                 {'eeg_model_type':'LDA',
                  'LDA_solver':hp.choice('eeg.LDA_solver',['svd','lsqr','eigen']),
                  'shrinkage':hp.uniform('eeg.lda.shrinkage',0.0,1.0),
+                {'eeg_model_type':'SVM',    #SKL SVC likely unviable, excessively slow
+                 'svm_C':hp.uniform('eeg.svm.c',0.1,100), #use loguniform?
                  },
                 {'eeg_model_type':'QDA',
                  'regularisation':hp.uniform('eeg.qda.regularisation',0.0,1.0),

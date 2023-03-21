@@ -1047,7 +1047,7 @@ def setup_search_space():
                  'knn_k':scope.int(hp.quniform('emg.knn.k',1,25,q=1)),
                  },
                 {'emg_model_type':'LDA',
-                 'LDA_solver':hp.choice('emg.LDA_solver',['svd','eigen']), #removed lsqr due to LinAlgError: SVD did not converge in linear least squares
+                 'LDA_solver':hp.choice('emg.LDA_solver',['svd','lsqr','eigen']), #removed lsqr due to LinAlgError: SVD did not converge in linear least squares but readding as this has not repeated
                  'shrinkage':hp.uniform('emg.lda.shrinkage',0.0,1.0),
                  },
                 {'emg_model_type':'QDA',
@@ -1063,11 +1063,11 @@ def setup_search_space():
                 {'eeg_model_type':'RF',
                  'n_trees':scope.int(hp.quniform('eeg_ntrees',10,100,q=5)),
                  },
-                {'eeg_model_type':'kNN',
-                 'knn_k':scope.int(hp.quniform('eeg.knn.k',1,25,q=1)),
-                 },
+                #{'eeg_model_type':'kNN',   #Discounting EEG KNN due to reliably slow & low results
+               #  'knn_k':scope.int(hp.quniform('eeg.knn.k',1,25,q=1)),
+                # },
                 {'eeg_model_type':'LDA',
-                 'LDA_solver':hp.choice('eeg.LDA_solver',['svd','eigen']),
+                 'LDA_solver':hp.choice('eeg.LDA_solver',['svd','lsqr','eigen']),
                  'shrinkage':hp.uniform('eeg.lda.shrinkage',0.0,1.0),
                  },
                 {'eeg_model_type':'QDA',

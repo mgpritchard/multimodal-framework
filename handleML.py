@@ -19,9 +19,11 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.discriminant_analysis import LinearDiscriminantAnalysis, QuadraticDiscriminantAnalysis
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.svm import SVC
+from sklearn.svm import LinearSVC
 from sklearn.model_selection import cross_val_score
 from sklearn.model_selection import RepeatedStratifiedKFold
 from sklearn.metrics import accuracy_score
+from sklearn.preprocessing import minmax_scale
 
 #from hyperopt import fmin, tpe, hp, STATUS_OK
 #from hyperopt.pll import scope
@@ -165,6 +167,9 @@ def train_optimise(training_set,modeltype,args):
         model=train_LDA_param(training_set,args)
     elif modeltype=='kNN':
         model = train_knn(training_set,args)
+    elif modeltype=='SVM':
+        raise ValueError('LinearSVC has no predict_proba')
+        model = train_svm(training_set,args)
     elif modeltype=='QDA':
         model = train_QDA(training_set,args)
     elif modeltype=='SVM':
@@ -188,6 +193,17 @@ def train_SVC_Platt(train_data,args):
 def train_QDA(train_data,args):
     reg=args['regularisation']
     model=QuadraticDiscriminantAnalysis(reg_param=reg)
+    train=train_data.values[:,:-1]
+    targets=train_data.values[:,-1]
+    model.fit(train.astype(np.float64),targets)
+    return model
+
+def train_svm(train_data,args):
+    '''maybe need https://stackoverflow.com/questions/26478000/converting-linearsvcs-decision-function-to-probabilities-scikit-learn-python'''
+    '''or could use distro=model.decision_function(values) #https://stackoverflow.com/questions/49507066/predict-probabilities-using-svm
+        distro=minmax_scale(distro,feature_range=(0,1))?'''
+    C=args['svm_C']
+    model=LinearSVC(C=C)
     train=train_data.values[:,:-1]
     targets=train_data.values[:,-1]
     model.fit(train.astype(np.float64),targets)

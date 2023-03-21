@@ -23,7 +23,8 @@ from sklearn.svm import LinearSVC
 from sklearn.model_selection import cross_val_score
 from sklearn.model_selection import RepeatedStratifiedKFold
 from sklearn.metrics import accuracy_score
-from sklearn.preprocessing import minmax_scale
+from sklearn.preprocessing import minmax_scale, label_binarize
+import types
 
 #from hyperopt import fmin, tpe, hp, STATUS_OK
 #from hyperopt.pll import scope
@@ -168,7 +169,7 @@ def train_optimise(training_set,modeltype,args):
     elif modeltype=='kNN':
         model = train_knn(training_set,args)
     elif modeltype=='SVM':
-        raise ValueError('LinearSVC has no predict_proba')
+        #raise ValueError('LinearSVC has no predict_proba')
         model = train_svm(training_set,args)
     elif modeltype=='QDA':
         model = train_QDA(training_set,args)
@@ -207,6 +208,15 @@ def train_svm(train_data,args):
     train=train_data.values[:,:-1]
     targets=train_data.values[:,-1]
     model.fit(train.astype(np.float64),targets)
+    
+    def predict_proba(self, values):
+        pred=self.predict(values)
+        classes=self.classes_
+        probs=label_binarize(pred,classes)
+        return probs
+    
+    model.predict_proba=types.MethodType(predict_proba,model)
+    
     return model
 
 def train_LDA_param(train_data,args):

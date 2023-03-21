@@ -1047,15 +1047,17 @@ def setup_search_space():
                  'knn_k':scope.int(hp.quniform('emg.knn.k',1,25,q=1)),
                  },
                 {'emg_model_type':'LDA',
-                 'LDA_solver':hp.choice('emg.LDA_solver',['svd','lsqr','eigen']),
+                 'LDA_solver':hp.choice('emg.LDA_solver',['svd','eigen']), #removed lsqr due to LinAlgError: SVD did not converge in linear least squares
                  'shrinkage':hp.uniform('emg.lda.shrinkage',0.0,1.0),
                  },
                 {'emg_model_type':'QDA',
                  'regularisation':hp.uniform('emg.qda.regularisation',0.0,1.0), #https://www.kaggle.com/code/code1110/best-parameter-s-for-qda/notebook
                  },
-            #    {'emg_model_type':'SVM',
-             #    'svm_C':hp.uniform('emg.svm.c',0.1,100),
-              #   }
+       #         {'emg_model_type':'SVM',    #SKL SVC likely unviable, excessively slow
+        #         'kernel':hp.choice('emg.svm.kernel',['linear','poly','rbf']),
+         #        'svm_C':hp.uniform('emg.svm.c',0.1,100), #use loguniform?
+          #       'gamma':hp.uniform('emg.svm.gamma',0.1,100,),
+           #      }
                 ]),
             'eeg':hp.choice('eeg model',[
                 {'eeg_model_type':'RF',
@@ -1065,16 +1067,18 @@ def setup_search_space():
                  'knn_k':scope.int(hp.quniform('eeg.knn.k',1,25,q=1)),
                  },
                 {'eeg_model_type':'LDA',
-                 'LDA_solver':hp.choice('eeg.LDA_solver',['svd','lsqr','eigen']),
+                 'LDA_solver':hp.choice('eeg.LDA_solver',['svd','eigen']),
                  'shrinkage':hp.uniform('eeg.lda.shrinkage',0.0,1.0),
                  },
                 {'eeg_model_type':'QDA',
                  'regularisation':hp.uniform('eeg.qda.regularisation',0.0,1.0),
                  },
-             #   {'eeg_model_type':'SVM',
+            #    {'eeg_model_type':'SVM',
+             #    'kernel':hp.choice('eeg.svm.kernel',['linear','poly','rbf']),
               #   'svm_C':hp.uniform('eeg.svm.c',0.1,100),
+               #  'gamma':hp.uniform('eeg.svm.gamma',0.1,100,),
                  # naming convention https://github.com/hyperopt/hyperopt/issues/380#issuecomment-685173200
-              #   }
+                # }
                 ]),
             'featfuse':hp.choice('featfuse model',[
                 {'featfuse_model_type':'RF',

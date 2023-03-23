@@ -329,7 +329,7 @@ def save_resultdict(filepath,resultdict):
 
 if __name__ == '__main__':
     
-    trialmode='WithinPpt'
+    trialmode='LOO'
     
     if trialmode=='LOO':
         best,space,trials=optimise_EEG_LOO()

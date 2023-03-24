@@ -1239,13 +1239,18 @@ if __name__ == '__main__':
     #could just get trials.results?
     
     bestparams=space_eval(space,best)
-    print({k:v for k,v in bestparams if k not in ['eeg_st','emg_set']})
+    
+    for static in ['eeg_set_path','emg_set_path','using_literature_data']:
+        bestparams.pop(static)
+    bestparams.pop('eeg_set')
+    bestparams.pop('emg_set')    
+    
+    print(bestparams)
    # print('Best Coehns Kappa between ground truth and fusion predictions: ',
     #      1-(best_results['loss']))
     print('Best median Fusion accuracy: ',1-best_results['loss'])
     
-    for static in ['eeg_set_path','emg_set_path','using_literature_data']:
-        bestparams.pop(static)
+    
         
     winner={'Chosen parameters':bestparams,
             'Results':best_results}

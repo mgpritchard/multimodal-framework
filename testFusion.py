@@ -1039,20 +1039,20 @@ def plot_stat_in_time(trials,stat,ylower=0,yupper=1,showplot=True):
 def setup_search_space():
     space = {
             'emg':hp.choice('emg model',[
-  #              {'emg_model_type':'RF',
-   #              'n_trees':scope.int(hp.quniform('emg.RF.ntrees',10,100,q=5)),
-    #             #integerising search space https://github.com/hyperopt/hyperopt/issues/566#issuecomment-549510376
-     #            },
-      #          {'emg_model_type':'kNN',
-       #          'knn_k':scope.int(hp.quniform('emg.knn.k',1,25,q=1)),
-        #         },
-         #       {'emg_model_type':'LDA',
-          #       'LDA_solver':hp.choice('emg.LDA_solver',['svd','lsqr','eigen']), #removed lsqr due to LinAlgError: SVD did not converge in linear least squares but readding as this has not repeated
-           #      'shrinkage':hp.uniform('emg.lda.shrinkage',0.0,1.0),
-            #     },
-             #   {'emg_model_type':'QDA',
-              #   'regularisation':hp.uniform('emg.qda.regularisation',0.0,1.0), #https://www.kaggle.com/code/code1110/best-parameter-s-for-qda/notebook
-               #  },
+                {'emg_model_type':'RF',
+                 'n_trees':scope.int(hp.quniform('emg.RF.ntrees',10,100,q=5)),
+                 #integerising search space https://github.com/hyperopt/hyperopt/issues/566#issuecomment-549510376
+                 },
+                {'emg_model_type':'kNN',
+                 'knn_k':scope.int(hp.quniform('emg.knn.k',1,25,q=1)),
+                 },
+                {'emg_model_type':'LDA',
+                 'LDA_solver':hp.choice('emg.LDA_solver',['svd','lsqr','eigen']), #removed lsqr due to LinAlgError: SVD did not converge in linear least squares but readding as this has not repeated
+                 'shrinkage':hp.uniform('emg.lda.shrinkage',0.0,1.0),
+                 },
+                {'emg_model_type':'QDA',
+                 'regularisation':hp.uniform('emg.qda.regularisation',0.0,1.0), #https://www.kaggle.com/code/code1110/best-parameter-s-for-qda/notebook
+                 },
                 {'emg_model_type':'SVM_PlattScale',    #SKL SVC likely unviable, excessively slow
                  'kernel':hp.choice('emg.svm.kernel',['rbf']),#'poly','linear']),
                  'svm_C':hp.uniform('emg.svm.c',0.1,100), #use loguniform? #https://queirozf.com/entries/choosing-c-hyperparameter-for-svm-classifiers-examples-with-scikit-learn
@@ -1064,25 +1064,25 @@ def setup_search_space():
    #              },
                 ]),
             'eeg':hp.choice('eeg model',[
-#                {'eeg_model_type':'RF',
- #                'n_trees':scope.int(hp.quniform('eeg_ntrees',10,100,q=5)),
-  #               },
+                {'eeg_model_type':'RF',
+                 'n_trees':scope.int(hp.quniform('eeg_ntrees',10,100,q=5)),
+                 },
                 #{'eeg_model_type':'kNN',   #Discounting EEG KNN due to reliably slow & low results
                #  'knn_k':scope.int(hp.quniform('eeg.knn.k',1,25,q=1)),
                 # },
-#                {'eeg_model_type':'LDA',
- #                'LDA_solver':hp.choice('eeg.LDA_solver',['svd','lsqr','eigen']),
-  #               'shrinkage':hp.uniform('eeg.lda.shrinkage',0.0,1.0),
-   #              },
-    #            {'eeg_model_type':'QDA',
-     #            'regularisation':hp.uniform('eeg.qda.regularisation',0.0,1.0),
-      #           },
-                {'eeg_model_type':'SVM_PlattScale',
-                 'kernel':hp.choice('eeg.svm.kernel',['rbf']),#'poly','linear']),
-                 'svm_C':hp.uniform('eeg.svm.c',0.1,100),
-                 'gamma':hp.uniform('eeg.svm.gamma',0.1,20,),
-                # naming convention https://github.com/hyperopt/hyperopt/issues/380#issuecomment-685173200
+                {'eeg_model_type':'LDA',
+                 'LDA_solver':hp.choice('eeg.LDA_solver',['svd','lsqr','eigen']),
+                 'shrinkage':hp.uniform('eeg.lda.shrinkage',0.0,1.0),
                  },
+                {'eeg_model_type':'QDA',
+                 'regularisation':hp.uniform('eeg.qda.regularisation',0.0,1.0),
+                 },
+              #  {'eeg_model_type':'SVM_PlattScale',
+              #   'kernel':hp.choice('eeg.svm.kernel',['rbf']),#'poly','linear']),
+             #    'svm_C':hp.loguniform('eeg.svm.c',np.log(0.01),np.log(100)),
+               #  'gamma':hp.loguniform('eeg.svm.gamma',np.log(0.01),np.log(100)),
+                # naming convention https://github.com/hyperopt/hyperopt/issues/380#issuecomment-685173200
+              #   },
  #               {'eeg_model_type':'SVM',    #SKL SVC likely unviable, excessively slow
   #               'svm_C':hp.uniform('eeg.svm.c',0.1,100), #use loguniform?
    #              },
@@ -1135,7 +1135,7 @@ def optimise_fusion_LOO(prebalance=True):
     best = fmin(function_fuse_withinppt,
                 space=space,
                 algo=tpe.suggest,
-                max_evals=4,
+                max_evals=5,
                 trials=trials)
     return best, space, trials
 
@@ -1152,7 +1152,7 @@ def optimise_fusion_withinsubject(prebalance=True):
     best = fmin(function_fuse_withinppt,
                 space=space,
                 algo=tpe.suggest,
-                max_evals=20,
+                max_evals=40,
                 trials=trials)
     return best, space, trials
     
@@ -1185,8 +1185,8 @@ def save_resultdict(filepath,resultdict):
     f.close()
 
 if __name__ == '__main__':
-    #trialmode='LOO'
-    trialmode='WithinPpt'
+    trialmode='LOO'
+    #trialmode='WithinPpt'
     
     if trialmode=='LOO':
         best,space,trials=optimise_fusion_LOO()
@@ -1241,7 +1241,7 @@ if __name__ == '__main__':
     #print('plotting ppt1 just to get a confmat')
     #ppt1acc=function_fuse_pptn(space_eval(space,best),1,plot_confmats=True)
     
-    raise
+    
     '''PICKLING THE TRIALS OBJ'''
     
     currentpath=os.path.dirname(__file__)
@@ -1249,6 +1249,7 @@ if __name__ == '__main__':
     resultpath=os.path.join(currentpath,result_dir)
     
     resultpath=os.path.join(resultpath,'Fusion_32EEG',trialmode)
+    #resultpath=os.path.join(resultpath,'SVMOnly',trialmode)
     
     trials_obj_path=os.path.join(resultpath,'trials_obj.p')
     pickle.dump(trials,open(trials_obj_path,'wb'))

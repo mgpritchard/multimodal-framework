@@ -13,6 +13,7 @@ from tkinter import Tk
 from tkinter.filedialog import askopenfilename, askopenfilenames, askdirectory, asksaveasfilename
 import generate_training_matrix as genfeats
 from sklearn.feature_selection import SelectPercentile, f_classif
+from sklearn.preprocessing import MinMaxScaler, StandardScaler, Normalizer
 
 def select_feats(featureset,alg=None):
     print('\n\n*no feature selection currently implemented*\n\n')
@@ -29,7 +30,28 @@ def sel_percent_feats_df(data,percent=15):
     #selected=attribs.iloc[:col_idxs]
     #selected['Label']=target
     return col_idxs
-    
+
+def scale_feats_train(data,mode='normalise'):
+    '''data is a dataframe of feats, mode = normalise or standardise'''
+    if mode is None:
+        return data, None
+    if mode=='normalise' or mode=='normalize':
+        scaler=Normalizer()
+    elif mode=='standardise':
+        scaler=StandardScaler()
+    cols_to_ignore=data.filter(regex='^ID_').columns
+    cols_to_ignore.append('Label')
+    data[data.columns[~data.columns.isin(cols_to_ignore)]]=scaler.fit_transform(data[data.columns[~data.columns.isin(cols_to_ignore)]])
+    return data, scaler
+
+def scale_feats_test(data,scaler):
+    '''data is a dataframe of feats, scaler is a scaler fit to training data'''
+    if scaler is None:
+        return data
+    cols_to_ignore=data.filter(regex='^ID_').columns
+    cols_to_ignore.append('Label')
+    data[data.columns[~data.columns.isin(cols_to_ignore)]]=scaler.fit_transform(data[data.columns[~data.columns.isin(cols_to_ignore)]])
+    return data    
 
 def ask_for_dir(datatype=""):
     homepath=os.path.dirname(os.path.dirname(os.path.realpath(__file__)))

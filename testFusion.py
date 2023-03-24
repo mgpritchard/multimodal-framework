@@ -795,6 +795,12 @@ def function_fuse_LOO(args):
             emg_others=ml.drop_ID_cols(emg_others)
             eeg_others=ml.drop_ID_cols(eeg_others)
             
+            if args['scalingtype']:
+                emg_others,emgscaler=feats.scale_feats_train(emg_others,args['scalingtype'])
+                eeg_others,eegscaler=feats.scale_feats_train(eeg_others,args['scalingtype'])
+                emg_ppt=feats.scale_feats_test(emg_ppt,emgscaler)
+                eeg_ppt=feats.scale_feats_test(eeg_ppt,eegscaler)
+            
             sel_cols_eeg=feats.sel_percent_feats_df(eeg_others,percent=15)
             sel_cols_eeg=np.append(sel_cols_eeg,eeg_others.columns.get_loc('Label'))
             eeg_others=eeg_others.iloc[:,sel_cols_eeg]
@@ -950,6 +956,12 @@ def function_fuse_withinppt(args):
         else:
             emg_train=ml.drop_ID_cols(emg_train)
             eeg_train=ml.drop_ID_cols(eeg_train)
+            
+            if args['scalingtype']:
+                emg_train,emgscaler=feats.scale_feats_train(emg_train,args['scalingtype'])
+                eeg_train,eegscaler=feats.scale_feats_train(eeg_train,args['scalingtype'])
+                emg_test=feats.scale_feats_test(emg_test,emgscaler)
+                eeg_test=feats.scale_feats_test(eeg_test,eegscaler)
             
             sel_cols_eeg=feats.sel_percent_feats_df(eeg_train,percent=15)
             sel_cols_eeg=np.append(sel_cols_eeg,eeg_train.columns.get_loc('Label'))
@@ -1119,6 +1131,7 @@ def setup_search_space():
             'using_literature_data':True,
             'data_in_memory':False,
             'prebalanced':False,
+            'scalingtype':'normalise',#'standardise',None
             }
     return space
 

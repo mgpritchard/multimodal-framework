@@ -792,14 +792,15 @@ def function_fuse_LOO(args):
             targets, predlist_emg, predlist_eeg, predlist_fusion, classlabels=feature_fusion(emg_others, eeg_others, emg_ppt, eeg_ppt, args)
         
         else:
-            emg_others=ml.drop_ID_cols(emg_others)
-            eeg_others=ml.drop_ID_cols(eeg_others)
-            
+                        
             if args['scalingtype']:
                 emg_others,emgscaler=feats.scale_feats_train(emg_others,args['scalingtype'])
                 eeg_others,eegscaler=feats.scale_feats_train(eeg_others,args['scalingtype'])
                 emg_ppt=feats.scale_feats_test(emg_ppt,emgscaler)
                 eeg_ppt=feats.scale_feats_test(eeg_ppt,eegscaler)
+                
+            emg_others=ml.drop_ID_cols(emg_others)
+            eeg_others=ml.drop_ID_cols(eeg_others)
             
             sel_cols_eeg=feats.sel_percent_feats_df(eeg_others,percent=15)
             sel_cols_eeg=np.append(sel_cols_eeg,eeg_others.columns.get_loc('Label'))
@@ -839,7 +840,9 @@ def function_fuse_LOO(args):
     mean_acc=stats.mean(accs)
     median_acc=stats.median(accs)
     mean_emg=stats.mean(emg_accs)
+    median_emg=stats.median(emg_accs)
     mean_eeg=stats.mean(eeg_accs)
+    median_eeg=stats.median(eeg_accs)
     mean_f1_emg=stats.mean(emg_f1s)
     mean_f1_eeg=stats.mean(eeg_f1s)
     mean_f1_fusion=stats.mean(f1s)
@@ -854,7 +857,9 @@ def function_fuse_LOO(args):
         'fusion_mean_acc':mean_acc,
         'fusion_median_acc':median_acc,
         'emg_mean_acc':mean_emg,
+        'emg_median_acc':median_emg,
         'eeg_mean_acc':mean_eeg,
+        'eeg_median_acc':median_eeg,
         'emg_f1_mean':mean_f1_emg,
         'eeg_f1_mean':mean_f1_eeg,
         'fusion_f1_mean':mean_f1_fusion,
@@ -954,14 +959,15 @@ def function_fuse_withinppt(args):
             targets, predlist_emg, predlist_eeg, predlist_fusion, classlabels=feature_fusion(emg_train, eeg_train, emg_test, eeg_test, args)
         
         else:
-            emg_train=ml.drop_ID_cols(emg_train)
-            eeg_train=ml.drop_ID_cols(eeg_train)
             
             if args['scalingtype']:
                 emg_train,emgscaler=feats.scale_feats_train(emg_train,args['scalingtype'])
                 eeg_train,eegscaler=feats.scale_feats_train(eeg_train,args['scalingtype'])
                 emg_test=feats.scale_feats_test(emg_test,emgscaler)
                 eeg_test=feats.scale_feats_test(eeg_test,eegscaler)
+                
+            emg_train=ml.drop_ID_cols(emg_train)
+            eeg_train=ml.drop_ID_cols(eeg_train)
             
             sel_cols_eeg=feats.sel_percent_feats_df(eeg_train,percent=15)
             sel_cols_eeg=np.append(sel_cols_eeg,eeg_train.columns.get_loc('Label'))
@@ -1001,7 +1007,9 @@ def function_fuse_withinppt(args):
     mean_acc=stats.mean(accs)
     median_acc=stats.median(accs)
     mean_emg=stats.mean(emg_accs)
+    median_emg=stats.median(emg_accs)
     mean_eeg=stats.mean(eeg_accs)
+    median_eeg=stats.median(eeg_accs)
     mean_f1_emg=stats.mean(emg_f1s)
     mean_f1_eeg=stats.mean(eeg_f1s)
     mean_f1_fusion=stats.mean(f1s)
@@ -1016,7 +1024,9 @@ def function_fuse_withinppt(args):
         'fusion_mean_acc':mean_acc,
         'fusion_median_acc':median_acc,
         'emg_mean_acc':mean_emg,
+        'emg_median_acc':median_emg,
         'eeg_mean_acc':mean_eeg,
+        'eeg_median_acc':median_eeg,
         'emg_f1_mean':mean_f1_emg,
         'eeg_f1_mean':mean_f1_eeg,
         'fusion_f1_mean':mean_f1_fusion,
@@ -1065,12 +1075,12 @@ def setup_search_space():
                 {'emg_model_type':'QDA',
                  'regularisation':hp.uniform('emg.qda.regularisation',0.0,1.0), #https://www.kaggle.com/code/code1110/best-parameter-s-for-qda/notebook
                  },
-                {'emg_model_type':'SVM_PlattScale',    #SKL SVC likely unviable, excessively slow
-                 'kernel':hp.choice('emg.svm.kernel',['rbf']),#'poly','linear']),
-                 'svm_C':hp.uniform('emg.svm.c',0.1,100), #use loguniform? #https://queirozf.com/entries/choosing-c-hyperparameter-for-svm-classifiers-examples-with-scikit-learn
-                 'gamma':hp.uniform('emg.svm.gamma',0.1,20,), #maybe log, from lower? #https://vitalflux.com/svm-rbf-kernel-parameters-code-sample/
+            #    {'emg_model_type':'SVM_PlattScale',    #SKL SVC likely unviable, excessively slow
+              #   'kernel':hp.choice('emg.svm.kernel',['rbf']),#'poly','linear']),
+              #   'svm_C':hp.uniform('emg.svm.c',0.1,100), #use loguniform? #https://queirozf.com/entries/choosing-c-hyperparameter-for-svm-classifiers-examples-with-scikit-learn
+             #    'gamma':hp.uniform('emg.svm.gamma',0.1,20,), #maybe log, from lower? #https://vitalflux.com/svm-rbf-kernel-parameters-code-sample/
                  #eg sklearns gridsearch doc uses SVC as an example with C log(1e0,1e3) & gamma log(1e-4,1e-3)
-                 },
+              #   },
  #               {'emg_model_type':'SVM',    #SKL SVC likely unviable, excessively slow
   #               'svm_C':hp.uniform('emg.svm.c',0.1,100), #use loguniform?
    #              },
@@ -1116,8 +1126,8 @@ def setup_search_space():
                 ]),
             'fusion_alg':hp.choice('fusion algorithm',[
                 'mean',
-                #'3_1_emg', #Excluding those which allow it to ignore EEG
-               # '3_1_eeg',
+                '3_1_emg', #Excluding those which allow it to ignore EEG
+                '3_1_eeg',
                 #'bayes', #Excluding those which allow it to ignore EEG
                 'highest_conf',
                 #'hierarchical', #DON'T DO THESE IN THE SAME PARAM SPACE
@@ -1131,7 +1141,7 @@ def setup_search_space():
             'using_literature_data':True,
             'data_in_memory':False,
             'prebalanced':False,
-            'scalingtype':'normalise',#'standardise',None
+            'scalingtype':'standardise',#'normalise','standardise',None
             }
     return space
 
@@ -1165,7 +1175,7 @@ def optimise_fusion_withinsubject(prebalance=True):
     best = fmin(function_fuse_withinppt,
                 space=space,
                 algo=tpe.suggest,
-                max_evals=40,
+                max_evals=10,
                 trials=trials)
     return best, space, trials
     
@@ -1229,12 +1239,18 @@ if __name__ == '__main__':
     #could just get trials.results?
     
     bestparams=space_eval(space,best)
-    print(bestparams)
-    print('Best Coehns Kappa between ground truth and fusion predictions: ',
-          1-(best_results['loss']))
     
     for static in ['eeg_set_path','emg_set_path','using_literature_data']:
         bestparams.pop(static)
+    bestparams.pop('eeg_set')
+    bestparams.pop('emg_set')    
+    
+    print(bestparams)
+   # print('Best Coehns Kappa between ground truth and fusion predictions: ',
+    #      1-(best_results['loss']))
+    print('Best median Fusion accuracy: ',1-best_results['loss'])
+    
+    
         
     winner={'Chosen parameters':bestparams,
             'Results':best_results}

@@ -39,7 +39,7 @@ def scale_feats_train(data,mode='normalise'):
         scaler=Normalizer()
     elif mode=='standardise':
         scaler=StandardScaler()
-    cols_to_ignore=data.filter(regex='^ID_').columns
+    cols_to_ignore=list(data.filter(regex='^ID_').keys())
     cols_to_ignore.append('Label')
     data[data.columns[~data.columns.isin(cols_to_ignore)]]=scaler.fit_transform(data[data.columns[~data.columns.isin(cols_to_ignore)]])
     return data, scaler
@@ -48,7 +48,7 @@ def scale_feats_test(data,scaler):
     '''data is a dataframe of feats, scaler is a scaler fit to training data'''
     if scaler is None:
         return data
-    cols_to_ignore=data.filter(regex='^ID_').columns
+    cols_to_ignore=list(data.filter(regex='^ID_').keys())
     cols_to_ignore.append('Label')
     data[data.columns[~data.columns.isin(cols_to_ignore)]]=scaler.fit_transform(data[data.columns[~data.columns.isin(cols_to_ignore)]])
     return data    

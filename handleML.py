@@ -213,9 +213,11 @@ def train_svm(train_data,args):
         pred=self.predict(values)
         classes=self.classes_
         probs=label_binarize(pred,classes)
+        #https://scikit-learn.org/stable/modules/generated/sklearn.preprocessing.label_binarize.html#sklearn.preprocessing.label_binarize
         return probs
     
     model.predict_proba=types.MethodType(predict_proba,model)
+    #https://stackoverflow.com/questions/972/adding-a-method-to-an-existing-object-instance-in-python
     
     return model
 

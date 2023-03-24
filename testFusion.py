@@ -792,14 +792,15 @@ def function_fuse_LOO(args):
             targets, predlist_emg, predlist_eeg, predlist_fusion, classlabels=feature_fusion(emg_others, eeg_others, emg_ppt, eeg_ppt, args)
         
         else:
-            emg_others=ml.drop_ID_cols(emg_others)
-            eeg_others=ml.drop_ID_cols(eeg_others)
-            
+                        
             if args['scalingtype']:
                 emg_others,emgscaler=feats.scale_feats_train(emg_others,args['scalingtype'])
                 eeg_others,eegscaler=feats.scale_feats_train(eeg_others,args['scalingtype'])
                 emg_ppt=feats.scale_feats_test(emg_ppt,emgscaler)
                 eeg_ppt=feats.scale_feats_test(eeg_ppt,eegscaler)
+                
+            emg_others=ml.drop_ID_cols(emg_others)
+            eeg_others=ml.drop_ID_cols(eeg_others)
             
             sel_cols_eeg=feats.sel_percent_feats_df(eeg_others,percent=15)
             sel_cols_eeg=np.append(sel_cols_eeg,eeg_others.columns.get_loc('Label'))
@@ -954,14 +955,15 @@ def function_fuse_withinppt(args):
             targets, predlist_emg, predlist_eeg, predlist_fusion, classlabels=feature_fusion(emg_train, eeg_train, emg_test, eeg_test, args)
         
         else:
-            emg_train=ml.drop_ID_cols(emg_train)
-            eeg_train=ml.drop_ID_cols(eeg_train)
             
             if args['scalingtype']:
                 emg_train,emgscaler=feats.scale_feats_train(emg_train,args['scalingtype'])
                 eeg_train,eegscaler=feats.scale_feats_train(eeg_train,args['scalingtype'])
                 emg_test=feats.scale_feats_test(emg_test,emgscaler)
                 eeg_test=feats.scale_feats_test(eeg_test,eegscaler)
+                
+            emg_train=ml.drop_ID_cols(emg_train)
+            eeg_train=ml.drop_ID_cols(eeg_train)
             
             sel_cols_eeg=feats.sel_percent_feats_df(eeg_train,percent=15)
             sel_cols_eeg=np.append(sel_cols_eeg,eeg_train.columns.get_loc('Label'))

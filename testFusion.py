@@ -541,6 +541,14 @@ def train_bayes_fuser(model_emg,model_eeg,emg_set,eeg_set,classlabels,args):
     fuser=fusion.train_catNB_fuser(onehot_pred_emg, onehot_pred_eeg, targets)
     return fuser, onehot
 
+def train_svm_fuser(model_emg,model_eeg,emg_set,eeg_set,classlabels,args):
+    targets,predlist_emg,predlist_eeg,_=refactor_synced_predict(emg_set, eeg_set, model_emg, model_eeg, classlabels, args)
+    onehot=fusion.setup_onehot(classlabels)
+    onehot_pred_emg=fusion.encode_preds_onehot(predlist_emg,onehot)
+    onehot_pred_eeg=fusion.encode_preds_onehot(predlist_eeg,onehot)
+    fuser=fusion.train_svm_fuser(onehot_pred_emg, onehot_pred_eeg, targets, args['svmfuse'])
+    return fuser, onehot
+
 def feature_fusion(emg_others,eeg_others,emg_ppt,eeg_ppt,args):
     '''TRAINING ON NON-PPT DATA'''
     emg_others.sort_values(['ID_pptID','ID_run','Label','ID_gestrep','ID_tend'],ascending=[True,True,True,True,True],inplace=True)
@@ -718,6 +726,39 @@ def fusion_hierarchical(emg_others,eeg_others,emg_ppt,eeg_ppt,args):
     
     return targets, predlist_emg, predlist_eeg, predlist_hierarch, classlabels
 
+def fusion_SVM(emg_train, eeg_train, emg_test, eeg_test, args):
+    emg_train.sort_values(['ID_pptID','ID_run','Label','ID_gestrep','ID_tend'],ascending=[True,True,True,True,True],inplace=True)
+    emg_train.sort_values(['ID_pptID','ID_run','Label','ID_gestrep','ID_tend'],ascending=[True,True,True,True,True],inplace=True)
+    
+    index_emg=ml.pd.MultiIndex.from_arrays([emg_train[col] for col in ['ID_pptID','ID_run','Label','ID_gestrep','ID_tend']])
+    index_eeg=ml.pd.MultiIndex.from_arrays([eeg_train[col] for col in ['ID_pptID','ID_run','Label','ID_gestrep','ID_tend']])
+    emg_train=emg_train.loc[index_emg.isin(index_eeg)].reset_index(drop=True)
+    eeg_train=eeg_train.loc[index_eeg.isin(index_emg)].reset_index(drop=True)
+            
+    emg_train['ID_splitIndex']=emg_train['Label'].astype(str)+emg_train['ID_pptID'].astype(str)
+    eeg_train['ID_splitIndex']=eeg_train['Label'].astype(str)+eeg_train['ID_pptID'].astype(str)
+    #https://stackoverflow.com/questions/45516424/sklearn-train-test-split-on-pandas-stratify-by-multiple-columns
+    random_split=random.randint(0,100)
+    emg_train_split_ML,emg_train_split_fusion=train_test_split(emg_train,test_size=0.33,random_state=random_split,stratify=emg_train[['ID_splitIndex']])
+    eeg_train_split_ML,eeg_train_split_fusion=train_test_split(eeg_train,test_size=0.33,random_state=random_split,stratify=eeg_train[['ID_splitIndex']])
+    #https://stackoverflow.com/questions/43095076/scikit-learn-train-test-split-can-i-ensure-same-splits-on-different-datasets
+    
+    emg_train_split_ML=ml.drop_ID_cols(emg_train_split_ML)
+    eeg_train_split_ML=ml.drop_ID_cols(eeg_train_split_ML)
+    
+    emg_model,eeg_model=train_models_opt(emg_train_split_ML,eeg_train_split_ML,args)
+    
+    classlabels = emg_model.classes_
+
+    emg_test.sort_values(['ID_pptID','ID_run','Label','ID_gestrep','ID_tend'],ascending=[True,True,True,True,True],inplace=True)
+    eeg_test.sort_values(['ID_pptID','ID_run','Label','ID_gestrep','ID_tend'],ascending=[True,True,True,True,True],inplace=True)                
+    targets, predlist_emg, predlist_eeg, _ = refactor_synced_predict(emg_test, eeg_test, emg_model, eeg_model, classlabels,args)
+    
+    fuser,onehotEncoder=train_svm_fuser(emg_model,eeg_model,emg_train_split_fusion,eeg_train_split_fusion,classlabels,args)
+    predlist_fusion=fusion.svm_fusion(fuser,onehotEncoder,predlist_emg,predlist_eeg,classlabels)
+    
+    return targets, predlist_emg, predlist_eeg, predlist_fusion, classlabels
+
 def function_fuse_LOO(args):
     start=time.time()
     if not args['data_in_memory']:
@@ -783,6 +824,8 @@ def function_fuse_LOO(args):
             fuser,onehotEncoder=train_bayes_fuser(emg_model,eeg_model,emg_train_split_fusion,eeg_train_split_fusion,classlabels,args)
             predlist_fusion=fusion.bayesian_fusion(fuser,onehotEncoder,predlist_emg,predlist_eeg,classlabels)
         
+        elif args['fusion_alg']=='svm':
+            targets, predlist_emg, predlist_eeg, predlist_fusion, classlabels=fusion_SVM(emg_others, eeg_others, emg_ppt, eeg_ppt, args)
         elif args['fusion_alg']=='hierarchical':
             
             targets, predlist_emg, predlist_eeg, predlist_fusion, classlabels=fusion_hierarchical(emg_others, eeg_others, emg_ppt, eeg_ppt, args)
@@ -950,6 +993,8 @@ def function_fuse_withinppt(args):
             fuser,onehotEncoder=train_bayes_fuser(emg_model,eeg_model,emg_train_split_fusion,eeg_train_split_fusion,classlabels,args)
             predlist_fusion=fusion.bayesian_fusion(fuser,onehotEncoder,predlist_emg,predlist_eeg,classlabels)
         
+        elif args['fusion_alg']=='svm':
+            targets, predlist_emg, predlist_eeg, predlist_fusion, classlabels=fusion_SVM(emg_train, eeg_train, emg_test, eeg_test, args)
         elif args['fusion_alg']=='hierarchical':
             
             targets, predlist_emg, predlist_eeg, predlist_fusion, classlabels=fusion_hierarchical(emg_train, eeg_train, emg_test, eeg_test, args)
@@ -1125,6 +1170,11 @@ def setup_search_space():
                  'regularisation':hp.uniform('featfuse.qda.regularisation',0.0,1.0), #https://www.kaggle.com/code/code1110/best-parameter-s-for-qda/notebook
                  },
                 ]),
+            'svmfuse':{
+                'kernel':hp.choice('eeg.svm.kernel',['rbf']),#'poly','linear']),
+                'svm_C':hp.loguniform('eeg.svm.c',np.log(0.01),np.log(100)),
+                'gamma':hp.loguniform('eeg.svm.gamma',np.log(0.01),np.log(100)),
+                },
             'fusion_alg':hp.choice('fusion algorithm',[
                 'mean',
                 '3_1_emg', #Excluding those which allow it to ignore EEG
@@ -1133,6 +1183,7 @@ def setup_search_space():
                 'highest_conf',
                 #'hierarchical', #DON'T DO THESE IN THE SAME PARAM SPACE
                 #'featlevel',
+                'svm',
                 ]),
             #'emg_set_path':params.emg_set_path_for_system_tests,
             #'eeg_set_path':params.eeg_set_path_for_system_tests,

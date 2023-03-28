@@ -55,6 +55,24 @@ def bayesian_fusion(fuser,onehot,predlist_emg,predlist_eeg,classlabels):
         fusion_preds.append(pred_fusion) 
     return fusion_preds
 
+def train_svm_fuser(mode1,mode2,targets,args):
+    train=np.column_stack([mode1,mode2])
+    kernel=args['kernel']
+    C=args['svm_C']
+    gamma=args['gamma']
+    if kernel=='linear':
+        model=ml.SVC(C=C,kernel=kernel,probability=True) #possible need to fix random_state as predict is called multiple times?
+    else:
+        model=ml.SVC(C=C,kernel=kernel,gamma=gamma,probability=True)
+    model.fit(train.astype(np.float64),targets)
+    return model
+
+def svm_fusion(fuser,onehot,predlist_emg,predlist_eeg,classlabels):
+    onehot_pred_emg=encode_preds_onehot(predlist_emg,onehot)
+    onehot_pred_eeg=encode_preds_onehot(predlist_eeg,onehot)
+    fusion_preds=fuser.predict(np.column_stack([onehot_pred_emg,onehot_pred_eeg]))
+    return fusion_preds
+
 def reward_pattern_match():
     pass
     #assess trace of class probability. reward static high or low or

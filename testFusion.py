@@ -1135,7 +1135,7 @@ def setup_search_space():
    #              },
                 ]),
             'eeg':hp.choice('eeg model',[
-                {'eeg_model_type':'RF',
+               {'eeg_model_type':'RF',
                  'n_trees':scope.int(hp.quniform('eeg_ntrees',10,100,q=5)),
                  },
                 #{'eeg_model_type':'kNN',   #Discounting EEG KNN due to reliably slow & low results
@@ -1148,13 +1148,13 @@ def setup_search_space():
                 {'eeg_model_type':'QDA',
                  'regularisation':hp.uniform('eeg.qda.regularisation',0.0,1.0),
                  },
-              #  {'eeg_model_type':'SVM_PlattScale',
-              #   'kernel':hp.choice('eeg.svm.kernel',['rbf']),#'poly','linear']),
-             #    'svm_C':hp.loguniform('eeg.svm.c',np.log(0.01),np.log(100)),
-               #  'gamma':hp.loguniform('eeg.svm.gamma',np.log(0.01),np.log(100)),
+#                {'eeg_model_type':'SVM_PlattScale',
+ #                'kernel':hp.choice('eeg.svm.kernel',['rbf']),#'poly','linear']),
+  #               'svm_C':hp.loguniform('eeg.svm.c',np.log(0.01),np.log(100)),
+   #              'gamma':hp.loguniform('eeg.svm.gamma',np.log(0.01),np.log(100)),
                #https://www.kaggle.com/code/donkeys/exploring-hyperopt-parameter-tuning?scriptVersionId=12655875&cellId=64
                 # naming convention https://github.com/hyperopt/hyperopt/issues/380#issuecomment-685173200
-              #   },
+    #             },
  #               {'eeg_model_type':'SVM',    #SKL SVC likely unviable, excessively slow
   #               'svm_C':hp.uniform('eeg.svm.c',0.1,100), #use loguniform?
    #              },
@@ -1192,12 +1192,13 @@ def setup_search_space():
             #'emg_set_path':params.emg_set_path_for_system_tests,
             #'eeg_set_path':params.eeg_set_path_for_system_tests,
             'emg_set_path':params.emg_waygal,
-            'eeg_set_path':params.eeg_waygal,
-            #'eeg_set_path':params.eeg_32_waygal,
+            #'eeg_set_path':params.eeg_waygal,
+            'eeg_set_path':params.eeg_32_waygal,
             'using_literature_data':True,
             'data_in_memory':False,
             'prebalanced':False,
-            'scalingtype':'standardise',#'normalise','standardise',None
+            #'scalingtype':'standardise',#'normalise','standardise',None
+            'scalingtype':hp.choice('scaling',['normalise','standardise',None]),
             }
     return space
 
@@ -1214,7 +1215,7 @@ def optimise_fusion_LOO(prebalance=True):
     best = fmin(function_fuse_LOO,
                 space=space,
                 algo=tpe.suggest,
-                max_evals=5,
+                max_evals=50,
                 trials=trials)
     return best, space, trials
 
@@ -1231,7 +1232,7 @@ def optimise_fusion_withinsubject(prebalance=True):
     best = fmin(function_fuse_withinppt,
                 space=space,
                 algo=tpe.suggest,
-                max_evals=10,
+                max_evals=50,
                 trials=trials)
     return best, space, trials
     

@@ -360,10 +360,12 @@ def synced_predict(test_set_emg,test_set_eeg,model_emg,model_eeg,classlabels,arg
     return targets, predlist_emg, predlist_eeg, predlist_fusion
 
 def refactor_synced_predict(test_set_emg,test_set_eeg,model_emg,model_eeg,classlabels,args, chosencolseeg=None, chosencolsemg=None):
+    '''
     if chosencolsemg is None:
         chosencolsemg=np.arange(len(test_set_emg.columns))
     if chosencolseeg is None:
         chosencolseeg=np.arange(len(test_set_eeg.columns))
+    '''
   #  distrolist_emg=[]
     predlist_emg=[]
  #   distrolist_eeg=[]
@@ -398,8 +400,10 @@ def refactor_synced_predict(test_set_emg,test_set_eeg,model_emg,model_eeg,classl
     emg=emg.drop(IDs,axis='columns')
     eeg=eeg.drop(IDs,axis='columns')
     
-    eeg=eeg.iloc[:,chosencolseeg]
-    emg=emg.iloc[:,chosencolsemg]
+    if chosencolseeg is not None:
+        eeg=eeg.iloc[:,chosencolseeg]
+    if chosencolsemg is not None:
+        emg=emg.iloc[:,chosencolsemg]
     emgvals=emg.drop(['Label'],axis='columns').values
     eegvals=eeg.drop(['Label'],axis='columns').values
     #IDs.append('Label')
@@ -1171,9 +1175,9 @@ def setup_search_space():
                  },
                 ]),
             'svmfuse':{
-                'kernel':hp.choice('eeg.svm.kernel',['rbf']),#'poly','linear']),
+           #     'kernel':hp.choice('eeg.svm.kernel',['rbf']),#'poly','linear']),
                 'svm_C':hp.loguniform('eeg.svm.c',np.log(0.01),np.log(100)),
-                'gamma':hp.loguniform('eeg.svm.gamma',np.log(0.01),np.log(100)),
+             #   'gamma':hp.loguniform('eeg.svm.gamma',np.log(0.01),np.log(100)),
                 },
             'fusion_alg':hp.choice('fusion algorithm',[
                 'mean',

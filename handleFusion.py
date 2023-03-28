@@ -54,7 +54,7 @@ def bayesian_fusion(fuser,onehot,predlist_emg,predlist_eeg,classlabels):
        # distrolist_fusion.append(distro_fusion)
         fusion_preds.append(pred_fusion) 
     return fusion_preds
-
+'''
 def train_svm_fuser(mode1,mode2,targets,args):
     train=np.column_stack([mode1,mode2])
     kernel=args['kernel']
@@ -64,6 +64,13 @@ def train_svm_fuser(mode1,mode2,targets,args):
         model=ml.SVC(C=C,kernel=kernel,probability=True) #possible need to fix random_state as predict is called multiple times?
     else:
         model=ml.SVC(C=C,kernel=kernel,gamma=gamma,probability=True)
+    model.fit(train.astype(np.float64),targets)
+    return model
+'''
+def train_svm_fuser(mode1,mode2,targets,args):
+    train=np.column_stack([mode1,mode2])
+    C=args['svm_C']
+    model=ml.LinearSVC(C=C,dual=False)
     model.fit(train.astype(np.float64),targets)
     return model
 
@@ -138,6 +145,12 @@ def fuse_select(emg,eeg,args):
     elif alg=='featlevel':
         '''feature level fusion is not done here, just keeping system happy'''
         fusion = fuse_mean(emg,eeg)
+    elif alg=='svm':
+        '''SVM fusion is not done here, just keeping system happy'''
+        fusion = fuse_mean(emg,eeg)
+    else:
+        msg='Fusion algorithm '+alg+' not recognised'
+        raise NotImplementedError(msg)
     return fusion
 
 def fuse_mean(mode1,mode2):

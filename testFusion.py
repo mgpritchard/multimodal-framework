@@ -1156,7 +1156,7 @@ def optimise_fusion_LOO(prebalance=True):
         space.update({'emg_set':emg_set,'eeg_set':eeg_set,'data_in_memory':True,'prebalanced':True})
         
     trials=Trials() #http://hyperopt.github.io/hyperopt/getting-started/minimizing_functions/#attaching-extra-information-via-the-trials-object
-    best = fmin(function_fuse_withinppt,
+    best = fmin(function_fuse_LOO,
                 space=space,
                 algo=tpe.suggest,
                 max_evals=5,

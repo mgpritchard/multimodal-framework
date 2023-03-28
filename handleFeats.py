@@ -42,6 +42,10 @@ def scale_feats_train(data,mode='normalise'):
     cols_to_ignore=list(data.filter(regex='^ID_').keys())
     cols_to_ignore.append('Label')
     data[data.columns[~data.columns.isin(cols_to_ignore)]]=scaler.fit_transform(data[data.columns[~data.columns.isin(cols_to_ignore)]])
+    #https://stackoverflow.com/questions/24645153/pandas-dataframe-columns-scaling-with-sklearn
+    #https://stackoverflow.com/questions/14940743/selecting-excluding-sets-of-columns-in-pandas
+    #https://towardsdatascience.com/normalization-vs-standardization-quantitative-analysis-a91e8a79cebf#:~:text=Normalization%20typically%20means%20rescales%20the,of%201%20(unit%20variance).
+    #https://scikit-learn.org/stable/auto_examples/preprocessing/plot_all_scaling.html#sphx-glr-auto-examples-preprocessing-plot-all-scaling-py
     return data, scaler
 
 def scale_feats_test(data,scaler):

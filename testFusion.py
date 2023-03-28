@@ -1103,6 +1103,7 @@ def setup_search_space():
               #   'kernel':hp.choice('eeg.svm.kernel',['rbf']),#'poly','linear']),
              #    'svm_C':hp.loguniform('eeg.svm.c',np.log(0.01),np.log(100)),
                #  'gamma':hp.loguniform('eeg.svm.gamma',np.log(0.01),np.log(100)),
+               #https://www.kaggle.com/code/donkeys/exploring-hyperopt-parameter-tuning?scriptVersionId=12655875&cellId=64
                 # naming convention https://github.com/hyperopt/hyperopt/issues/380#issuecomment-685173200
               #   },
  #               {'eeg_model_type':'SVM',    #SKL SVC likely unviable, excessively slow
@@ -1136,8 +1137,8 @@ def setup_search_space():
             #'emg_set_path':params.emg_set_path_for_system_tests,
             #'eeg_set_path':params.eeg_set_path_for_system_tests,
             'emg_set_path':params.emg_waygal,
-            #'eeg_set_path':params.eeg_waygal,
-            'eeg_set_path':params.eeg_32_waygal,
+            'eeg_set_path':params.eeg_waygal,
+            #'eeg_set_path':params.eeg_32_waygal,
             'using_literature_data':True,
             'data_in_memory':False,
             'prebalanced':False,

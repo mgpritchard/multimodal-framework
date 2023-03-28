@@ -72,5 +72,6 @@ elif platform == 'linux' or 'linux32':
     #emg_waygal='/home/michael/Documents/Aston/EEG/WAY-EEG-GAL Data/All_CSVs/WaygalAllEMGFeats.csv'
     eeg_waygal=os.path.join(currentpath,'lit_data_expts/waygal/datasets/waygalAllEEGFeats.csv')
     emg_waygal=os.path.join(currentpath,'lit_data_expts/waygal/datasets/waygalAllEMGFeats.csv')
+    eeg_32_waygal=os.path.join(currentpath,'lit_data_expts/waygal/datasets/FullChEEGFeats.csv')
     
     waygal_results_dir='lit_data_expts/waygal/results/'

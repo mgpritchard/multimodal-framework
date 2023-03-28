@@ -210,6 +210,7 @@ def train_svm(train_data,args):
     model.fit(train.astype(np.float64),targets)
     
     def predict_proba(self, values):
+    # or https://scikit-learn.org/stable/modules/generated/sklearn.svm.LinearSVC.html#sklearn.svm.LinearSVC.decision_function
         pred=self.predict(values)
         classes=self.classes_
         probs=label_binarize(pred,classes)

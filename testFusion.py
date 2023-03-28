@@ -545,8 +545,8 @@ def train_bayes_fuser(model_emg,model_eeg,emg_set,eeg_set,classlabels,args):
     fuser=fusion.train_catNB_fuser(onehot_pred_emg, onehot_pred_eeg, targets)
     return fuser, onehot
 
-def train_svm_fuser(model_emg,model_eeg,emg_set,eeg_set,classlabels,args):
-    targets,predlist_emg,predlist_eeg,_=refactor_synced_predict(emg_set, eeg_set, model_emg, model_eeg, classlabels, args)
+def train_svm_fuser(model_emg,model_eeg,emg_set,eeg_set,classlabels,args,sel_cols_eeg,sel_cols_emg):
+    targets,predlist_emg,predlist_eeg,_=refactor_synced_predict(emg_set, eeg_set, model_emg, model_eeg, classlabels, args,sel_cols_eeg,sel_cols_emg)
     onehot=fusion.setup_onehot(classlabels)
     onehot_pred_emg=fusion.encode_preds_onehot(predlist_emg,onehot)
     onehot_pred_eeg=fusion.encode_preds_onehot(predlist_eeg,onehot)
@@ -747,8 +747,29 @@ def fusion_SVM(emg_train, eeg_train, emg_test, eeg_test, args):
     eeg_train_split_ML,eeg_train_split_fusion=train_test_split(eeg_train,test_size=0.33,random_state=random_split,stratify=eeg_train[['ID_splitIndex']])
     #https://stackoverflow.com/questions/43095076/scikit-learn-train-test-split-can-i-ensure-same-splits-on-different-datasets
     
+    
+    if args['scalingtype']:
+            emg_train_split_ML,emgscaler=feats.scale_feats_train(emg_train_split_ML,args['scalingtype'])
+            eeg_train_split_ML,eegscaler=feats.scale_feats_train(eeg_train_split_ML,args['scalingtype'])
+            emg_train_split_fusion=feats.scale_feats_test(emg_train_split_fusion,emgscaler)
+            eeg_train_split_fusion=feats.scale_feats_test(eeg_train_split_fusion,eegscaler)
+            emg_test=feats.scale_feats_test(emg_test,emgscaler)
+            eeg_test=feats.scale_feats_test(eeg_test,eegscaler)
+
+
+
     emg_train_split_ML=ml.drop_ID_cols(emg_train_split_ML)
     eeg_train_split_ML=ml.drop_ID_cols(eeg_train_split_ML)
+    
+    
+    sel_cols_emg=feats.sel_percent_feats_df(emg_train_split_ML,percent=15)
+    sel_cols_emg=np.append(sel_cols_emg,emg_train_split_ML.columns.get_loc('Label'))
+    emg_train_split_ML=emg_train_split_ML.iloc[:,sel_cols_emg]
+    
+    sel_cols_eeg=feats.sel_percent_feats_df(eeg_train_split_ML,percent=15)
+    sel_cols_eeg=np.append(sel_cols_eeg,eeg_train_split_ML.columns.get_loc('Label'))
+    eeg_train_split_ML=eeg_train_split_ML.iloc[:,sel_cols_eeg]
+       
     
     emg_model,eeg_model=train_models_opt(emg_train_split_ML,eeg_train_split_ML,args)
     
@@ -756,9 +777,9 @@ def fusion_SVM(emg_train, eeg_train, emg_test, eeg_test, args):
 
     emg_test.sort_values(['ID_pptID','ID_run','Label','ID_gestrep','ID_tend'],ascending=[True,True,True,True,True],inplace=True)
     eeg_test.sort_values(['ID_pptID','ID_run','Label','ID_gestrep','ID_tend'],ascending=[True,True,True,True,True],inplace=True)                
-    targets, predlist_emg, predlist_eeg, _ = refactor_synced_predict(emg_test, eeg_test, emg_model, eeg_model, classlabels,args)
+    targets, predlist_emg, predlist_eeg, _ = refactor_synced_predict(emg_test, eeg_test, emg_model, eeg_model, classlabels,args,sel_cols_eeg,sel_cols_emg)
     
-    fuser,onehotEncoder=train_svm_fuser(emg_model,eeg_model,emg_train_split_fusion,eeg_train_split_fusion,classlabels,args)
+    fuser,onehotEncoder=train_svm_fuser(emg_model,eeg_model,emg_train_split_fusion,eeg_train_split_fusion,classlabels,args,sel_cols_eeg,sel_cols_emg)
     predlist_fusion=fusion.svm_fusion(fuser,onehotEncoder,predlist_emg,predlist_eeg,classlabels)
     
     return targets, predlist_emg, predlist_eeg, predlist_fusion, classlabels
@@ -1215,7 +1236,7 @@ def optimise_fusion_LOO(prebalance=True):
     best = fmin(function_fuse_LOO,
                 space=space,
                 algo=tpe.suggest,
-                max_evals=50,
+                max_evals=10,
                 trials=trials)
     return best, space, trials
 

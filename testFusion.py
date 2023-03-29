@@ -1236,7 +1236,7 @@ def optimise_fusion_LOO(prebalance=True):
     best = fmin(function_fuse_LOO,
                 space=space,
                 algo=tpe.suggest,
-                max_evals=10,
+                max_evals=2,
                 trials=trials)
     return best, space, trials
 
@@ -1253,7 +1253,7 @@ def optimise_fusion_withinsubject(prebalance=True):
     best = fmin(function_fuse_withinppt,
                 space=space,
                 algo=tpe.suggest,
-                max_evals=50,
+                max_evals=2,
                 trials=trials)
     return best, space, trials
     
@@ -1347,7 +1347,7 @@ if __name__ == '__main__':
     
     #print('plotting ppt1 just to get a confmat')
     #ppt1acc=function_fuse_pptn(space_eval(space,best),1,plot_confmats=True)
-    
+    raise
     
     '''PICKLING THE TRIALS OBJ'''
     

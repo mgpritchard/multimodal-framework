@@ -919,8 +919,8 @@ def function_fuse_LOO(args):
     end=time.time()
     #return 1-mean_acc
     return {
-        #'loss': 1-median_acc,
-        'loss': 1-(median_acc*median_eeg*(1/(end-start))),
+        'loss': 1-median_acc,
+        #'loss': 1-(median_acc*median_eeg*(1/(end-start))),
         'status': STATUS_OK,
         'median_kappa':median_kappa,
         'fusion_mean_acc':mean_acc,
@@ -1237,7 +1237,7 @@ def optimise_fusion_LOO(prebalance=True):
     best = fmin(function_fuse_LOO,
                 space=space,
                 algo=tpe.suggest,
-                max_evals=10,
+                max_evals=2,
                 trials=trials)
     return best, space, trials
 
@@ -1254,7 +1254,7 @@ def optimise_fusion_withinsubject(prebalance=True):
     best = fmin(function_fuse_withinppt,
                 space=space,
                 algo=tpe.suggest,
-                max_evals=50,
+                max_evals=2,
                 trials=trials)
     return best, space, trials
     
@@ -1348,7 +1348,7 @@ if __name__ == '__main__':
     
     #print('plotting ppt1 just to get a confmat')
     #ppt1acc=function_fuse_pptn(space_eval(space,best),1,plot_confmats=True)
-    
+    raise
     
     '''PICKLING THE TRIALS OBJ'''
     

@@ -75,3 +75,5 @@ elif platform == 'linux' or 'linux32':
     eeg_32_waygal=os.path.join(currentpath,'lit_data_expts/waygal/datasets/FullChEEGFeats.csv')
     
     waygal_results_dir='lit_data_expts/waygal/results/'
+    
+    all_channel_waygal_EEG=os.path.normpath(os.path.join(currentpath,'../waygal-raw-eeg/Full_Channel_EEG'))

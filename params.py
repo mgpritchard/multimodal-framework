@@ -43,6 +43,9 @@ if platform =='win32':
     eeg_32_waygal='C:/Users/pritcham/Documents/mm-framework/multimodal-framework/lit_data_expts/waygal/datasets/FullChEEGFeats.csv'
     
     waygal_results_dir='lit_data_expts/waygal/results/'
+    
+    jeong_EEGdir='H:/Jeong11tasks_data/RawCSVs/'
+    eeg_jeong_feats='H:/Jeong11tasks_data/jeongEEGfeats.csv'
 elif platform == 'darwin':
     #mac
     path='macpath'

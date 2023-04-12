@@ -139,11 +139,16 @@ def classifyEEG_withinsubject(args):
         train_split,test_split=train_test_split(eeg_ppt['ID_stratID'].unique(),test_size=0.33)
         eeg_train=eeg_ppt[eeg_ppt['ID_stratID'].isin(train_split)]
         eeg_test=eeg_ppt[eeg_ppt['ID_stratID'].isin(test_split)]
-        eeg_train=ml.drop_ID_cols(eeg_train)
         
+        if args['scalingtype']:
+            eeg_train,eegscaler=feats.scale_feats_train(eeg_train,args['scalingtype'])
+            eeg_test=feats.scale_feats_test(eeg_test,eegscaler)
+                
+        eeg_train=ml.drop_ID_cols(eeg_train)
         sel_cols=feats.sel_percent_feats_df(eeg_train,percent=15)
         sel_cols=np.append(sel_cols,eeg_train.columns.get_loc('Label'))
         eeg_train=eeg_train.iloc[:,sel_cols]
+        
         eeg_test=ml.drop_ID_cols(eeg_test) #this MUST BE DONE before iloc
         eeg_test=eeg_test.iloc[:,sel_cols]
         
@@ -197,6 +202,10 @@ def classifyEEG_LOO(args):
     for idx,eeg_mask in enumerate(eeg_masks):
         eeg_ppt = eeg_set[eeg_mask]
         eeg_others = eeg_set[~eeg_mask]
+        
+        if args['scalingtype']:
+            eeg_others,eegscaler=feats.scale_feats_train(eeg_others,args['scalingtype'])
+            eeg_ppt=feats.scale_feats_test(eeg_ppt,eegscaler)
         
         eeg_others=ml.drop_ID_cols(eeg_others)
         
@@ -262,10 +271,12 @@ def setup_search_space():
                  # naming convention https://github.com/hyperopt/hyperopt/issues/380#issuecomment-685173200
               #   }
                 ]),
-            'eeg_set_path':params.eeg_32_waygal,
+            'eeg_set_path':params.eeg_jeongCSP_feats,
             'using_literature_data':True,
             'data_in_memory':False,
             'prebalanced':False,
+            #'scalingtype':hp.choice('scaling',['normalise','standardise',None]),
+            'scalingtype':None,
             }
     return space
 
@@ -281,7 +292,7 @@ def optimise_EEG_LOO(prebalance=True):
     best = fmin(classifyEEG_LOO,
                 space=space,
                 algo=tpe.suggest,
-                max_evals=50,
+                max_evals=20,
                 trials=trials)
     return best, space, trials
 
@@ -297,7 +308,7 @@ def optimise_EEG_withinsubject(prebalance=True):
     best = fmin(classifyEEG_withinsubject,
                 space=space,
                 algo=tpe.suggest,
-                max_evals=50,
+                max_evals=20,
                 trials=trials)
     return best, space, trials
     
@@ -370,8 +381,8 @@ if __name__ == '__main__':
     #ppt1acc=function_fuse_pptn(space_eval(space,best),1,plot_confmats=True)
     
     currentpath=os.path.dirname(__file__)
-    result_dir=params.waygal_results_dir
-    resultpath=os.path.join(currentpath,result_dir,'EEG32Ch',trialmode)
+    result_dir=params.jeong_results_dir
+    resultpath=os.path.join(currentpath,result_dir,'EEGCSP',trialmode)
         
     '''saving figures of performance over time'''
     eeg_acc_plot.savefig(os.path.join(resultpath,'eeg_acc.png'))

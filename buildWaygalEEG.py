@@ -8,7 +8,7 @@ Created on Wed Mar 29 20:45:43 2023
 import params as params
 import handleFeats as feats
 
-dataset='jeong'
+dataset='jeongCSP'
 
 skipfails=True
 #period=1
@@ -23,6 +23,10 @@ if dataset=='waygal':
 elif dataset=='jeong':
     directory_path=params.jeong_EEGdir
     output_file=params.eeg_jeong_feats
+    
+elif dataset=='jeongCSP':
+    directory_path=params.jeongCSP_EEGdir
+    output_file=params.eeg_jeongCSP_feats
 else:
      raise ValueError('I don\'t know what dataset you mean by '+dataset)   
 

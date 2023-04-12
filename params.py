@@ -46,6 +46,11 @@ if platform =='win32':
     
     jeong_EEGdir='H:/Jeong11tasks_data/RawCSVs/'
     eeg_jeong_feats='H:/Jeong11tasks_data/jeongEEGfeats.csv'
+    
+    jeongCSP_EEGdir='H:/Jeong11tasks_data/CSP_CSVs/'
+    eeg_jeongCSP_feats='H:/Jeong11tasks_data/jeongCSPEEGfeats.csv'
+    
+    jeong_results_dir='lit_data_expts/jeong/results/'
 elif platform == 'darwin':
     #mac
     path='macpath'

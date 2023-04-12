@@ -159,6 +159,10 @@ def classifyEEG_withinsubject(args):
 
         gest_truth=[params.idx_to_gestures[gest] for gest in targets]
         gest_pred_eeg=[params.idx_to_gestures[pred] for pred in predlist_eeg]
+        
+        if args['plot_confmats']:
+            gesturelabels=[params.idx_to_gestures[label] for label in classlabels]
+            tt.confmat(gest_truth,gest_pred_eeg,gesturelabels)
                    
         accs.append(accuracy_score(gest_truth,gest_pred_eeg))
         f1s.append(f1_score(gest_truth,gest_pred_eeg,average='weighted'))        
@@ -223,8 +227,10 @@ def classifyEEG_LOO(args):
 
         gest_truth=[params.idx_to_gestures[gest] for gest in targets]
         gest_pred_eeg=[params.idx_to_gestures[pred] for pred in predlist_eeg]
-        #gesturelabels=[params.idx_to_gestures[label] for label in classlabels]
-        #plot_confmats(gest_truth,gest_pred_emg,gest_pred_eeg,gest_pred_fusion,gesturelabels)
+
+        if args['plot_confmats']:
+            gesturelabels=[params.idx_to_gestures[label] for label in classlabels]
+            tt.confmat(gest_truth,gest_pred_eeg,gesturelabels)
                    
         accs.append(accuracy_score(gest_truth,gest_pred_eeg))
         f1s.append(f1_score(gest_truth,gest_pred_eeg,average='weighted'))        
@@ -256,9 +262,9 @@ def setup_search_space():
                 {'eeg_model_type':'RF',
                  'n_trees':scope.int(hp.quniform('eeg_ntrees',10,100,q=5)),
                  },
-                {'eeg_model_type':'kNN',
-                 'knn_k':scope.int(hp.quniform('eeg.knn.k',1,25,q=1)),
-                 },
+ #               {'eeg_model_type':'kNN',
+  #               'knn_k':scope.int(hp.quniform('eeg.knn.k',1,25,q=1)),
+   #              },
                 {'eeg_model_type':'LDA',
                  'LDA_solver':hp.choice('eeg.LDA_solver',['svd','lsqr','eigen']),
                  'shrinkage':hp.uniform('eeg.lda.shrinkage',0.0,1.0),
@@ -277,6 +283,7 @@ def setup_search_space():
             'prebalanced':False,
             #'scalingtype':hp.choice('scaling',['normalise','standardise',None]),
             'scalingtype':None,
+            'plot_confmats':False,
             }
     return space
 
@@ -354,6 +361,14 @@ if __name__ == '__main__':
         best_results=trials.best_trial['result']
         #https://stackoverflow.com/questions/20776502/where-to-find-the-loss-corresponding-to-the-best-configuration-with-hyperopt
     #could just get trials.results?
+    
+    if 1:    
+        chosen_space=space_eval(space,best)
+        chosen_space['plot_confmats']=True
+        if trialmode=='LOO':
+            chosen_results=classifyEEG_LOO(chosen_space)
+        elif trialmode=='WithinPpt':
+            chosen_results=classifyEEG_withinsubject(chosen_space)
     
     bestparams=space_eval(space,best)
     print(bestparams)

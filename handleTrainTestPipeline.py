@@ -120,14 +120,20 @@ def test(datatype,test_set_path=None):
     return gest_truth,distrolist,gest_pred
 
 
-def confmat(y_true,y_pred,labels,modelname="",testset=""):
+def confmat(y_true,y_pred,labels,modelname="",testset="",title=""):
     '''y_true = actual classes, y_pred = predicted classes,
     labels = names of class labels'''
-    conf=confusion_matrix(y_true,y_pred,labels=labels)
-    cm=ConfusionMatrixDisplay(conf,labels).plot()
-    cm.figure_.suptitle=(modelname+'\n'+testset)
-    #add the model name and test set as labels?? using suptitle here didnt work lol
-    plt.show()
+    #https://scikit-learn.org/0.22/modules/generated/sklearn.metrics.ConfusionMatrixDisplay.html#sklearn.metrics.ConfusionMatrixDisplay
+    #https://scikit-learn.org/0.22/modules/generated/sklearn.metrics.plot_confusion_matrix.html#sklearn.metrics.plot_confusion_matrix
+    conf=confusion_matrix(y_true,y_pred,labels=labels,normalize='true')
+    cm=ConfusionMatrixDisplay(conf,labels)
+    #cm=ConfusionMatrixDisplay.from_predictions(y_true,y_pred,labels,normalise=None) #only in skl 1.2
+    if modelname != "" and testset != "":
+        title=modelname+'\n'+testset
+    fig,ax=plt.subplots()
+    ax.set_title(title)
+    cm.plot(ax=ax)
+    #return conf
     
     
 def copy_files(filelist,emg_dest,eeg_dest):

@@ -1292,9 +1292,9 @@ def setup_search_space():
                 ]),
             #'emg_set_path':params.emg_set_path_for_system_tests,
             #'eeg_set_path':params.eeg_set_path_for_system_tests,
-            'emg_set_path':params.emg_waygal,
+            'emg_set_path':params.jeong_EMGfeats,
             #'eeg_set_path':params.eeg_waygal,
-            'eeg_set_path':params.eeg_32_waygal,
+            'eeg_set_path':params.eeg_jeongSyncCSP_feats,
             'using_literature_data':True,
             'data_in_memory':False,
             'prebalanced':False,
@@ -1436,15 +1436,15 @@ if __name__ == '__main__':
     
     #print('plotting ppt1 just to get a confmat')
     #ppt1acc=function_fuse_pptn(space_eval(space,best),1,plot_confmats=True)
-    raise
+    #raise
     
     '''PICKLING THE TRIALS OBJ'''
     
     currentpath=os.path.dirname(__file__)
-    result_dir=params.waygal_results_dir
+    result_dir=params.jeong_results_dir
     resultpath=os.path.join(currentpath,result_dir)
     
-    resultpath=os.path.join(resultpath,'Fusion_32EEG',trialmode)
+    resultpath=os.path.join(resultpath,'Fusion_CSP',trialmode)
     #resultpath=os.path.join(resultpath,'SVMOnly',trialmode)
     
     trials_obj_path=os.path.join(resultpath,'trials_obj.p')

@@ -954,6 +954,12 @@ def function_fuse_LOO(args):
         '''could calculate log loss if got the probabilities back''' #https://towardsdatascience.com/comprehensive-guide-on-multiclass-classification-metrics-af94cfb83fbd
         
         #plot_confmats(gest_truth,gest_pred_emg,gest_pred_eeg,gest_pred_fusion,gesturelabels)
+        
+        if args['plot_confmats']:
+            gesturelabels=[params.idx_to_gestures[label] for label in classlabels]
+            tt.confmat(gest_truth,gest_pred_eeg,gesturelabels,title='EEG')
+            tt.confmat(gest_truth,gest_pred_emg,gesturelabels,title='EMG')
+            tt.confmat(gest_truth,gest_pred_fusion,gesturelabels,title='Fusion')
             
         emg_accs.append(accuracy_score(gest_truth,gest_pred_emg))
         eeg_accs.append(accuracy_score(gest_truth,gest_pred_eeg))
@@ -1126,6 +1132,12 @@ def function_fuse_withinppt(args):
         '''could calculate log loss if got the probabilities back''' #https://towardsdatascience.com/comprehensive-guide-on-multiclass-classification-metrics-af94cfb83fbd
         
         #plot_confmats(gest_truth,gest_pred_emg,gest_pred_eeg,gest_pred_fusion,gesturelabels)
+        
+        if args['plot_confmats']:
+            gesturelabels=[params.idx_to_gestures[label] for label in classlabels]
+            tt.confmat(gest_truth,gest_pred_eeg,gesturelabels,title='EEG')
+            tt.confmat(gest_truth,gest_pred_emg,gesturelabels,title='EMG')
+            tt.confmat(gest_truth,gest_pred_fusion,gesturelabels,title='Fusion')
             
         emg_accs.append(accuracy_score(gest_truth,gest_pred_emg))
         eeg_accs.append(accuracy_score(gest_truth,gest_pred_eeg))
@@ -1288,6 +1300,7 @@ def setup_search_space():
             'prebalanced':False,
             #'scalingtype':'standardise',#'normalise','standardise',None
             'scalingtype':hp.choice('scaling',['normalise','standardise',None]),
+            'plot_confmats':False,
             }
     return space
 
@@ -1364,6 +1377,14 @@ if __name__ == '__main__':
     #space=stochastic.sample(setup_search_space())
     #best_results=function_fuse_LOO(space)
     #raise
+        
+    if 1:    
+        chosen_space=space_eval(space,best)
+        chosen_space['plot_confmats']=True
+        if trialmode=='LOO':
+            chosen_results=function_fuse_LOO(chosen_space)
+        elif trialmode=='WithinPpt':
+            chosen_results=function_fuse_withinppt(chosen_space)
     '''
     start_prebal=time.time()
     best,space,trials=optimise_fusion()

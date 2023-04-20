@@ -17,6 +17,7 @@ import csv
 import params
 from sklearn.preprocessing import OneHotEncoder
 from sklearn.naive_bayes import CategoricalNB
+from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
 import handleML as ml
 import random
 #try divergence BETWEEN the two modes?? how to distribute this across them?
@@ -75,6 +76,23 @@ def train_svm_fuser(mode1,mode2,targets,args):
     return model
 
 def svm_fusion(fuser,onehot,predlist_emg,predlist_eeg,classlabels):
+    onehot_pred_emg=encode_preds_onehot(predlist_emg,onehot)
+    onehot_pred_eeg=encode_preds_onehot(predlist_eeg,onehot)
+    fusion_preds=fuser.predict(np.column_stack([onehot_pred_emg,onehot_pred_eeg]))
+    return fusion_preds
+
+def train_lda_fuser(mode1,mode2,targets,args):
+    train=np.column_stack([mode1,mode2])
+    solver=args['LDA_solver']
+    shrinkage=args['shrinkage']
+    if solver == 'svd':
+        model=LinearDiscriminantAnalysis(solver=solver)
+    else:
+        model=LinearDiscriminantAnalysis(solver=solver,shrinkage=shrinkage)
+    model.fit(train.astype(np.float64),targets)
+    return model
+
+def lda_fusion(fuser,onehot,predlist_emg,predlist_eeg,classlabels):
     onehot_pred_emg=encode_preds_onehot(predlist_emg,onehot)
     onehot_pred_eeg=encode_preds_onehot(predlist_eeg,onehot)
     fusion_preds=fuser.predict(np.column_stack([onehot_pred_emg,onehot_pred_eeg]))
@@ -147,6 +165,9 @@ def fuse_select(emg,eeg,args):
         fusion = fuse_mean(emg,eeg)
     elif alg=='svm':
         '''SVM fusion is not done here, just keeping system happy'''
+        fusion = fuse_mean(emg,eeg)
+    elif alg=='lda':
+        '''LDA fusion is not done here, just keeping system happy'''
         fusion = fuse_mean(emg,eeg)
     else:
         msg='Fusion algorithm '+alg+' not recognised'

@@ -919,7 +919,7 @@ def function_fuse_LOO(args):
     end=time.time()
     #return 1-mean_acc
     return {
-        'loss': 1-median_acc,
+        'loss': 1-mean_acc,
         #'loss': 1-(median_acc*median_eeg*(1/(end-start))),
         'status': STATUS_OK,
         'median_kappa':median_kappa,
@@ -1089,7 +1089,7 @@ def function_fuse_withinppt(args):
     end=time.time()
     #return 1-mean_acc
     return {
-        'loss': 1-median_acc,
+        'loss': 1-mean_acc,
         'status': STATUS_OK,
         'median_kappa':median_kappa,
         'fusion_mean_acc':mean_acc,
@@ -1337,7 +1337,7 @@ if __name__ == '__main__':
     emg_acc_plot=plot_stat_in_time(trials, 'emg_mean_acc',showplot=False)
     eeg_acc_plot=plot_stat_in_time(trials, 'eeg_mean_acc',showplot=False)
     #plot_stat_in_time(trials, 'loss')
-    fus_f1_plot=plot_stat_in_time(trials,'fusion_f1_mean')#,showplot=False)
+    fus_acc_plot=plot_stat_in_time(trials,'fusion_mean_acc')#,showplot=False)
     #plot_stat_in_time(trials,'elapsed_time',0,200)
     
     table=pd.DataFrame(trials.trials)
@@ -1367,7 +1367,7 @@ if __name__ == '__main__':
     '''saving figures of performance over time'''
     emg_acc_plot.savefig(os.path.join(resultpath,'emg_acc.png'))
     eeg_acc_plot.savefig(os.path.join(resultpath,'eeg_acc.png'))
-    fus_f1_plot.savefig(os.path.join(resultpath,'fusion_f1.png'))
+    fus_acc_plot.savefig(os.path.join(resultpath,'fusion_acc.png'))
     
     '''saving best parameters & results'''
     reportpath=os.path.join(resultpath,'params_results_report.txt')

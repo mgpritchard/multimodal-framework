@@ -177,7 +177,7 @@ def classifyEEG_withinsubject(args):
     #return 1-mean_acc
     return {
         #'loss': 1-median_kappa,
-        'loss':1-median_acc,
+        'loss':1-mean_acc,
         'status': STATUS_OK,
         'median_kappa':median_kappa,
         'mean_acc':mean_acc,
@@ -245,7 +245,7 @@ def classifyEEG_LOO(args):
     #return 1-mean_acc
     return {
         #'loss': 1-median_kappa,
-        'loss':1-median_acc,
+        'loss':1-mean_acc,
         'status': STATUS_OK,
         'median_kappa':median_kappa,
         'mean_acc':mean_acc,
@@ -277,12 +277,13 @@ def setup_search_space():
                  # naming convention https://github.com/hyperopt/hyperopt/issues/380#issuecomment-685173200
               #   }
                 ]),
-            'eeg_set_path':params.eeg_jeongCSP_feats,
+            'eeg_set_path':params.eeg_jeongSyncCSP_feats,
+            #'eeg_set_path':params.jeong_EMGfeats,
             'using_literature_data':True,
             'data_in_memory':False,
             'prebalanced':False,
-            #'scalingtype':hp.choice('scaling',['normalise','standardise',None]),
-            'scalingtype':None,
+            'scalingtype':hp.choice('scaling',['normalise','standardise',None]),
+            #'scalingtype':None,
             'plot_confmats':False,
             }
     return space
@@ -315,7 +316,7 @@ def optimise_EEG_withinsubject(prebalance=True):
     best = fmin(classifyEEG_withinsubject,
                 space=space,
                 algo=tpe.suggest,
-                max_evals=20,
+                max_evals=5,
                 trials=trials)
     return best, space, trials
     
@@ -347,7 +348,7 @@ def save_resultdict(filepath,resultdict):
 
 if __name__ == '__main__':
     
-    trialmode='LOO'
+    trialmode='WithinPpt'
     
     if trialmode=='LOO':
         best,space,trials=optimise_EEG_LOO()

@@ -41,6 +41,8 @@ lit_data_expts/jeong/results/EEGCSP/WithinPpt/*
 #Ignore datasets
 lit_data_expts/waygal/datasets/*
 !lit_data_expts/waygal/datasets/dummy.txt
+lit_data_expts/jeong/datasets/*
+!lit_data_expts/jeong/datasets/dummy.txt
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

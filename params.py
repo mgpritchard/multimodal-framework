@@ -46,6 +46,17 @@ if platform =='win32':
     
     jeong_EEGdir='H:/Jeong11tasks_data/RawCSVs/'
     eeg_jeong_feats='H:/Jeong11tasks_data/jeongEEGfeats.csv'
+    
+    jeongCSP_EEGdir='H:/Jeong11tasks_data/CSP_CSVs/'
+    eeg_jeongCSP_feats='H:/Jeong11tasks_data/jeongCSPEEGfeats.csv'
+    
+    jeongSyncCSP_EEGdir='H:/Jeong11tasks_data/Synced_CSP_CSVs/'
+    eeg_jeongSyncCSP_feats='H:/Jeong11tasks_data/jeongSyncCSPEEGfeats.csv'
+    
+    jeong_EMGdir='H:/Jeong11tasks_data/EMG/Raw_EMGCSVs/'
+    jeong_EMGfeats='H:/Jeong11tasks_data/jeong_EMGfeats.csv'
+    
+    jeong_results_dir='lit_data_expts/jeong/results/'
 elif platform == 'darwin':
     #mac
     path='macpath'

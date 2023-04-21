@@ -553,6 +553,14 @@ def train_svm_fuser(model_emg,model_eeg,emg_set,eeg_set,classlabels,args,sel_col
     fuser=fusion.train_svm_fuser(onehot_pred_emg, onehot_pred_eeg, targets, args['svmfuse'])
     return fuser, onehot
 
+def train_lda_fuser(model_emg,model_eeg,emg_set,eeg_set,classlabels,args,sel_cols_eeg,sel_cols_emg):
+    targets,predlist_emg,predlist_eeg,_=refactor_synced_predict(emg_set, eeg_set, model_emg, model_eeg, classlabels, args,sel_cols_eeg,sel_cols_emg)
+    onehot=fusion.setup_onehot(classlabels)
+    onehot_pred_emg=fusion.encode_preds_onehot(predlist_emg,onehot)
+    onehot_pred_eeg=fusion.encode_preds_onehot(predlist_eeg,onehot)
+    fuser=fusion.train_lda_fuser(onehot_pred_emg, onehot_pred_eeg, targets, args['ldafuse'])
+    return fuser, onehot
+
 def feature_fusion(emg_others,eeg_others,emg_ppt,eeg_ppt,args):
     '''TRAINING ON NON-PPT DATA'''
     emg_others.sort_values(['ID_pptID','ID_run','Label','ID_gestrep','ID_tend'],ascending=[True,True,True,True,True],inplace=True)
@@ -784,6 +792,56 @@ def fusion_SVM(emg_train, eeg_train, emg_test, eeg_test, args):
     
     return targets, predlist_emg, predlist_eeg, predlist_fusion, classlabels
 
+def fusion_LDA(emg_train, eeg_train, emg_test, eeg_test, args):
+    emg_train.sort_values(['ID_pptID','ID_run','Label','ID_gestrep','ID_tend'],ascending=[True,True,True,True,True],inplace=True)
+    emg_train.sort_values(['ID_pptID','ID_run','Label','ID_gestrep','ID_tend'],ascending=[True,True,True,True,True],inplace=True)
+    
+    index_emg=ml.pd.MultiIndex.from_arrays([emg_train[col] for col in ['ID_pptID','ID_run','Label','ID_gestrep','ID_tend']])
+    index_eeg=ml.pd.MultiIndex.from_arrays([eeg_train[col] for col in ['ID_pptID','ID_run','Label','ID_gestrep','ID_tend']])
+    emg_train=emg_train.loc[index_emg.isin(index_eeg)].reset_index(drop=True)
+    eeg_train=eeg_train.loc[index_eeg.isin(index_emg)].reset_index(drop=True)
+            
+    emg_train['ID_splitIndex']=emg_train['Label'].astype(str)+emg_train['ID_pptID'].astype(str)
+    eeg_train['ID_splitIndex']=eeg_train['Label'].astype(str)+eeg_train['ID_pptID'].astype(str)
+    #https://stackoverflow.com/questions/45516424/sklearn-train-test-split-on-pandas-stratify-by-multiple-columns
+    random_split=random.randint(0,100)
+    emg_train_split_ML,emg_train_split_fusion=train_test_split(emg_train,test_size=0.33,random_state=random_split,stratify=emg_train[['ID_splitIndex']])
+    eeg_train_split_ML,eeg_train_split_fusion=train_test_split(eeg_train,test_size=0.33,random_state=random_split,stratify=eeg_train[['ID_splitIndex']])
+    #https://stackoverflow.com/questions/43095076/scikit-learn-train-test-split-can-i-ensure-same-splits-on-different-datasets
+    
+    
+    if args['scalingtype']:
+            emg_train_split_ML,emgscaler=feats.scale_feats_train(emg_train_split_ML,args['scalingtype'])
+            eeg_train_split_ML,eegscaler=feats.scale_feats_train(eeg_train_split_ML,args['scalingtype'])
+            emg_train_split_fusion=feats.scale_feats_test(emg_train_split_fusion,emgscaler)
+            eeg_train_split_fusion=feats.scale_feats_test(eeg_train_split_fusion,eegscaler)
+            emg_test=feats.scale_feats_test(emg_test,emgscaler)
+            eeg_test=feats.scale_feats_test(eeg_test,eegscaler)
+
+    emg_train_split_ML=ml.drop_ID_cols(emg_train_split_ML)
+    eeg_train_split_ML=ml.drop_ID_cols(eeg_train_split_ML)
+        
+    sel_cols_emg=feats.sel_percent_feats_df(emg_train_split_ML,percent=15)
+    sel_cols_emg=np.append(sel_cols_emg,emg_train_split_ML.columns.get_loc('Label'))
+    emg_train_split_ML=emg_train_split_ML.iloc[:,sel_cols_emg]
+    
+    sel_cols_eeg=feats.sel_percent_feats_df(eeg_train_split_ML,percent=15)
+    sel_cols_eeg=np.append(sel_cols_eeg,eeg_train_split_ML.columns.get_loc('Label'))
+    eeg_train_split_ML=eeg_train_split_ML.iloc[:,sel_cols_eeg]
+       
+    emg_model,eeg_model=train_models_opt(emg_train_split_ML,eeg_train_split_ML,args)
+    
+    classlabels = emg_model.classes_
+
+    emg_test.sort_values(['ID_pptID','ID_run','Label','ID_gestrep','ID_tend'],ascending=[True,True,True,True,True],inplace=True)
+    eeg_test.sort_values(['ID_pptID','ID_run','Label','ID_gestrep','ID_tend'],ascending=[True,True,True,True,True],inplace=True)                
+    targets, predlist_emg, predlist_eeg, _ = refactor_synced_predict(emg_test, eeg_test, emg_model, eeg_model, classlabels,args,sel_cols_eeg,sel_cols_emg)
+    
+    fuser,onehotEncoder=train_lda_fuser(emg_model,eeg_model,emg_train_split_fusion,eeg_train_split_fusion,classlabels,args,sel_cols_eeg,sel_cols_emg)
+    predlist_fusion=fusion.lda_fusion(fuser,onehotEncoder,predlist_emg,predlist_eeg,classlabels)
+    
+    return targets, predlist_emg, predlist_eeg, predlist_fusion, classlabels
+
 def function_fuse_LOO(args):
     start=time.time()
     if not args['data_in_memory']:
@@ -851,12 +909,14 @@ def function_fuse_LOO(args):
         
         elif args['fusion_alg']=='svm':
             targets, predlist_emg, predlist_eeg, predlist_fusion, classlabels=fusion_SVM(emg_others, eeg_others, emg_ppt, eeg_ppt, args)
-        elif args['fusion_alg']=='hierarchical':
-            
+        
+        elif args['fusion_alg']=='lda':
+            targets, predlist_emg, predlist_eeg, predlist_fusion, classlabels=fusion_LDA(emg_others, eeg_others, emg_ppt, eeg_ppt, args)
+       
+        elif args['fusion_alg']=='hierarchical':    
             targets, predlist_emg, predlist_eeg, predlist_fusion, classlabels=fusion_hierarchical(emg_others, eeg_others, emg_ppt, eeg_ppt, args)
                  
-        elif args['fusion_alg']=='featlevel':
-            
+        elif args['fusion_alg']=='featlevel':            
             targets, predlist_emg, predlist_eeg, predlist_fusion, classlabels=feature_fusion(emg_others, eeg_others, emg_ppt, eeg_ppt, args)
         
         else:
@@ -894,6 +954,12 @@ def function_fuse_LOO(args):
         '''could calculate log loss if got the probabilities back''' #https://towardsdatascience.com/comprehensive-guide-on-multiclass-classification-metrics-af94cfb83fbd
         
         #plot_confmats(gest_truth,gest_pred_emg,gest_pred_eeg,gest_pred_fusion,gesturelabels)
+        
+        if args['plot_confmats']:
+            gesturelabels=[params.idx_to_gestures[label] for label in classlabels]
+            tt.confmat(gest_truth,gest_pred_eeg,gesturelabels,title='EEG')
+            tt.confmat(gest_truth,gest_pred_emg,gesturelabels,title='EMG')
+            tt.confmat(gest_truth,gest_pred_fusion,gesturelabels,title='Fusion')
             
         emg_accs.append(accuracy_score(gest_truth,gest_pred_emg))
         eeg_accs.append(accuracy_score(gest_truth,gest_pred_eeg))
@@ -919,7 +985,7 @@ def function_fuse_LOO(args):
     end=time.time()
     #return 1-mean_acc
     return {
-        'loss': 1-median_acc,
+        'loss': 1-mean_acc,
         #'loss': 1-(median_acc*median_eeg*(1/(end-start))),
         'status': STATUS_OK,
         'median_kappa':median_kappa,
@@ -1021,12 +1087,14 @@ def function_fuse_withinppt(args):
         
         elif args['fusion_alg']=='svm':
             targets, predlist_emg, predlist_eeg, predlist_fusion, classlabels=fusion_SVM(emg_train, eeg_train, emg_test, eeg_test, args)
-        elif args['fusion_alg']=='hierarchical':
-            
+        
+        elif args['fusion_alg']=='lda':
+            targets, predlist_emg, predlist_eeg, predlist_fusion, classlabels=fusion_LDA(emg_train, eeg_train, emg_test, eeg_test, args)
+        
+        elif args['fusion_alg']=='hierarchical':            
             targets, predlist_emg, predlist_eeg, predlist_fusion, classlabels=fusion_hierarchical(emg_train, eeg_train, emg_test, eeg_test, args)
                  
-        elif args['fusion_alg']=='featlevel':
-            
+        elif args['fusion_alg']=='featlevel':            
             targets, predlist_emg, predlist_eeg, predlist_fusion, classlabels=feature_fusion(emg_train, eeg_train, emg_test, eeg_test, args)
         
         else:
@@ -1064,6 +1132,12 @@ def function_fuse_withinppt(args):
         '''could calculate log loss if got the probabilities back''' #https://towardsdatascience.com/comprehensive-guide-on-multiclass-classification-metrics-af94cfb83fbd
         
         #plot_confmats(gest_truth,gest_pred_emg,gest_pred_eeg,gest_pred_fusion,gesturelabels)
+        
+        if args['plot_confmats']:
+            gesturelabels=[params.idx_to_gestures[label] for label in classlabels]
+            tt.confmat(gest_truth,gest_pred_eeg,gesturelabels,title='EEG')
+            tt.confmat(gest_truth,gest_pred_emg,gesturelabels,title='EMG')
+            tt.confmat(gest_truth,gest_pred_fusion,gesturelabels,title='Fusion')
             
         emg_accs.append(accuracy_score(gest_truth,gest_pred_emg))
         eeg_accs.append(accuracy_score(gest_truth,gest_pred_eeg))
@@ -1089,7 +1163,7 @@ def function_fuse_withinppt(args):
     end=time.time()
     #return 1-mean_acc
     return {
-        'loss': 1-median_acc,
+        'loss': 1-mean_acc,
         'status': STATUS_OK,
         'median_kappa':median_kappa,
         'fusion_mean_acc':mean_acc,
@@ -1198,8 +1272,12 @@ def setup_search_space():
                 ]),
             'svmfuse':{
            #     'kernel':hp.choice('eeg.svm.kernel',['rbf']),#'poly','linear']),
-                'svm_C':hp.loguniform('eeg.svm.c',np.log(0.01),np.log(100)),
+                'svm_C':hp.loguniform('fus.svm.c',np.log(0.01),np.log(100)),
              #   'gamma':hp.loguniform('eeg.svm.gamma',np.log(0.01),np.log(100)),
+                },
+            'ldafuse':{
+                'LDA_solver':hp.choice('fus.LDA.solver',['svd','lsqr','eigen']),
+                'shrinkage':hp.uniform('fus.lda.shrinkage',0.0,1.0),
                 },
             'fusion_alg':hp.choice('fusion algorithm',[
                 'mean',
@@ -1210,17 +1288,19 @@ def setup_search_space():
                 #'hierarchical', #DON'T DO THESE IN THE SAME PARAM SPACE
                 #'featlevel',
                 'svm',
+                'lda',
                 ]),
             #'emg_set_path':params.emg_set_path_for_system_tests,
             #'eeg_set_path':params.eeg_set_path_for_system_tests,
-            'emg_set_path':params.emg_waygal,
+            'emg_set_path':params.jeong_EMGfeats,
             #'eeg_set_path':params.eeg_waygal,
-            'eeg_set_path':params.eeg_32_waygal,
+            'eeg_set_path':params.eeg_jeongSyncCSP_feats,
             'using_literature_data':True,
             'data_in_memory':False,
             'prebalanced':False,
             #'scalingtype':'standardise',#'normalise','standardise',None
             'scalingtype':hp.choice('scaling',['normalise','standardise',None]),
+            'plot_confmats':False,
             }
     return space
 
@@ -1297,6 +1377,14 @@ if __name__ == '__main__':
     #space=stochastic.sample(setup_search_space())
     #best_results=function_fuse_LOO(space)
     #raise
+        
+    if 1:    
+        chosen_space=space_eval(space,best)
+        chosen_space['plot_confmats']=True
+        if trialmode=='LOO':
+            chosen_results=function_fuse_LOO(chosen_space)
+        elif trialmode=='WithinPpt':
+            chosen_results=function_fuse_withinppt(chosen_space)
     '''
     start_prebal=time.time()
     best,space,trials=optimise_fusion()
@@ -1337,7 +1425,7 @@ if __name__ == '__main__':
     emg_acc_plot=plot_stat_in_time(trials, 'emg_mean_acc',showplot=False)
     eeg_acc_plot=plot_stat_in_time(trials, 'eeg_mean_acc',showplot=False)
     #plot_stat_in_time(trials, 'loss')
-    fus_f1_plot=plot_stat_in_time(trials,'fusion_f1_mean')#,showplot=False)
+    fus_acc_plot=plot_stat_in_time(trials,'fusion_mean_acc')#,showplot=False)
     #plot_stat_in_time(trials,'elapsed_time',0,200)
     
     table=pd.DataFrame(trials.trials)
@@ -1348,15 +1436,15 @@ if __name__ == '__main__':
     
     #print('plotting ppt1 just to get a confmat')
     #ppt1acc=function_fuse_pptn(space_eval(space,best),1,plot_confmats=True)
-    raise
+    #raise
     
     '''PICKLING THE TRIALS OBJ'''
     
     currentpath=os.path.dirname(__file__)
-    result_dir=params.waygal_results_dir
+    result_dir=params.jeong_results_dir
     resultpath=os.path.join(currentpath,result_dir)
     
-    resultpath=os.path.join(resultpath,'Fusion_32EEG',trialmode)
+    resultpath=os.path.join(resultpath,'Fusion_CSP',trialmode)
     #resultpath=os.path.join(resultpath,'SVMOnly',trialmode)
     
     trials_obj_path=os.path.join(resultpath,'trials_obj.p')
@@ -1367,7 +1455,7 @@ if __name__ == '__main__':
     '''saving figures of performance over time'''
     emg_acc_plot.savefig(os.path.join(resultpath,'emg_acc.png'))
     eeg_acc_plot.savefig(os.path.join(resultpath,'eeg_acc.png'))
-    fus_f1_plot.savefig(os.path.join(resultpath,'fusion_f1.png'))
+    fus_acc_plot.savefig(os.path.join(resultpath,'fusion_acc.png'))
     
     '''saving best parameters & results'''
     reportpath=os.path.join(resultpath,'params_results_report.txt')

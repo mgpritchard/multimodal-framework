@@ -1338,8 +1338,9 @@ def optimise_fusion_withinsubject(prebalance=True):
                 trials=trials)
     return best, space, trials
     
-def save_resultdict(filepath,resultdict):
+def save_resultdict(filepath,resultdict,dp=4):
     #https://stackoverflow.com/questions/61894745/write-dictionary-to-text-file-with-newline
+    #sig fig would be nicer https://stackoverflow.com/questions/3410976/how-to-round-a-number-to-significant-figures-in-python
     status=resultdict['Results'].pop('status')
     f=open(filepath,'w')
     try:
@@ -1350,20 +1351,20 @@ def save_resultdict(filepath,resultdict):
         f.write(f"Probably optimising for {target}\n\n")
     f.write('EEG Parameters:\n')
     for k in resultdict['Chosen parameters']['eeg'].keys():
-        f.write(f"\t'{k}':'{resultdict['Chosen parameters']['eeg'][k]}'\n")
+        f.write(f"\t'{k}':'{round(resultdict['Chosen parameters']['eeg'][k],dp)if not isinstance(resultdict['Chosen parameters']['eeg'][k],str) else resultdict['Chosen parameters']['eeg'][k]}'\n")
     f.write('EMG Parameters:\n')
     for k in resultdict['Chosen parameters']['emg'].keys():
-        f.write(f"\t'{k}':'{resultdict['Chosen parameters']['emg'][k]}'\n")
+        f.write(f"\t'{k}':'{round(resultdict['Chosen parameters']['emg'][k],dp)if not isinstance(resultdict['Chosen parameters']['emg'][k],str) else resultdict['Chosen parameters']['emg'][k]}'\n")
     f.write('Fusion algorithm:\n')
     f.write(f"\t'{'fusion_alg'}':'{resultdict['Chosen parameters']['fusion_alg']}'\n")
     if resultdict['Chosen parameters']['fusion_alg']=='featlevel':
         f.write('Feature-level Fusion Parameters:\n')
         for k in resultdict['Chosen parameters']['featfuse'].keys():
-            f.write(f"\t'{k}':'{resultdict['Chosen parameters']['featfuse'][k]}'\n")
+            f.write(f"\t'{k}':'{round(resultdict['Chosen parameters']['featfuse'][k],dp)if not isinstance(resultdict['Chosen parameters']['featfuse'][k],str) else resultdict['Chosen parameters']['featfuse'][k]}'\n")
     f.write('Results:\n')
     resultdict['Results']['status']=status
     for k in resultdict['Results'].keys():
-        f.write(f"\t'{k}':'{resultdict['Results'][k]}'\n")
+        f.write(f"\t'{k}':'{round(resultdict['Results'][k],dp)if not isinstance(resultdict['Results'][k],str) else resultdict['Results'][k]}'\n")
     f.close()
 
 if __name__ == '__main__':

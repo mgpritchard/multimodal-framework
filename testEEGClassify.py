@@ -320,7 +320,7 @@ def optimise_EEG_withinsubject(prebalance=True):
                 trials=trials)
     return best, space, trials
     
-def save_resultdict(filepath,resultdict):
+def save_resultdict(filepath,resultdict,dp=4):
     #https://stackoverflow.com/questions/61894745/write-dictionary-to-text-file-with-newline
     status=resultdict['Results'].pop('status')
     f=open(filepath,'w')
@@ -332,11 +332,11 @@ def save_resultdict(filepath,resultdict):
         f.write(f"Probably optimising for {target}\n\n")
     f.write('EEG Parameters:\n')
     for k in resultdict['Chosen parameters']['eeg'].keys():
-        f.write(f"\t'{k}':'{resultdict['Chosen parameters']['eeg'][k]}'\n")
+        f.write(f"\t'{k}':'{round(resultdict['Chosen parameters']['eeg'][k],dp)if not isinstance(resultdict['Chosen parameters']['eeg'][k],str) else resultdict['Chosen parameters']['eeg'][k]}'\n")
     f.write('Results:\n')
     resultdict['Results']['status']=status
     for k in resultdict['Results'].keys():
-        f.write(f"\t'{k}':'{resultdict['Results'][k]}'\n")
+        f.write(f"\t'{k}':'{round(resultdict['Results'][k],dp)if not isinstance(resultdict['Results'][k],str) else resultdict['Results'][k]}'\n")
     f.close()
     
 

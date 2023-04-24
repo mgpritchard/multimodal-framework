@@ -653,16 +653,30 @@ def fusion_hierarchical(emg_others,eeg_others,emg_ppt,eeg_ppt,args):
     
     emg_train_split_fusion=ml.drop_ID_cols(emg_train_split_fusion)
     
+    sel_cols_emg=feats.sel_percent_feats_df(emg_train_split_fusion,percent=15)
+    sel_cols_emg=np.append(sel_cols_emg,emg_train_split_fusion.columns.get_loc('Label'))
+    emg_train_split_fusion=emg_train_split_fusion.iloc[:,sel_cols_emg]
+
+    
     '''Train EEG model'''
     eeg_train_split_ML=ml.drop_ID_cols(eeg_train_split_ML)
+    sel_cols_eeg=feats.sel_percent_feats_df(eeg_train_split_ML,percent=15)
+    sel_cols_eeg=np.append(sel_cols_eeg,eeg_train_split_ML.columns.get_loc('Label'))
+    eeg_train_split_ML=eeg_train_split_ML.iloc[:,sel_cols_eeg]
+    
     eeg_model = ml.train_optimise(eeg_train_split_ML, args['eeg']['eeg_model_type'], args['eeg'])
     classlabels=eeg_model.classes_
     
     '''Get EEG preds for EMG training'''
     eeg_preds_hierarch= []
+    
+    
+    '''Get values from instances'''
+       
     IDs=list(eeg_train_split_fusion.filter(regex='^ID_').keys())
-    IDs.append('Label')
-    eegvals=eeg_train_split_fusion.drop(IDs,axis='columns').values
+    eeg_train_split_fusion=eeg_train_split_fusion.drop(IDs,axis='columns')
+    eeg_train_split_fusion=eeg_train_split_fusion.iloc[:,sel_cols_eeg]
+    eegvals=eeg_train_split_fusion.drop(['Label'],axis='columns').values
 
     distros_eeg=ml.prob_dist(eeg_model,eegvals)
     for distro in distros_eeg:
@@ -713,8 +727,10 @@ def fusion_hierarchical(emg_others,eeg_others,emg_ppt,eeg_ppt,args):
      
     '''Get values from instances'''
     IDs=list(emg.filter(regex='^ID_').keys())
-    IDs.append('Label')
-    eegvals=eeg.drop(IDs,axis='columns').values
+    eeg=eeg.drop(IDs,axis='columns')
+    eeg=eeg.iloc[:,sel_cols_eeg]
+    eegvals=eeg.drop(['Label'],axis='columns').values    
+    
     
     '''Get EEG Predictions'''
     distros_eeg=ml.prob_dist(eeg_model,eegvals)
@@ -725,10 +741,12 @@ def fusion_hierarchical(emg_others,eeg_others,emg_ppt,eeg_ppt,args):
     
     '''Add EEG Preds to EMG set'''
     emg=emg.drop(IDs,axis='columns') #drop BEFORE inserting EEGOnehot
+    emg=emg.iloc[:,sel_cols_emg]
     for idx,lab in enumerate(classlabels):
         labelcol=len(emg.columns)
         emg.insert(labelcol-1,('EEGOnehotClass'+str(lab)),onehot_pred_eeg[:,idx])
         #emg[('EMG1hotClass'+str(lab))]=onehot_pred_eeg[:,idx]
+    emg=emg.drop(['Label'],axis='columns')
  
     distros_emg=ml.prob_dist(emg_model,emg.values)
     for distro in distros_emg:

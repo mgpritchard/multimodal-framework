@@ -913,7 +913,16 @@ def function_fuse_LOO(args):
         elif args['fusion_alg']=='lda':
             targets, predlist_emg, predlist_eeg, predlist_fusion, classlabels=fusion_LDA(emg_others, eeg_others, emg_ppt, eeg_ppt, args)
        
-        elif args['fusion_alg']=='hierarchical':    
+        elif args['fusion_alg']=='hierarchical':
+            
+            
+            if args['scalingtype']:
+                emg_others,emgscaler=feats.scale_feats_train(emg_others,args['scalingtype'])
+                eeg_others,eegscaler=feats.scale_feats_train(eeg_others,args['scalingtype'])
+                emg_ppt=feats.scale_feats_test(emg_ppt,emgscaler)
+                eeg_ppt=feats.scale_feats_test(eeg_ppt,eegscaler)
+                            
+            
             targets, predlist_emg, predlist_eeg, predlist_fusion, classlabels=fusion_hierarchical(emg_others, eeg_others, emg_ppt, eeg_ppt, args)
                  
         elif args['fusion_alg']=='featlevel':            
@@ -995,9 +1004,9 @@ def function_fuse_LOO(args):
         'emg_median_acc':median_emg,
         'eeg_mean_acc':mean_eeg,
         'eeg_median_acc':median_eeg,
-        'emg_f1_mean':mean_f1_emg,
-        'eeg_f1_mean':mean_f1_eeg,
-        'fusion_f1_mean':mean_f1_fusion,
+        #'emg_f1_mean':mean_f1_emg,
+        #'eeg_f1_mean':mean_f1_eeg,
+        #'fusion_f1_mean':mean_f1_fusion,
         'elapsed_time':end-start,}
 
 def function_fuse_withinppt(args):
@@ -1091,7 +1100,16 @@ def function_fuse_withinppt(args):
         elif args['fusion_alg']=='lda':
             targets, predlist_emg, predlist_eeg, predlist_fusion, classlabels=fusion_LDA(emg_train, eeg_train, emg_test, eeg_test, args)
         
-        elif args['fusion_alg']=='hierarchical':            
+        elif args['fusion_alg']=='hierarchical':
+            
+            
+            if args['scalingtype']:
+                emg_train,emgscaler=feats.scale_feats_train(emg_train,args['scalingtype'])
+                eeg_train,eegscaler=feats.scale_feats_train(eeg_train,args['scalingtype'])
+                emg_test=feats.scale_feats_test(emg_test,emgscaler)
+                eeg_test=feats.scale_feats_test(eeg_test,eegscaler)
+                            
+                        
             targets, predlist_emg, predlist_eeg, predlist_fusion, classlabels=fusion_hierarchical(emg_train, eeg_train, emg_test, eeg_test, args)
                  
         elif args['fusion_alg']=='featlevel':            
@@ -1172,9 +1190,9 @@ def function_fuse_withinppt(args):
         'emg_median_acc':median_emg,
         'eeg_mean_acc':mean_eeg,
         'eeg_median_acc':median_eeg,
-        'emg_f1_mean':mean_f1_emg,
-        'eeg_f1_mean':mean_f1_eeg,
-        'fusion_f1_mean':mean_f1_fusion,
+        #'emg_f1_mean':mean_f1_emg,
+        #'eeg_f1_mean':mean_f1_eeg,
+        #'fusion_f1_mean':mean_f1_fusion,
         'elapsed_time':end-start,}
 
 def plot_opt_in_time(trials):

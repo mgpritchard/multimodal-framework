@@ -1192,7 +1192,7 @@ def plot_stat_in_time(trials,stat,ylower=0,yupper=1,showplot=True):
             [x['result'][stat] for x in trials], 
         color='red', marker='.', linewidth=0)
     #https://www.kaggle.com/code/fanvacoolt/tutorial-on-hyperopt?scriptVersionId=12981074&cellId=97
-    ax.set(title=stat+' over time')
+    ax.set(title=stat+' over optimisation iterations')
     ax.set_ylim(ylower,yupper)
     if showplot:
         plt.show()
@@ -1202,6 +1202,54 @@ def plot_stat_in_time(trials,stat,ylower=0,yupper=1,showplot=True):
     # eg with vertical fill
     # https://stackoverflow.com/questions/23248435/fill-between-two-vertical-lines-in-matplotlib
 
+def plot_stat_as_line(trials,stat,ylower=0,yupper=1,showplot=True):
+    fig,ax=plt.subplots()
+    ax.plot(range(1, len(trials) + 1),
+            [x['result'][stat] for x in trials], 
+        color='red')
+    #https://www.kaggle.com/code/fanvacoolt/tutorial-on-hyperopt?scriptVersionId=12981074&cellId=97
+    ax.set(title=stat+' over optimisation iterations')
+    ax.set_ylim(ylower,yupper)
+    if showplot:
+        plt.show()
+    return fig
+
+def plot_multiple_stats(trials,stats,ylower=0,yupper=1,showplot=True):
+    fig,ax=plt.subplots()
+    for stat in stats:
+        ax.plot(range(1, len(trials) + 1),
+                [x['result'][stat] for x in trials],
+                label=(stat))
+        #https://www.kaggle.com/code/fanvacoolt/tutorial-on-hyperopt?scriptVersionId=12981074&cellId=97
+    #ax.set(title=stat+' over optimisation iterations')
+    ax.legend(loc='upper center')
+    ax.set_ylim(ylower,yupper)
+    if showplot:
+        plt.show()
+    return fig
+
+def calc_runningbest(trials,stat=None):
+    if stat is None:
+        best=np.maximum.accumulate([1-x['result']['loss'] for x in trials])
+    else:
+        best=np.maximum.accumulate([x['result'][stat] for x in trials])
+    return best
+
+def plot_multiple_stats_with_best(trials,stats,runbest=None,ylower=0,yupper=1,showplot=True):
+    fig,ax=plt.subplots()
+    for stat in stats:
+        ax.plot(range(1, len(trials) + 1),
+                [x['result'][stat] for x in trials],
+                label=(stat))
+        #https://www.kaggle.com/code/fanvacoolt/tutorial-on-hyperopt?scriptVersionId=12981074&cellId=97
+    #ax.set(title=stat+' over optimisation iterations')
+    best=calc_runningbest(trials,runbest)
+    ax.plot(range(1,len(trials)+1),best,label='running best')
+    ax.legend(loc='upper center')
+    ax.set_ylim(ylower,yupper)
+    if showplot:
+        plt.show()
+    return fig
     
 def setup_search_space():
     space = {
@@ -1428,6 +1476,7 @@ if __name__ == '__main__':
     #plot_stat_in_time(trials, 'loss')
     fus_acc_plot=plot_stat_in_time(trials,'fusion_mean_acc')#,showplot=False)
     #plot_stat_in_time(trials,'elapsed_time',0,200)
+    acc_compare_plot=plot_multiple_stats_with_best(trials,['emg_mean_acc','eeg_mean_acc','fusion_mean_acc'],runbest='fusion_mean_acc')
     
     table=pd.DataFrame(trials.trials)
     table_readable=pd.concat(
@@ -1457,6 +1506,7 @@ if __name__ == '__main__':
     emg_acc_plot.savefig(os.path.join(resultpath,'emg_acc.png'))
     eeg_acc_plot.savefig(os.path.join(resultpath,'eeg_acc.png'))
     fus_acc_plot.savefig(os.path.join(resultpath,'fusion_acc.png'))
+    acc_compare_plot.savefig(os.path.join(resultpath,'acc_compare.png'))
     
     '''saving best parameters & results'''
     reportpath=os.path.join(resultpath,'params_results_report.txt')

@@ -580,15 +580,39 @@ def feature_fusion(emg_others,eeg_others,emg_ppt,eeg_ppt,args):
      
     eeg_others=ml.drop_ID_cols(eeg_others)
     emg_others=ml.drop_ID_cols(emg_others)
-    emg_model = ml.train_optimise(emg_others, args['emg']['emg_model_type'], args['emg'])
-    eeg_model = ml.train_optimise(eeg_others, args['eeg']['eeg_model_type'], args['eeg'])
     
+    sel_cols_emg=feats.sel_percent_feats_df(emg_others,percent=15)
+    sel_cols_emg=np.append(sel_cols_emg,emg_others.columns.get_loc('Label'))
+    if not args['featfuse_sel_feats_together']:
+        emg_others = emg_others.iloc[:,sel_cols_emg]
+        emg_model = ml.train_optimise(emg_others, args['emg']['emg_model_type'], args['emg'])
+    else:
+        emg_others_for_solo = emg_others.iloc[:,sel_cols_emg]
+        emg_model = ml.train_optimise(emg_others_for_solo, args['emg']['emg_model_type'], args['emg'])
+        
+    
+    sel_cols_eeg=feats.sel_percent_feats_df(eeg_others,percent=15)
+    sel_cols_eeg=np.append(sel_cols_eeg,eeg_others.columns.get_loc('Label'))
+    if not args['featfuse_sel_feats_together']:
+        eeg_others = eeg_others.iloc[:,sel_cols_eeg]
+        eeg_model = ml.train_optimise(eeg_others, args['eeg']['eeg_model_type'], args['eeg'])
+    else:
+        eeg_others_for_solo = eeg_others.iloc[:,sel_cols_eeg]
+        eeg_model = ml.train_optimise(eeg_others_for_solo, args['eeg']['eeg_model_type'], args['eeg'])
+
+
     eeg_others.drop('Label',axis='columns',inplace=True)
     eeg_others.rename(columns=lambda x: 'EEG_'+x, inplace=True)
     #emg_others[('EEG_',varname)]=eeg_others[varname] for varname in eeg_others.columns.values()
     labelcol=emg_others.pop('Label')
     emgeeg_others=pd.concat([emg_others,eeg_others],axis=1)
     emgeeg_others['Label']=labelcol
+    
+    if args['featfuse_sel_feats_together']:
+        sel_cols_emgeeg=feats.sel_percent_feats_df(emgeeg_others,percent=15)
+        sel_cols_emgeeg=np.append(sel_cols_emgeeg,emgeeg_others.columns.get_loc('Label'))
+        emgeeg_others = emgeeg_others.iloc[:,sel_cols_emgeeg]
+    
     emgeeg_model = ml.train_optimise(emgeeg_others, args['featfuse']['featfuse_model_type'],args['featfuse'])
     
     classlabels = emg_model.classes_
@@ -596,7 +620,7 @@ def feature_fusion(emg_others,eeg_others,emg_ppt,eeg_ppt,args):
         
     emg_ppt.sort_values(['ID_pptID','ID_run','Label','ID_gestrep','ID_tend'],ascending=[True,True,True,True,True],inplace=True)
     eeg_ppt.sort_values(['ID_pptID','ID_run','Label','ID_gestrep','ID_tend'],ascending=[True,True,True,True,True],inplace=True)                
-    targets, predlist_emg, predlist_eeg, _ = refactor_synced_predict(emg_ppt, eeg_ppt, emg_model, eeg_model, classlabels,args)
+    targets, predlist_emg, predlist_eeg, _ = refactor_synced_predict(emg_ppt, eeg_ppt, emg_model, eeg_model, classlabels,args,sel_cols_eeg,sel_cols_emg)
     
     index_emg_ppt=ml.pd.MultiIndex.from_arrays([emg_ppt[col] for col in ['ID_pptID','ID_run','Label','ID_gestrep','ID_tend']])
     index_eeg_ppt=ml.pd.MultiIndex.from_arrays([eeg_ppt[col] for col in ['ID_pptID','ID_run','Label','ID_gestrep','ID_tend']])
@@ -610,20 +634,31 @@ def feature_fusion(emg_others,eeg_others,emg_ppt,eeg_ppt,args):
         raise RuntimeError('Target classes should match, testing sets are misaligned')
     
     eeg_ppt=ml.drop_ID_cols(eeg_ppt)
+    if not args['featfuse_sel_feats_together']:
+        eeg_ppt=eeg_ppt.iloc[:,sel_cols_eeg]
+        emg_ppt=ml.drop_ID_cols(emg_ppt)
+        emg_ppt=emg_ppt.iloc[:,sel_cols_emg]
+    
     eeg_ppt.drop('Label',axis='columns',inplace=True)
     eeg_ppt.rename(columns=lambda x: 'EEG_'+x, inplace=True)
     #emg_others[('EEG_',varname)]=eeg_others[varname] for varname in eeg_others.columns.values()
     labelcol_ppt=emg_ppt.pop('Label')
     emgeeg_ppt=pd.concat([emg_ppt,eeg_ppt],axis=1)
     emgeeg_ppt['Label']=labelcol_ppt
-    
-    emgeeg_ppt.sort_values(['ID_pptID','ID_run','Label','ID_gestrep','ID_tend'],ascending=[True,True,True,True,True],inplace=True)
+        
+    #emgeeg_ppt.sort_values(['ID_pptID','ID_run','Label','ID_gestrep','ID_tend'],ascending=[True,True,True,True,True],inplace=True)
+    #these are already sorted above before appending together?
     predlist_fusion=[]
         
     '''Get values from instances'''
     IDs=list(emgeeg_ppt.filter(regex='^ID_').keys())
-    IDs.append('Label')
     emgeeg_vals=emgeeg_ppt.drop(IDs,axis='columns').values
+    
+    if args['featfuse_sel_feats_together']:
+       sel_cols_emgeeg=np.append(sel_cols_emgeeg,emgeeg_ppt.columns.get_loc('Label'))
+       emgeeg_ppt = emgeeg_ppt.iloc[:,sel_cols_emgeeg]
+    
+    emgeeg_vals=emgeeg_ppt.drop(['Label'],axis='columns').values
         
     '''Pass values to models'''    
     distros_fusion=ml.prob_dist(emgeeg_model,emgeeg_vals)
@@ -943,7 +978,14 @@ def function_fuse_LOO(args):
             
             targets, predlist_emg, predlist_eeg, predlist_fusion, classlabels=fusion_hierarchical(emg_others, eeg_others, emg_ppt, eeg_ppt, args)
                  
-        elif args['fusion_alg']=='featlevel':            
+        elif args['fusion_alg']=='featlevel':  
+            
+            if args['scalingtype']:
+                emg_others,emgscaler=feats.scale_feats_train(emg_others,args['scalingtype'])
+                eeg_others,eegscaler=feats.scale_feats_train(eeg_others,args['scalingtype'])
+                emg_ppt=feats.scale_feats_test(emg_ppt,emgscaler)
+                eeg_ppt=feats.scale_feats_test(eeg_ppt,eegscaler)
+                            
             targets, predlist_emg, predlist_eeg, predlist_fusion, classlabels=feature_fusion(emg_others, eeg_others, emg_ppt, eeg_ppt, args)
         
         else:
@@ -1130,7 +1172,14 @@ def function_fuse_withinppt(args):
                         
             targets, predlist_emg, predlist_eeg, predlist_fusion, classlabels=fusion_hierarchical(emg_train, eeg_train, emg_test, eeg_test, args)
                  
-        elif args['fusion_alg']=='featlevel':            
+        elif args['fusion_alg']=='featlevel': 
+            
+            if args['scalingtype']:
+                emg_train,emgscaler=feats.scale_feats_train(emg_train,args['scalingtype'])
+                eeg_train,eegscaler=feats.scale_feats_train(eeg_train,args['scalingtype'])
+                emg_test=feats.scale_feats_test(emg_test,emgscaler)
+                eeg_test=feats.scale_feats_test(eeg_test,eegscaler)
+                            
             targets, predlist_emg, predlist_eeg, predlist_fusion, classlabels=feature_fusion(emg_train, eeg_train, emg_test, eeg_test, args)
         
         else:
@@ -1258,7 +1307,7 @@ def plot_multiple_stats(trials,stats,ylower=0,yupper=1,showplot=True):
                 label=(stat))
         #https://www.kaggle.com/code/fanvacoolt/tutorial-on-hyperopt?scriptVersionId=12981074&cellId=97
     #ax.set(title=stat+' over optimisation iterations')
-    ax.legend(loc='upper center')
+    ax.legend()#loc='upper center')
     ax.set_ylim(ylower,yupper)
     if showplot:
         plt.show()
@@ -1281,7 +1330,7 @@ def plot_multiple_stats_with_best(trials,stats,runbest=None,ylower=0,yupper=1,sh
     #ax.set(title=stat+' over optimisation iterations')
     best=calc_runningbest(trials,runbest)
     ax.plot(range(1,len(trials)+1),best,label='running best')
-    ax.legend(loc='upper center')
+    ax.legend()#loc='upper center')
     ax.set_ylim(ylower,yupper)
     if showplot:
         plt.show()
@@ -1354,6 +1403,9 @@ def setup_search_space():
                  'regularisation':hp.uniform('featfuse.qda.regularisation',0.0,1.0), #https://www.kaggle.com/code/code1110/best-parameter-s-for-qda/notebook
                  },
                 ]),
+            'featfuse_sel_feats_together':False,#hp.choice('selfeatstogether',[True,False]),
+            #somehow when this is true theres an issue with the Label col. think we end up with
+            #either two label cols or none depending on whether we add it to selcols_emgeeg twice
             'svmfuse':{
            #     'kernel':hp.choice('eeg.svm.kernel',['rbf']),#'poly','linear']),
                 'svm_C':hp.loguniform('fus.svm.c',np.log(0.01),np.log(100)),
@@ -1383,7 +1435,7 @@ def setup_search_space():
             'data_in_memory':False,
             'prebalanced':False,
             #'scalingtype':'standardise',#'normalise','standardise',None
-            'scalingtype':hp.choice('scaling',['normalise','standardise',None]),
+            'scalingtype':hp.choice('scaling',['normalise','standardise']),#,None]),
             'plot_confmats':False,
             }
     return space

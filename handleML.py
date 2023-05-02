@@ -150,7 +150,7 @@ def train_optimise(training_set,modeltype,args):
     if modeltype=='RF':
         model=train_RF_param(training_set,args)
     elif modeltype=='gaussNB':
-        raise ValueError('No Gaussian NB implemented yet')
+        #raise ValueError('No Gaussian NB implemented yet')
         '''Naive Bayes Reading'''
         # Bayes Net vs NB:
             #https://stackoverflow.com/questions/12298150/what-is-the-difference-between-a-bayesian-network-and-a-naive-bayes-classifier#:~:text=Bayesian%20Network%20is%20more%20complicated,some%20crucial%20attributes%20are%20discarded.
@@ -162,7 +162,7 @@ def train_optimise(training_set,modeltype,args):
             #https://stackoverflow.com/questions/68080288/naive-bayes-classifiers-are-bad-estimators
         #https://scikit-learn.org/stable/modules/generated/sklearn.linear_model.LogisticRegression.html
         
-        model=train_nb(training_set,args)
+        model=train_gnb(training_set,args)
     elif modeltype=='LDA':
         #raise ValueError('No LDA implemented yet')
         model=train_LDA_param(training_set,args)
@@ -176,6 +176,15 @@ def train_optimise(training_set,modeltype,args):
     elif modeltype=='SVM_PlattScale':
         model = train_SVC_Platt(training_set,args)
    
+    return model
+
+def train_gnb(train_data,args):
+    #data=matrix_from_csv_file(train_dat)[0] #move this up a level or 2
+    smoothing=args['smoothing']
+    model=GaussianNB(var_smoothing=smoothing)
+    train=train_data.values[:,:-1]
+    targets=train_data.values[:,-1]
+    model.fit(train.astype(np.float64),targets)
     return model
 
 def train_SVC_Platt(train_data,args):

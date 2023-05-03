@@ -1353,6 +1353,9 @@ def setup_search_space():
                 {'emg_model_type':'QDA',
                  'regularisation':hp.uniform('emg.qda.regularisation',0.0,1.0), #https://www.kaggle.com/code/code1110/best-parameter-s-for-qda/notebook
                  },
+                {'emg_model_type':'gaussNB',
+                 'smoothing':hp.loguniform('emg.gnb.smoothing',np.log(1e-9),np.log(1e0)),
+                 },
             #    {'emg_model_type':'SVM_PlattScale',    #SKL SVC likely unviable, excessively slow
               #   'kernel':hp.choice('emg.svm.kernel',['rbf']),#'poly','linear']),
               #   'svm_C':hp.uniform('emg.svm.c',0.1,100), #use loguniform? #https://queirozf.com/entries/choosing-c-hyperparameter-for-svm-classifiers-examples-with-scikit-learn
@@ -1376,6 +1379,9 @@ def setup_search_space():
                  },
                 {'eeg_model_type':'QDA',
                  'regularisation':hp.uniform('eeg.qda.regularisation',0.0,1.0),
+                 },
+                {'eeg_model_type':'gaussNB',
+                 'smoothing':hp.loguniform('eeg.gnb.smoothing',np.log(1e-9),np.log(1e0)),
                  },
 #                {'eeg_model_type':'SVM_PlattScale',
  #                'kernel':hp.choice('eeg.svm.kernel',['rbf']),#'poly','linear']),

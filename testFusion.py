@@ -1200,6 +1200,9 @@ def function_fuse_LOO(args):
         #'emg_f1_mean':mean_f1_emg,
         #'eeg_f1_mean':mean_f1_eeg,
         #'fusion_f1_mean':mean_f1_fusion,
+        'emg_accs':emg_accs,
+        'eeg_accs':eeg_accs,
+        'fusion_accs':accs,
         'elapsed_time':end-start,}
 
 def function_fuse_withinppt(args):
@@ -1403,6 +1406,9 @@ def function_fuse_withinppt(args):
         #'emg_f1_mean':mean_f1_emg,
         #'eeg_f1_mean':mean_f1_eeg,
         #'fusion_f1_mean':mean_f1_fusion,
+        'emg_accs':emg_accs,
+        'eeg_accs':eeg_accs,
+        'fusion_accs':accs,
         'elapsed_time':end-start,}
 
 def plot_opt_in_time(trials):
@@ -1478,7 +1484,32 @@ def plot_multiple_stats_with_best(trials,stats,runbest=None,ylower=0,yupper=1,sh
     if showplot:
         plt.show()
     return fig
-    
+
+def boxplot_param(df_in,param,target,ylower=0,yupper=1):
+    fig,ax=plt.subplots()
+    dataframe=df_in.copy()
+    if isinstance(dataframe[param][0],list):
+        dataframe[param]=dataframe[param].apply(lambda x: x[0])
+    dataframe.boxplot(column=target,by=param,ax=ax)
+    ax.set_ylim(ylower,yupper)
+    plt.show()
+    return fig
+  
+def scatterbox(trials,stat='fusion_accs',ylower=0,yupper=1,showplot=True):
+    fig,ax=plt.subplots()
+    X=range(1, len(trials) + 1)
+    H=[x['result'][stat] for x in trials]
+    groups = [[] for i in range(max(X))]
+    [groups[X[i]-1].append(H[i]) for i in range(len(H))]
+    groups=[each[0] for each in groups]
+    ax.boxplot(groups)
+    ax.set(title=stat+' over optimisation iterations')
+    ax.set_ylim(ylower,yupper)
+    if showplot:
+        plt.show()
+    #https://stackoverflow.com/questions/53473733/how-to-add-box-plot-to-scatter-data-in-matplotlib
+    return fig
+        
 def setup_search_space():
     space = {
             'emg':hp.choice('emg model',[
@@ -1628,6 +1659,9 @@ def save_resultdict(filepath,resultdict,dp=4):
     #https://stackoverflow.com/questions/61894745/write-dictionary-to-text-file-with-newline
     #sig fig would be nicer https://stackoverflow.com/questions/3410976/how-to-round-a-number-to-significant-figures-in-python
     status=resultdict['Results'].pop('status')
+    emg_accs=resultdict['Results'].pop('emg_accs',None)
+    eeg_accs=resultdict['Results'].pop('eeg_accs',None)
+    fusion_accs=resultdict['Results'].pop('fusion_accs',None)
     f=open(filepath,'w')
     try:
         target=list(resultdict['Results'].keys())[list(resultdict['Results'].values()).index(1-resultdict['Results']['loss'])]
@@ -1716,6 +1750,10 @@ if __name__ == '__main__':
     #plot_stat_in_time(trials,'elapsed_time',0,200)
     acc_compare_plot=plot_multiple_stats_with_best(trials,['emg_mean_acc','eeg_mean_acc','fusion_mean_acc'],runbest='fusion_mean_acc')
     
+    emg_acc_box=scatterbox(trials,'emg_accs')
+    eeg_acc_box=scatterbox(trials,'eeg_accs')
+    fus_acc_box=scatterbox(trials,'fusion_accs')
+    
     table=pd.DataFrame(trials.trials)
     table_readable=pd.concat(
         [pd.DataFrame(table['result'].tolist()),
@@ -1746,11 +1784,23 @@ if __name__ == '__main__':
     fus_acc_plot.savefig(os.path.join(resultpath,'fusion_acc.png'))
     acc_compare_plot.savefig(os.path.join(resultpath,'acc_compare.png'))
     
+    emg_acc_box.savefig(os.path.join(resultpath,'emg_box.png'))
+    eeg_acc_box.savefig(os.path.join(resultpath,'eeg_box.png'))
+    fus_acc_box.savefig(os.path.join(resultpath,'fusion_box.png'))
+    
     '''saving best parameters & results'''
     reportpath=os.path.join(resultpath,'params_results_report.txt')
     save_resultdict(reportpath,winner)
     
     #for properly evaluating results later: https://towardsdatascience.com/multiclass-classification-evaluation-with-roc-curves-and-roc-auc-294fd4617e3a
+    
+    per_emgmodel=boxplot_param(table_readable,'emg model','fusion_mean_acc')
+    per_eegmodel=boxplot_param(table_readable,'eeg model','fusion_mean_acc')
+    per_fusalg=boxplot_param(table_readable,'fusion algorithm','fusion_mean_acc')
+    
+    per_emgmodel.savefig(os.path.join(resultpath,'emg_model.png'))
+    per_eegmodel.savefig(os.path.join(resultpath,'eeg_model.png'))
+    per_fusalg.savefig(os.path.join(resultpath,'fus_alg.png'))
     
     raise KeyboardInterrupt('ending execution here!')
     

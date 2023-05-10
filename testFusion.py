@@ -791,6 +791,129 @@ def fusion_hierarchical(emg_others,eeg_others,emg_ppt,eeg_ppt,args):
     
     return targets, predlist_emg, predlist_eeg, predlist_hierarch, classlabels
 
+
+def fusion_hierarchical_inv(emg_others,eeg_others,emg_ppt,eeg_ppt,args):
+    '''TRAINING ON NON-PPT DATA'''
+    emg_others.sort_values(['ID_pptID','ID_run','Label','ID_gestrep','ID_tend'],ascending=[True,True,True,True,True],inplace=True)
+    eeg_others.sort_values(['ID_pptID','ID_run','Label','ID_gestrep','ID_tend'],ascending=[True,True,True,True,True],inplace=True)
+    
+    index_emg=ml.pd.MultiIndex.from_arrays([emg_others[col] for col in ['ID_pptID','ID_run','Label','ID_gestrep','ID_tend']])
+    index_eeg=ml.pd.MultiIndex.from_arrays([eeg_others[col] for col in ['ID_pptID','ID_run','Label','ID_gestrep','ID_tend']])
+    emg_others=emg_others.loc[index_emg.isin(index_eeg)].reset_index(drop=True)
+    eeg_others=eeg_others.loc[index_eeg.isin(index_emg)].reset_index(drop=True)
+            
+    emg_others['ID_splitIndex']=emg_others['Label'].astype(str)+emg_others['ID_pptID'].astype(str)
+    eeg_others['ID_splitIndex']=eeg_others['Label'].astype(str)+eeg_others['ID_pptID'].astype(str)
+    #https://stackoverflow.com/questions/45516424/sklearn-train-test-split-on-pandas-stratify-by-multiple-columns
+    random_split=random.randint(0,100)
+    emg_train_split_ML,emg_train_split_fusion=train_test_split(emg_others,test_size=0.5,random_state=random_split,stratify=emg_others[['ID_splitIndex']])
+    eeg_train_split_ML,eeg_train_split_fusion=train_test_split(eeg_others,test_size=0.5,random_state=random_split,stratify=eeg_others[['ID_splitIndex']])
+    #https://stackoverflow.com/questions/43095076/scikit-learn-train-test-split-can-i-ensure-same-splits-on-different-datasets
+    
+    eeg_train_split_fusion=ml.drop_ID_cols(eeg_train_split_fusion)
+    
+    sel_cols_eeg=feats.sel_percent_feats_df(eeg_train_split_fusion,percent=15)
+    sel_cols_eeg=np.append(sel_cols_eeg,eeg_train_split_fusion.columns.get_loc('Label'))
+    eeg_train_split_fusion=eeg_train_split_fusion.iloc[:,sel_cols_eeg]
+
+    
+    '''Train EMG model'''
+    emg_train_split_ML=ml.drop_ID_cols(emg_train_split_ML)
+    sel_cols_emg=feats.sel_percent_feats_df(emg_train_split_ML,percent=15)
+    sel_cols_emg=np.append(sel_cols_emg,emg_train_split_ML.columns.get_loc('Label'))
+    emg_train_split_ML=emg_train_split_ML.iloc[:,sel_cols_emg]
+    
+    emg_model = ml.train_optimise(emg_train_split_ML, args['emg']['emg_model_type'], args['emg'])
+    classlabels=emg_model.classes_
+    
+    '''Get EMG preds for EEG training'''
+    emg_preds_hierarch= []
+    
+    
+    '''Get values from instances'''
+       
+    IDs=list(emg_train_split_fusion.filter(regex='^ID_').keys())
+    emg_train_split_fusion=emg_train_split_fusion.drop(IDs,axis='columns')
+    emg_train_split_fusion=emg_train_split_fusion.iloc[:,sel_cols_emg]
+    emgvals=emg_train_split_fusion.drop(['Label'],axis='columns').values
+
+    distros_emg=ml.prob_dist(emg_model,emgvals)
+    for distro in distros_emg:
+        pred_emg=ml.pred_from_distro(classlabels,distro)
+        emg_preds_hierarch.append(pred_emg)
+    
+    '''Add EMG preds to EEG training set'''
+    onehot=fusion.setup_onehot(classlabels)
+    onehot_pred_emg=fusion.encode_preds_onehot(emg_preds_hierarch,onehot)
+    for idx,lab in enumerate(classlabels):
+        labelcol=len(eeg_train_split_fusion.columns)
+        eeg_train_split_fusion.insert(labelcol-1,('EMG1hotClass'+str(lab)),onehot_pred_emg[:,idx])
+      
+    '''Train EEG model'''
+    eeg_model=ml.train_optimise(eeg_train_split_fusion,args['eeg']['eeg_model_type'],args['eeg'])
+ 
+    '''-----------------'''
+ 
+    '''TESTING ON PPT DATA'''
+    emg_ppt.sort_values(['ID_pptID','ID_run','Label','ID_gestrep','ID_tend'],ascending=[True,True,True,True,True],inplace=True)
+    eeg_ppt.sort_values(['ID_pptID','ID_run','Label','ID_gestrep','ID_tend'],ascending=[True,True,True,True,True],inplace=True)
+ 
+    predlist_hierarch=[]
+    predlist_emg=[]
+    targets=[]
+     
+    index_emg=ml.pd.MultiIndex.from_arrays([emg_ppt[col] for col in ['ID_pptID','ID_run','Label','ID_gestrep','ID_tend']])
+    index_eeg=ml.pd.MultiIndex.from_arrays([eeg_ppt[col] for col in ['ID_pptID','ID_run','Label','ID_gestrep','ID_tend']])
+    emg=emg_ppt.loc[index_emg.isin(index_eeg)].reset_index(drop=True)
+    eeg=eeg_ppt.loc[index_eeg.isin(index_emg)].reset_index(drop=True)
+    
+    for index,eegrow in eeg.iterrows():
+        emgrow = emg[(emg['ID_pptID']==eegrow['ID_pptID'])
+                              & (emg['ID_run']==eegrow['ID_run'])
+                              & (emg['Label']==eegrow['Label'])
+                              & (emg['ID_gestrep']==eegrow['ID_gestrep'])
+                              & (emg['ID_tend']==eegrow['ID_tend'])]
+
+        if emgrow.empty:
+            print('No matching EMG window for EEG window '+str(eegrow['ID_pptID'])+str(eegrow['ID_run'])+str(eegrow['Label'])+str(eegrow['ID_gestrep'])+str(eegrow['ID_tend']))
+            continue
+     
+        TargetLabel=eegrow['Label']
+        if TargetLabel != emgrow['Label'].values:
+            raise Exception('Sense check failed, target label should agree between modes')
+        targets.append(TargetLabel)
+     
+    '''Get values from instances'''
+    IDs=list(eeg.filter(regex='^ID_').keys())
+    emg=emg.drop(IDs,axis='columns')
+    emg=emg.iloc[:,sel_cols_emg]
+    emgvals=emg.drop(['Label'],axis='columns').values    
+    
+    
+    '''Get EMG Predictions'''
+    distros_emg=ml.prob_dist(emg_model,emgvals)
+    for distro in distros_emg:
+        pred_emg=ml.pred_from_distro(classlabels,distro)
+        predlist_emg.append(pred_emg)
+    onehot_pred_emg=fusion.encode_preds_onehot(predlist_emg,onehot)
+    
+    '''Add EMG Preds to EEG set'''
+    eeg=eeg.drop(IDs,axis='columns') #drop BEFORE inserting EMGOnehot
+    eeg=eeg.iloc[:,sel_cols_eeg]
+    for idx,lab in enumerate(classlabels):
+        labelcol=len(eeg.columns)
+        eeg.insert(labelcol-1,('EMGOnehotClass'+str(lab)),onehot_pred_emg[:,idx])
+    eeg=eeg.drop(['Label'],axis='columns')
+ 
+    distros_eeg=ml.prob_dist(eeg_model,eeg.values)
+    for distro in distros_eeg:
+        pred_eeg=ml.pred_from_distro(classlabels,distro)
+        predlist_hierarch.append(pred_eeg)
+    predlist_eeg=predlist_hierarch
+    
+    return targets, predlist_emg, predlist_eeg, predlist_hierarch, classlabels
+
+
 def fusion_SVM(emg_train, eeg_train, emg_test, eeg_test, args):
     emg_train.sort_values(['ID_pptID','ID_run','Label','ID_gestrep','ID_tend'],ascending=[True,True,True,True,True],inplace=True)
     emg_train.sort_values(['ID_pptID','ID_run','Label','ID_gestrep','ID_tend'],ascending=[True,True,True,True,True],inplace=True)
@@ -977,6 +1100,16 @@ def function_fuse_LOO(args):
                             
             
             targets, predlist_emg, predlist_eeg, predlist_fusion, classlabels=fusion_hierarchical(emg_others, eeg_others, emg_ppt, eeg_ppt, args)
+
+        elif args['fusion_alg']=='hierarchical_inv':          
+            
+            if args['scalingtype']:
+                emg_others,emgscaler=feats.scale_feats_train(emg_others,args['scalingtype'])
+                eeg_others,eegscaler=feats.scale_feats_train(eeg_others,args['scalingtype'])
+                emg_ppt=feats.scale_feats_test(emg_ppt,emgscaler)
+                eeg_ppt=feats.scale_feats_test(eeg_ppt,eegscaler)
+                                       
+            targets, predlist_emg, predlist_eeg, predlist_fusion, classlabels=fusion_hierarchical_inv(emg_others, eeg_others, emg_ppt, eeg_ppt, args)
                  
         elif args['fusion_alg']=='featlevel':  
             
@@ -1171,6 +1304,16 @@ def function_fuse_withinppt(args):
                             
                         
             targets, predlist_emg, predlist_eeg, predlist_fusion, classlabels=fusion_hierarchical(emg_train, eeg_train, emg_test, eeg_test, args)
+
+        elif args['fusion_alg']=='hierarchical_inv':
+            
+            if args['scalingtype']:
+                emg_train,emgscaler=feats.scale_feats_train(emg_train,args['scalingtype'])
+                eeg_train,eegscaler=feats.scale_feats_train(eeg_train,args['scalingtype'])
+                emg_test=feats.scale_feats_test(emg_test,emgscaler)
+                eeg_test=feats.scale_feats_test(eeg_test,eegscaler)
+                        
+            targets, predlist_emg, predlist_eeg, predlist_fusion, classlabels=fusion_hierarchical_inv(emg_train, eeg_train, emg_test, eeg_test, args)
                  
         elif args['fusion_alg']=='featlevel': 
             
@@ -1428,6 +1571,7 @@ def setup_search_space():
                 #'bayes', #Excluding those which allow it to ignore EEG
                 'highest_conf',
                 #'hierarchical', #DON'T DO THESE IN THE SAME PARAM SPACE
+                'hierarchical_inv',
                 #'featlevel',
                 'svm',
                 'lda',

@@ -1802,9 +1802,17 @@ if __name__ == '__main__':
     per_eegmodel.savefig(os.path.join(resultpath,'eeg_model.png'))
     per_fusalg.savefig(os.path.join(resultpath,'fus_alg.png'))
     
+    
+    acc_per_emg_model=table_readable.sort_values('emg model').plot(x='emg model',y='fusion_mean_acc',style='o')
+    acc_per_eeg_model=table_readable.sort_values('eeg model').plot(x='eeg model',y='fusion_mean_acc',style='o')
+    acc_per_fus_alg=table_readable.sort_values('fusion algorithm').plot(x='fusion algorithm',y='fusion_mean_acc',style='o')
+    
+    acc_per_emg_model.figure.savefig(os.path.join(resultpath,'emg_model.png'))
+    acc_per_eeg_model.figure.savefig(os.path.join(resultpath,'eeg_model.png'))
+    acc_per_fus_alg.figure.savefig(os.path.join(resultpath,'fus_alg.png'))
+    
     raise KeyboardInterrupt('ending execution here!')
-    
-    
+                                
     
     '''per_ppt_accs = ml.pd.DataFrame(list(zip(pptIDs,emg_accs,eeg_accs,fus_accs)),columns=['pptID','emg_acc','eeg_acc','fusion_acc'])'''
     

@@ -1335,7 +1335,17 @@ def plot_multiple_stats_with_best(trials,stats,runbest=None,ylower=0,yupper=1,sh
     if showplot:
         plt.show()
     return fig
-    
+
+def boxplot_param(df_in,param,target,ylower=0,yupper=1):
+    fig,ax=plt.subplots()
+    dataframe=df_in.copy()
+    if isinstance(dataframe[param][0],list):
+        dataframe[param]=dataframe[param].apply(lambda x: x[0])
+    dataframe.boxplot(column=target,by=param,ax=ax)
+    ax.set_ylim(ylower,yupper)
+    plt.show()
+    return fig
+  
 def setup_search_space():
     space = {
             'emg':hp.choice('emg model',[
@@ -1607,6 +1617,14 @@ if __name__ == '__main__':
     save_resultdict(reportpath,winner)
     
     #for properly evaluating results later: https://towardsdatascience.com/multiclass-classification-evaluation-with-roc-curves-and-roc-auc-294fd4617e3a
+    
+    per_emgmodel=boxplot_param(table_readable,'emg model','fusion_mean_acc')
+    per_eegmodel=boxplot_param(table_readable,'eeg model','fusion_mean_acc')
+    per_fusalg=boxplot_param(table_readable,'fusion algorithm','fusion_mean_acc')
+    
+    per_emgmodel.savefig(os.path.join(resultpath,'emg_model.png'))
+    per_eegmodel.savefig(os.path.join(resultpath,'eeg_model.png'))
+    per_fusalg.savefig(os.path.join(resultpath,'fus_alg.png'))
     
     raise KeyboardInterrupt('ending execution here!')
     

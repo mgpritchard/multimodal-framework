@@ -1643,8 +1643,12 @@ def setup_search_space(architecture):
         
     return space
 
-def optimise_fusion_LOO(prebalance=True,architecture='decision'):
+def optimise_fusion_LOO(prebalance=True,architecture='decision',platform='not server'):
     space=setup_search_space(architecture)
+    
+    if platform=='server':
+        space.update({'emg_set_path':params.jeong_EMGfeats_server,
+                      'eeg_set_path':params.jeong_EEGfeats_server})
     
     if prebalance:
         emg_set=ml.pd.read_csv(space['emg_set_path'],delimiter=',')
@@ -1660,9 +1664,13 @@ def optimise_fusion_LOO(prebalance=True,architecture='decision'):
                 trials=trials)
     return best, space, trials
 
-def optimise_fusion_withinsubject(prebalance=True,architecture='decision'):
+def optimise_fusion_withinsubject(prebalance=True,architecture='decision',platform='not server'):
     space=setup_search_space(architecture)
     
+    if platform=='server':
+        space.update({'emg_set_path':params.jeong_EMGfeats_server,
+                      'eeg_set_path':params.jeong_EEGfeats_server})
+        
     if prebalance:
         emg_set=ml.pd.read_csv(space['emg_set_path'],delimiter=',')
         eeg_set=ml.pd.read_csv(space['eeg_set_path'],delimiter=',')
@@ -1714,15 +1722,17 @@ if __name__ == '__main__':
     if len(sys.argv)>1:
         architecture=sys.argv[1]
         trialmode=sys.argv[2]
+        platform=sys.argv[3]
     else:
         architecture='decision'    
         trialmode='LOO'
+        platform='not server'
 
 
     if trialmode=='LOO':
-        best,space,trials=optimise_fusion_LOO(architecture=architecture)
+        best,space,trials=optimise_fusion_LOO(architecture=architecture,platform=platform)
     elif trialmode=='WithinPpt':
-        best,space,trials=optimise_fusion_withinsubject(architecture=architecture)
+        best,space,trials=optimise_fusion_withinsubject(architecture=architecture,platform=platform)
     #space=stochastic.sample(setup_search_space())
     #best_results=function_fuse_LOO(space)
     #raise

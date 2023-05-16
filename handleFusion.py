@@ -155,6 +155,8 @@ def fuse_select(emg,eeg,args):
         fusion = fuse_linweight(emg,eeg,75,25)
     elif alg=='3_1_eeg':
         fusion = fuse_linweight(emg,eeg,25,75)
+    elif alg=='opt_weight':
+        fusion = fuse_linweight(emg,eeg,100-args['eeg_weight_opt'],args['eeg_weight_opt'])
     elif alg=='highest_conf':
         fusion = fuse_max_arr(emg,eeg)
     elif alg=='bayes':

@@ -17,7 +17,7 @@ attemptOnehot.py
 callGraph_attempt.py
 hyperopt_playground.py
 
-#Ignore anything in results dir, except a dummy to keep the dir itself tracked
+#Ignore anything in WAYGAL results dir, except a dummy to keep the dir itself tracked
 lit_data_expts/waygal/results/*
 !lit_data_expts/waygal/results/EEGOnly/
 lit_data_expts/waygal/results/EEGOnly/LOO/*
@@ -25,9 +25,24 @@ lit_data_expts/waygal/results/EEGOnly/LOO/*
 lit_data_expts/waygal/results/EEGOnly/WithinPpt/*
 !lit_data_expts/waygal/results/EEGOnly/WithinPpt/dummy.txt
 
+#Ignore anything in Jeong and Jeong CSP results dir, except a dummy to keep the dir itself tracked
+lit_data_expts/jeong/results/*
+!lit_data_expts/jeong/results/EEGOnly/
+lit_data_expts/jeong/results/EEGOnly/LOO/*
+!lit_data_expts/jeong/results/EEGOnly/LOO/dummy.txt
+lit_data_expts/jeong/results/EEGOnly/WithinPpt/*
+!lit_data_expts/jeong/results/EEGOnly/WithinPpt/dummy.txt
+!lit_data_expts/jeong/results/EEGCSP/
+lit_data_expts/jeong/results/EEGCSP/LOO/*
+!lit_data_expts/jeong/results/EEGCSP/LOO/dummy.txt
+lit_data_expts/jeong/results/EEGCSP/WithinPpt/*
+!lit_data_expts/jeong/results/EEGCSP/WithinPpt/dummy.txt
+
 #Ignore datasets
 lit_data_expts/waygal/datasets/*
 !lit_data_expts/waygal/datasets/dummy.txt
+lit_data_expts/jeong/datasets/*
+!lit_data_expts/jeong/datasets/dummy.txt
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

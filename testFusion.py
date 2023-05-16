@@ -1490,7 +1490,7 @@ def boxplot_param(df_in,param,target,ylower=0,yupper=1):
     dataframe=df_in.copy()
     if isinstance(dataframe[param][0],list):
         dataframe[param]=dataframe[param].apply(lambda x: x[0])
-    dataframe.boxplot(column=target,by=param,ax=ax)
+    dataframe.boxplot(column=target,by=param,ax=ax,showmeans=True)
     ax.set_ylim(ylower,yupper)
     plt.show()
     return fig
@@ -1502,7 +1502,7 @@ def scatterbox(trials,stat='fusion_accs',ylower=0,yupper=1,showplot=True):
     groups = [[] for i in range(max(X))]
     [groups[X[i]-1].append(H[i]) for i in range(len(H))]
     groups=[each[0] for each in groups]
-    ax.boxplot(groups)
+    ax.boxplot(groups,showmeans=True)
     ax.set(title=stat+' over optimisation iterations')
     ax.set_ylim(ylower,yupper)
     if showplot:
@@ -1736,7 +1736,7 @@ if __name__ == '__main__':
     print(bestparams)
    # print('Best Coehns Kappa between ground truth and fusion predictions: ',
     #      1-(best_results['loss']))
-    print('Best median Fusion accuracy: ',1-best_results['loss'])
+    print('Best mean Fusion accuracy: ',1-best_results['loss'])
     
     
         

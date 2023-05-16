@@ -7,6 +7,7 @@ Created on Wed Sep  7 23:42:00 2022
 """
 
 import os
+import sys
 import numpy as np
 import statistics as stats
 import handleDatawrangle as wrangle
@@ -1510,7 +1511,7 @@ def scatterbox(trials,stat='fusion_accs',ylower=0,yupper=1,showplot=True):
     #https://stackoverflow.com/questions/53473733/how-to-add-box-plot-to-scatter-data-in-matplotlib
     return fig
         
-def setup_search_space():
+def setup_search_space(architecture):
     space = {
             'emg':hp.choice('emg model',[
                 {'emg_model_type':'RF',
@@ -1524,18 +1525,18 @@ def setup_search_space():
                  'LDA_solver':hp.choice('emg.LDA_solver',['svd','lsqr','eigen']), #removed lsqr due to LinAlgError: SVD did not converge in linear least squares but readding as this has not repeated
                  'shrinkage':hp.uniform('emg.lda.shrinkage',0.0,1.0),
                  },
-                {'emg_model_type':'QDA',
+                {'emg_model_type':'QDA', #emg qda reg 0.3979267 actually worked well!! for withinppt
                  'regularisation':hp.uniform('emg.qda.regularisation',0.0,1.0), #https://www.kaggle.com/code/code1110/best-parameter-s-for-qda/notebook
                  },
                 {'emg_model_type':'gaussNB',
                  'smoothing':hp.loguniform('emg.gnb.smoothing',np.log(1e-9),np.log(1e0)),
                  },
-            #    {'emg_model_type':'SVM_PlattScale',    #SKL SVC likely unviable, excessively slow
-              #   'kernel':hp.choice('emg.svm.kernel',['rbf']),#'poly','linear']),
-              #   'svm_C':hp.uniform('emg.svm.c',0.1,100), #use loguniform? #https://queirozf.com/entries/choosing-c-hyperparameter-for-svm-classifiers-examples-with-scikit-learn
-             #    'gamma':hp.uniform('emg.svm.gamma',0.1,20,), #maybe log, from lower? #https://vitalflux.com/svm-rbf-kernel-parameters-code-sample/
+#                {'emg_model_type':'SVM_PlattScale',    #SKL SVC likely unviable, excessively slow
+ #                'kernel':hp.choice('emg.svm.kernel',['rbf']),#'poly','linear']),
+  #               'svm_C':hp.loguniform('emg.svm.c',np.log(0.1),np.log(100)), #use loguniform? #https://queirozf.com/entries/choosing-c-hyperparameter-for-svm-classifiers-examples-with-scikit-learn
+   #              'gamma':hp.loguniform('emg.svm.gamma',np.log(0.01),np.log(100)), #maybe log, from lower? #https://vitalflux.com/svm-rbf-kernel-parameters-code-sample/
                  #eg sklearns gridsearch doc uses SVC as an example with C log(1e0,1e3) & gamma log(1e-4,1e-3)
-              #   },
+    #             },
  #               {'emg_model_type':'SVM',    #SKL SVC likely unviable, excessively slow
   #               'svm_C':hp.uniform('emg.svm.c',0.1,100), #use loguniform?
    #              },
@@ -1568,28 +1569,10 @@ def setup_search_space():
   #               'svm_C':hp.uniform('eeg.svm.c',0.1,100), #use loguniform?
    #              },
                 ]),
-            'featfuse':hp.choice('featfuse model',[
-                {'featfuse_model_type':'RF',
-                 'n_trees':scope.int(hp.quniform('featfuse.RF.ntrees',10,100,q=5)),
-                 },
-                {'featfuse_model_type':'kNN',
-                 'knn_k':scope.int(hp.quniform('featfuse.knn.k',1,25,q=1)),
-                 },
-                {'featfuse_model_type':'LDA',
-                 'LDA_solver':hp.choice('featfuse.LDA_solver',['svd','lsqr','eigen']),
-                 'shrinkage':hp.uniform('featfuse.lda.shrinkage',0.0,1.0),
-                 },
-                {'featfuse_model_type':'QDA',
-                 'regularisation':hp.uniform('featfuse.qda.regularisation',0.0,1.0), #https://www.kaggle.com/code/code1110/best-parameter-s-for-qda/notebook
-                 },
-                ]),
-            'featfuse_sel_feats_together':False,#hp.choice('selfeatstogether',[True,False]),
-            #somehow when this is true theres an issue with the Label col. think we end up with
-            #either two label cols or none depending on whether we add it to selcols_emgeeg twice
             'svmfuse':{
-           #     'kernel':hp.choice('eeg.svm.kernel',['rbf']),#'poly','linear']),
+                #'kernel':hp.choice('eeg.svm.kernel',['rbf']),#'poly','linear']),
                 'svm_C':hp.loguniform('fus.svm.c',np.log(0.01),np.log(100)),
-             #   'gamma':hp.loguniform('eeg.svm.gamma',np.log(0.01),np.log(100)),
+                #'gamma':hp.loguniform('eeg.svm.gamma',np.log(0.01),np.log(100)),
                 },
             'ldafuse':{
                 'LDA_solver':hp.choice('fus.LDA.solver',['svd','lsqr','eigen']),
@@ -1599,10 +1582,10 @@ def setup_search_space():
                 'mean',
                 '3_1_emg', #Excluding those which allow it to ignore EEG
                 '3_1_eeg',
-                #'bayes', #Excluding those which allow it to ignore EEG
+                #'bayes', # NEED TO IMPLEMENT SCALING AND SELECTION
                 'highest_conf',
                 #'hierarchical', #DON'T DO THESE IN THE SAME PARAM SPACE
-                'hierarchical_inv',
+                #'hierarchical_inv',
                 #'featlevel',
                 'svm',
                 'lda',
@@ -1619,10 +1602,47 @@ def setup_search_space():
             'scalingtype':hp.choice('scaling',['normalise','standardise']),#,None]),
             'plot_confmats':False,
             }
+    
+    if architecture=='featlevel':
+        space.update({
+            'fusion_alg':hp.choice('fusion algorithm',['featlevel',]),
+            'featfuse_sel_feats_together':False,#hp.choice('selfeatstogether',[True,False]),
+            #somehow when this is true theres an issue with the Label col. think we end up with
+            #either two label cols or none depending on whether we add it to selcols_emgeeg twice
+            'featfuse':hp.choice('featfuse model',[
+                {'featfuse_model_type':'RF',
+                 'n_trees':scope.int(hp.quniform('featfuse.RF.ntrees',10,100,q=5)),
+                 },
+                {'featfuse_model_type':'kNN',
+                 'knn_k':scope.int(hp.quniform('featfuse.knn.k',1,25,q=1)),
+                 },
+                {'featfuse_model_type':'LDA',
+                 'LDA_solver':hp.choice('featfuse.LDA_solver',['svd','lsqr','eigen']),
+                 'shrinkage':hp.uniform('featfuse.lda.shrinkage',0.0,1.0),
+                 },
+                {'featfuse_model_type':'QDA',
+                 'regularisation':hp.uniform('featfuse.qda.regularisation',0.0,1.0), #https://www.kaggle.com/code/code1110/best-parameter-s-for-qda/notebook
+                 },
+#                {'featfuse_model_type':'SVM_PlattScale', #keep this commented out
+ #                'kernel':hp.choice('eeg.svm.kernel',['rbf']),#'poly','linear']),
+  #               'svm_C':hp.loguniform('eeg.svm.c',np.log(0.01),np.log(100)),
+   #              'gamma':hp.loguniform('eeg.svm.gamma',np.log(0.01),np.log(100)),
+    #             },
+                ]),
+            })
+        #space.pop('emg',None) #cant do this yet as feat fuse code still creates emg/eeg models
+        #space.pop('eeg',None)
+        
+    elif architecture=='hierarchical':
+        space.update({'fusion_alg':hp.choice('fusion algorithm',['hierarchical',])})
+        
+    elif architecture=='hierarchical_inv':
+        space.update({'fusion_alg':hp.choice('fusion algorithm',['hierarchical_inv',])})
+        
     return space
 
-def optimise_fusion_LOO(prebalance=True):
-    space=setup_search_space()
+def optimise_fusion_LOO(prebalance=True,architecture='decision'):
+    space=setup_search_space(architecture)
     
     if prebalance:
         emg_set=ml.pd.read_csv(space['emg_set_path'],delimiter=',')
@@ -1638,8 +1658,8 @@ def optimise_fusion_LOO(prebalance=True):
                 trials=trials)
     return best, space, trials
 
-def optimise_fusion_withinsubject(prebalance=True):
-    space=setup_search_space()
+def optimise_fusion_withinsubject(prebalance=True,architecture='decision'):
+    space=setup_search_space(architecture)
     
     if prebalance:
         emg_set=ml.pd.read_csv(space['emg_set_path'],delimiter=',')
@@ -1688,16 +1708,23 @@ def save_resultdict(filepath,resultdict,dp=4):
     f.close()
 
 if __name__ == '__main__':
-    trialmode='LOO'
-    #trialmode='WithinPpt'
     
+    if len(sys.argv)>1:
+        architecture=sys.argv[1]
+        trialmode=sys.argv[2]
+    else:
+        architecture='decision'    
+        trialmode='LOO'
+
+
     if trialmode=='LOO':
-        best,space,trials=optimise_fusion_LOO()
+        best,space,trials=optimise_fusion_LOO(architecture=architecture)
     elif trialmode=='WithinPpt':
-        best,space,trials=optimise_fusion_withinsubject()
+        best,space,trials=optimise_fusion_withinsubject(architecture=architecture)
     #space=stochastic.sample(setup_search_space())
     #best_results=function_fuse_LOO(space)
     #raise
+        
         
     if 1:    
         chosen_space=space_eval(space,best)

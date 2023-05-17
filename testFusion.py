@@ -1486,14 +1486,15 @@ def plot_multiple_stats_with_best(trials,stats,runbest=None,ylower=0,yupper=1,sh
         plt.show()
     return fig
 
-def boxplot_param(df_in,param,target,ylower=0,yupper=1):
+def boxplot_param(df_in,param,target,ylower=0,yupper=1,showplot=True):
     fig,ax=plt.subplots()
     dataframe=df_in.copy()
     if isinstance(dataframe[param][0],list):
         dataframe[param]=dataframe[param].apply(lambda x: x[0])
     dataframe.boxplot(column=target,by=param,ax=ax,showmeans=True)
     ax.set_ylim(ylower,yupper)
-    plt.show()
+    if showplot:
+        plt.show()
     return fig
   
 def scatterbox(trials,stat='fusion_accs',ylower=0,yupper=1,showplot=True):
@@ -1727,6 +1728,11 @@ if __name__ == '__main__':
         architecture='decision'    
         trialmode='LOO'
         platform='not server'
+        
+    if platform=='server':
+        showplot_toggle=False
+    else:
+        showplot_toggle=True
 
 
     if trialmode=='LOO':
@@ -1782,16 +1788,16 @@ if __name__ == '__main__':
     winner={'Chosen parameters':bestparams,
             'Results':best_results}
     
-    emg_acc_plot=plot_stat_in_time(trials, 'emg_mean_acc',showplot=False)
-    eeg_acc_plot=plot_stat_in_time(trials, 'eeg_mean_acc',showplot=False)
+    emg_acc_plot=plot_stat_in_time(trials, 'emg_mean_acc',showplot=showplot_toggle)
+    eeg_acc_plot=plot_stat_in_time(trials, 'eeg_mean_acc',showplot=showplot_toggle)
     #plot_stat_in_time(trials, 'loss')
-    fus_acc_plot=plot_stat_in_time(trials,'fusion_mean_acc')#,showplot=False)
+    fus_acc_plot=plot_stat_in_time(trials,'fusion_mean_acc',showplot=showplot_toggle)
     #plot_stat_in_time(trials,'elapsed_time',0,200)
-    acc_compare_plot=plot_multiple_stats_with_best(trials,['emg_mean_acc','eeg_mean_acc','fusion_mean_acc'],runbest='fusion_mean_acc')
+    acc_compare_plot=plot_multiple_stats_with_best(trials,['emg_mean_acc','eeg_mean_acc','fusion_mean_acc'],runbest='fusion_mean_acc',showplot=showplot_toggle)
     
-    emg_acc_box=scatterbox(trials,'emg_accs')
-    eeg_acc_box=scatterbox(trials,'eeg_accs')
-    fus_acc_box=scatterbox(trials,'fusion_accs')
+    emg_acc_box=scatterbox(trials,'emg_accs',showplot=showplot_toggle)
+    eeg_acc_box=scatterbox(trials,'eeg_accs',showplot=showplot_toggle)
+    fus_acc_box=scatterbox(trials,'fusion_accs',showplot=showplot_toggle)
     
     table=pd.DataFrame(trials.trials)
     table_readable=pd.concat(
@@ -1833,9 +1839,9 @@ if __name__ == '__main__':
     
     #for properly evaluating results later: https://towardsdatascience.com/multiclass-classification-evaluation-with-roc-curves-and-roc-auc-294fd4617e3a
     
-    per_emgmodel=boxplot_param(table_readable,'emg model','fusion_mean_acc')
-    per_eegmodel=boxplot_param(table_readable,'eeg model','fusion_mean_acc')
-    per_fusalg=boxplot_param(table_readable,'fusion algorithm','fusion_mean_acc')
+    per_emgmodel=boxplot_param(table_readable,'emg model','fusion_mean_acc',showplot=showplot_toggle)
+    per_eegmodel=boxplot_param(table_readable,'eeg model','fusion_mean_acc',showplot=showplot_toggle)
+    per_fusalg=boxplot_param(table_readable,'fusion algorithm','fusion_mean_acc',showplot=showplot_toggle)
     
     per_emgmodel.savefig(os.path.join(resultpath,'emg_model.png'))
     per_eegmodel.savefig(os.path.join(resultpath,'eeg_model.png'))

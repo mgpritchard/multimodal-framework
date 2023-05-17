@@ -1644,7 +1644,7 @@ def setup_search_space(architecture):
         
     return space
 
-def optimise_fusion_LOO(prebalance=True,architecture='decision',platform='not server'):
+def optimise_fusion_LOO(prebalance=True,architecture='decision',platform='not server',iters=35):
     space=setup_search_space(architecture)
     
     if platform=='server':
@@ -1661,11 +1661,11 @@ def optimise_fusion_LOO(prebalance=True,architecture='decision',platform='not se
     best = fmin(function_fuse_LOO,
                 space=space,
                 algo=tpe.suggest,
-                max_evals=1,
+                max_evals=iters,
                 trials=trials)
     return best, space, trials
 
-def optimise_fusion_withinsubject(prebalance=True,architecture='decision',platform='not server'):
+def optimise_fusion_withinsubject(prebalance=True,architecture='decision',platform='not server',iters=35):
     space=setup_search_space(architecture)
     
     if platform=='server':
@@ -1682,7 +1682,7 @@ def optimise_fusion_withinsubject(prebalance=True,architecture='decision',platfo
     best = fmin(function_fuse_withinppt,
                 space=space,
                 algo=tpe.suggest,
-                max_evals=20,
+                max_evals=iters,
                 trials=trials)
     return best, space, trials
     
@@ -1724,10 +1724,13 @@ if __name__ == '__main__':
         architecture=sys.argv[1]
         trialmode=sys.argv[2]
         platform=sys.argv[3]
+        if len(sys.argv)>4:
+            num_iters=int(sys.argv[4])
     else:
         architecture='decision'    
         trialmode='LOO'
         platform='not server'
+        num_iters=1
         
     if platform=='server':
         showplot_toggle=False
@@ -1736,9 +1739,9 @@ if __name__ == '__main__':
 
 
     if trialmode=='LOO':
-        best,space,trials=optimise_fusion_LOO(architecture=architecture,platform=platform)
+        best,space,trials=optimise_fusion_LOO(architecture=architecture,platform=platform,iters=num_iters)
     elif trialmode=='WithinPpt':
-        best,space,trials=optimise_fusion_withinsubject(architecture=architecture,platform=platform)
+        best,space,trials=optimise_fusion_withinsubject(architecture=architecture,platform=platform,iters=num_iters)
     #space=stochastic.sample(setup_search_space())
     #best_results=function_fuse_LOO(space)
     #raise

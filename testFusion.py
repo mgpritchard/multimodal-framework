@@ -586,20 +586,20 @@ def feature_fusion(emg_others,eeg_others,emg_ppt,eeg_ppt,args):
     sel_cols_emg=np.append(sel_cols_emg,emg_others.columns.get_loc('Label'))
     if not args['featfuse_sel_feats_together']:
         emg_others = emg_others.iloc[:,sel_cols_emg]
-        emg_model = ml.train_optimise(emg_others, args['emg']['emg_model_type'], args['emg'])
+        #emg_model = ml.train_optimise(emg_others, args['emg']['emg_model_type'], args['emg'])
     else:
         emg_others_for_solo = emg_others.iloc[:,sel_cols_emg]
-        emg_model = ml.train_optimise(emg_others_for_solo, args['emg']['emg_model_type'], args['emg'])
+        #emg_model = ml.train_optimise(emg_others_for_solo, args['emg']['emg_model_type'], args['emg'])
         
     
     sel_cols_eeg=feats.sel_percent_feats_df(eeg_others,percent=15)
     sel_cols_eeg=np.append(sel_cols_eeg,eeg_others.columns.get_loc('Label'))
     if not args['featfuse_sel_feats_together']:
         eeg_others = eeg_others.iloc[:,sel_cols_eeg]
-        eeg_model = ml.train_optimise(eeg_others, args['eeg']['eeg_model_type'], args['eeg'])
+        #eeg_model = ml.train_optimise(eeg_others, args['eeg']['eeg_model_type'], args['eeg'])
     else:
         eeg_others_for_solo = eeg_others.iloc[:,sel_cols_eeg]
-        eeg_model = ml.train_optimise(eeg_others_for_solo, args['eeg']['eeg_model_type'], args['eeg'])
+        #eeg_model = ml.train_optimise(eeg_others_for_solo, args['eeg']['eeg_model_type'], args['eeg'])
 
 
     eeg_others.drop('Label',axis='columns',inplace=True)
@@ -616,12 +616,12 @@ def feature_fusion(emg_others,eeg_others,emg_ppt,eeg_ppt,args):
     
     emgeeg_model = ml.train_optimise(emgeeg_others, args['featfuse']['featfuse_model_type'],args['featfuse'])
     
-    classlabels = emg_model.classes_
+    classlabels = emgeeg_model.classes_
     
-        
+    '''TESTING ON PPT DATA'''
     emg_ppt.sort_values(['ID_pptID','ID_run','Label','ID_gestrep','ID_tend'],ascending=[True,True,True,True,True],inplace=True)
     eeg_ppt.sort_values(['ID_pptID','ID_run','Label','ID_gestrep','ID_tend'],ascending=[True,True,True,True,True],inplace=True)                
-    targets, predlist_emg, predlist_eeg, _ = refactor_synced_predict(emg_ppt, eeg_ppt, emg_model, eeg_model, classlabels,args,sel_cols_eeg,sel_cols_emg)
+    #targets, predlist_emg, predlist_eeg, _ = refactor_synced_predict(emg_ppt, eeg_ppt, emg_model, eeg_model, classlabels,args,sel_cols_eeg,sel_cols_emg)
     
     index_emg_ppt=ml.pd.MultiIndex.from_arrays([emg_ppt[col] for col in ['ID_pptID','ID_run','Label','ID_gestrep','ID_tend']])
     index_eeg_ppt=ml.pd.MultiIndex.from_arrays([eeg_ppt[col] for col in ['ID_pptID','ID_run','Label','ID_gestrep','ID_tend']])
@@ -633,6 +633,12 @@ def feature_fusion(emg_others,eeg_others,emg_ppt,eeg_ppt,args):
         pass
     else:
         raise RuntimeError('Target classes should match, testing sets are misaligned')
+        
+    targets=[]
+    for index,emgrow in emg_ppt.iterrows():
+        TargetLabel=emgrow['Label']
+        targets.append(TargetLabel)
+    
     
     eeg_ppt=ml.drop_ID_cols(eeg_ppt)
     if not args['featfuse_sel_feats_together']:
@@ -667,7 +673,7 @@ def feature_fusion(emg_others,eeg_others,emg_ppt,eeg_ppt,args):
         pred_fusion=ml.pred_from_distro(classlabels,distro)
         predlist_fusion.append(pred_fusion) 
     
-    return targets, predlist_emg, predlist_eeg, predlist_fusion, classlabels
+    return targets, predlist_fusion, predlist_fusion, predlist_fusion, classlabels
 
 def fusion_hierarchical(emg_others,eeg_others,emg_ppt,eeg_ppt,args):
     '''TRAINING ON NON-PPT DATA'''

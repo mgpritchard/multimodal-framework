@@ -1639,14 +1639,23 @@ def setup_search_space(architecture):
     #             },
                 ]),
             })
-        #space.pop('emg',None) #cant do this yet as feat fuse code still creates emg/eeg models
-        #space.pop('eeg',None)
+        space.pop('emg',None) #cant do this yet as feat fuse code still creates emg/eeg models
+        space.pop('eeg',None)
+        space.pop('svmfuse',None)
+        space.pop('ldafuse',None)
+        space.pop('eeg_weight_opt',None)
         
     elif architecture=='hierarchical':
         space.update({'fusion_alg':hp.choice('fusion algorithm',['hierarchical',])})
+        space.pop('svmfuse',None)
+        space.pop('ldafuse',None)
+        space.pop('eeg_weight_opt',None)
         
     elif architecture=='hierarchical_inv':
         space.update({'fusion_alg':hp.choice('fusion algorithm',['hierarchical_inv',])})
+        space.pop('svmfuse',None)
+        space.pop('ldafuse',None)
+        space.pop('eeg_weight_opt',None)
         
     return space
 

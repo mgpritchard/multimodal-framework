@@ -586,20 +586,20 @@ def feature_fusion(emg_others,eeg_others,emg_ppt,eeg_ppt,args):
     sel_cols_emg=np.append(sel_cols_emg,emg_others.columns.get_loc('Label'))
     if not args['featfuse_sel_feats_together']:
         emg_others = emg_others.iloc[:,sel_cols_emg]
-        emg_model = ml.train_optimise(emg_others, args['emg']['emg_model_type'], args['emg'])
+        #emg_model = ml.train_optimise(emg_others, args['emg']['emg_model_type'], args['emg'])
     else:
         emg_others_for_solo = emg_others.iloc[:,sel_cols_emg]
-        emg_model = ml.train_optimise(emg_others_for_solo, args['emg']['emg_model_type'], args['emg'])
+        #emg_model = ml.train_optimise(emg_others_for_solo, args['emg']['emg_model_type'], args['emg'])
         
     
     sel_cols_eeg=feats.sel_percent_feats_df(eeg_others,percent=15)
     sel_cols_eeg=np.append(sel_cols_eeg,eeg_others.columns.get_loc('Label'))
     if not args['featfuse_sel_feats_together']:
         eeg_others = eeg_others.iloc[:,sel_cols_eeg]
-        eeg_model = ml.train_optimise(eeg_others, args['eeg']['eeg_model_type'], args['eeg'])
+        #eeg_model = ml.train_optimise(eeg_others, args['eeg']['eeg_model_type'], args['eeg'])
     else:
         eeg_others_for_solo = eeg_others.iloc[:,sel_cols_eeg]
-        eeg_model = ml.train_optimise(eeg_others_for_solo, args['eeg']['eeg_model_type'], args['eeg'])
+        #eeg_model = ml.train_optimise(eeg_others_for_solo, args['eeg']['eeg_model_type'], args['eeg'])
 
 
     eeg_others.drop('Label',axis='columns',inplace=True)
@@ -616,12 +616,12 @@ def feature_fusion(emg_others,eeg_others,emg_ppt,eeg_ppt,args):
     
     emgeeg_model = ml.train_optimise(emgeeg_others, args['featfuse']['featfuse_model_type'],args['featfuse'])
     
-    classlabels = emg_model.classes_
+    classlabels = emgeeg_model.classes_
     
-        
+    '''TESTING ON PPT DATA'''
     emg_ppt.sort_values(['ID_pptID','ID_run','Label','ID_gestrep','ID_tend'],ascending=[True,True,True,True,True],inplace=True)
     eeg_ppt.sort_values(['ID_pptID','ID_run','Label','ID_gestrep','ID_tend'],ascending=[True,True,True,True,True],inplace=True)                
-    targets, predlist_emg, predlist_eeg, _ = refactor_synced_predict(emg_ppt, eeg_ppt, emg_model, eeg_model, classlabels,args,sel_cols_eeg,sel_cols_emg)
+    #targets, predlist_emg, predlist_eeg, _ = refactor_synced_predict(emg_ppt, eeg_ppt, emg_model, eeg_model, classlabels,args,sel_cols_eeg,sel_cols_emg)
     
     index_emg_ppt=ml.pd.MultiIndex.from_arrays([emg_ppt[col] for col in ['ID_pptID','ID_run','Label','ID_gestrep','ID_tend']])
     index_eeg_ppt=ml.pd.MultiIndex.from_arrays([eeg_ppt[col] for col in ['ID_pptID','ID_run','Label','ID_gestrep','ID_tend']])
@@ -633,6 +633,12 @@ def feature_fusion(emg_others,eeg_others,emg_ppt,eeg_ppt,args):
         pass
     else:
         raise RuntimeError('Target classes should match, testing sets are misaligned')
+        
+    targets=[]
+    for index,emgrow in emg_ppt.iterrows():
+        TargetLabel=emgrow['Label']
+        targets.append(TargetLabel)
+    
     
     eeg_ppt=ml.drop_ID_cols(eeg_ppt)
     if not args['featfuse_sel_feats_together']:
@@ -667,7 +673,7 @@ def feature_fusion(emg_others,eeg_others,emg_ppt,eeg_ppt,args):
         pred_fusion=ml.pred_from_distro(classlabels,distro)
         predlist_fusion.append(pred_fusion) 
     
-    return targets, predlist_emg, predlist_eeg, predlist_fusion, classlabels
+    return targets, predlist_fusion, predlist_fusion, predlist_fusion, classlabels
 
 def fusion_hierarchical(emg_others,eeg_others,emg_ppt,eeg_ppt,args):
     '''TRAINING ON NON-PPT DATA'''
@@ -1633,14 +1639,23 @@ def setup_search_space(architecture):
     #             },
                 ]),
             })
-        #space.pop('emg',None) #cant do this yet as feat fuse code still creates emg/eeg models
-        #space.pop('eeg',None)
+        space.pop('emg',None) #cant do this yet as feat fuse code still creates emg/eeg models
+        space.pop('eeg',None)
+        space.pop('svmfuse',None)
+        space.pop('ldafuse',None)
+        space.pop('eeg_weight_opt',None)
         
     elif architecture=='hierarchical':
         space.update({'fusion_alg':hp.choice('fusion algorithm',['hierarchical',])})
+        space.pop('svmfuse',None)
+        space.pop('ldafuse',None)
+        space.pop('eeg_weight_opt',None)
         
     elif architecture=='hierarchical_inv':
         space.update({'fusion_alg':hp.choice('fusion algorithm',['hierarchical_inv',])})
+        space.pop('svmfuse',None)
+        space.pop('ldafuse',None)
+        space.pop('eeg_weight_opt',None)
         
     return space
 
@@ -1693,6 +1708,7 @@ def save_resultdict(filepath,resultdict,dp=4):
     emg_accs=resultdict['Results'].pop('emg_accs',None)
     eeg_accs=resultdict['Results'].pop('eeg_accs',None)
     fusion_accs=resultdict['Results'].pop('fusion_accs',None)
+    
     f=open(filepath,'w')
     try:
         target=list(resultdict['Results'].keys())[list(resultdict['Results'].values()).index(1-resultdict['Results']['loss'])]
@@ -1700,22 +1716,32 @@ def save_resultdict(filepath,resultdict,dp=4):
     except ValueError:
         target, _ = min(resultdict['Results'].items(), key=lambda x: abs(1-resultdict['Results']['loss'] - x[1]))
         f.write(f"Probably optimising for {target}\n\n")
-    f.write('EEG Parameters:\n')
-    for k in resultdict['Chosen parameters']['eeg'].keys():
-        f.write(f"\t'{k}':'{round(resultdict['Chosen parameters']['eeg'][k],dp)if not isinstance(resultdict['Chosen parameters']['eeg'][k],str) else resultdict['Chosen parameters']['eeg'][k]}'\n")
-    f.write('EMG Parameters:\n')
-    for k in resultdict['Chosen parameters']['emg'].keys():
-        f.write(f"\t'{k}':'{round(resultdict['Chosen parameters']['emg'][k],dp)if not isinstance(resultdict['Chosen parameters']['emg'][k],str) else resultdict['Chosen parameters']['emg'][k]}'\n")
+    
+    if 'eeg' in resultdict['Chosen parameters']:
+        f.write('EEG Parameters:\n')
+        for k in resultdict['Chosen parameters']['eeg'].keys():
+            f.write(f"\t'{k}':'{round(resultdict['Chosen parameters']['eeg'][k],dp)if not isinstance(resultdict['Chosen parameters']['eeg'][k],str) else resultdict['Chosen parameters']['eeg'][k]}'\n")
+    
+    if 'emg' in resultdict['Chosen parameters']:
+        f.write('EMG Parameters:\n')
+        for k in resultdict['Chosen parameters']['emg'].keys():
+            f.write(f"\t'{k}':'{round(resultdict['Chosen parameters']['emg'][k],dp)if not isinstance(resultdict['Chosen parameters']['emg'][k],str) else resultdict['Chosen parameters']['emg'][k]}'\n")
+    
     f.write('Fusion algorithm:\n')
     f.write(f"\t'{'fusion_alg'}':'{resultdict['Chosen parameters']['fusion_alg']}'\n")
     if resultdict['Chosen parameters']['fusion_alg']=='featlevel':
         f.write('Feature-level Fusion Parameters:\n')
         for k in resultdict['Chosen parameters']['featfuse'].keys():
             f.write(f"\t'{k}':'{round(resultdict['Chosen parameters']['featfuse'][k],dp)if not isinstance(resultdict['Chosen parameters']['featfuse'][k],str) else resultdict['Chosen parameters']['featfuse'][k]}'\n")
+    
     f.write('Results:\n')
     resultdict['Results']['status']=status
     for k in resultdict['Results'].keys():
         f.write(f"\t'{k}':'{round(resultdict['Results'][k],dp)if not isinstance(resultdict['Results'][k],str) else resultdict['Results'][k]}'\n")
+    
+    resultdict['Results']['emg_accs']=emg_accs
+    resultdict['Results']['eeg_accs']=eeg_accs
+    resultdict['Results']['fusion_accs']=fusion_accs
     f.close()
 
 if __name__ == '__main__':
@@ -1788,22 +1814,9 @@ if __name__ == '__main__':
    # print('Best Coehns Kappa between ground truth and fusion predictions: ',
     #      1-(best_results['loss']))
     print('Best mean Fusion accuracy: ',1-best_results['loss'])
-    
-    
-        
+         
     winner={'Chosen parameters':bestparams,
             'Results':best_results}
-    
-    emg_acc_plot=plot_stat_in_time(trials, 'emg_mean_acc',showplot=showplot_toggle)
-    eeg_acc_plot=plot_stat_in_time(trials, 'eeg_mean_acc',showplot=showplot_toggle)
-    #plot_stat_in_time(trials, 'loss')
-    fus_acc_plot=plot_stat_in_time(trials,'fusion_mean_acc',showplot=showplot_toggle)
-    #plot_stat_in_time(trials,'elapsed_time',0,200)
-    acc_compare_plot=plot_multiple_stats_with_best(trials,['emg_mean_acc','eeg_mean_acc','fusion_mean_acc'],runbest='fusion_mean_acc',showplot=showplot_toggle)
-    
-    emg_acc_box=scatterbox(trials,'emg_accs',showplot=showplot_toggle)
-    eeg_acc_box=scatterbox(trials,'eeg_accs',showplot=showplot_toggle)
-    fus_acc_box=scatterbox(trials,'fusion_accs',showplot=showplot_toggle)
     
     table=pd.DataFrame(trials.trials)
     table_readable=pd.concat(
@@ -1811,57 +1824,81 @@ if __name__ == '__main__':
          pd.DataFrame(pd.DataFrame(table['misc'].tolist())['vals'].values.tolist())],
         axis=1,join='outer')
     
-    #print('plotting ppt1 just to get a confmat')
-    #ppt1acc=function_fuse_pptn(space_eval(space,best),1,plot_confmats=True)
-    #raise
-    
-    '''PICKLING THE TRIALS OBJ'''
-    
+    '''SETTING RESULT PATH'''
     currentpath=os.path.dirname(__file__)
     result_dir=params.jeong_results_dir
-    resultpath=os.path.join(currentpath,result_dir)
-    
+    resultpath=os.path.join(currentpath,result_dir)    
     resultpath=os.path.join(resultpath,'Fusion_CSP',trialmode)
-    #resultpath=os.path.join(resultpath,'SVMOnly',trialmode)
     
+    '''PICKLING THE TRIALS OBJECT'''
     trials_obj_path=os.path.join(resultpath,'trials_obj.p')
     pickle.dump(trials,open(trials_obj_path,'wb'))
-    
+    '''CODE FOR LOADING TRIALS OBJ'''
     #load_trials_var=pickle.load(open(filename,'rb'))
-    
-    '''saving figures of performance over time'''
-    emg_acc_plot.savefig(os.path.join(resultpath,'emg_acc.png'))
-    eeg_acc_plot.savefig(os.path.join(resultpath,'eeg_acc.png'))
-    fus_acc_plot.savefig(os.path.join(resultpath,'fusion_acc.png'))
-    acc_compare_plot.savefig(os.path.join(resultpath,'acc_compare.png'))
-    
-    emg_acc_box.savefig(os.path.join(resultpath,'emg_box.png'))
-    eeg_acc_box.savefig(os.path.join(resultpath,'eeg_box.png'))
-    fus_acc_box.savefig(os.path.join(resultpath,'fusion_box.png'))
     
     '''saving best parameters & results'''
     reportpath=os.path.join(resultpath,'params_results_report.txt')
     save_resultdict(reportpath,winner)
     
+    
+    if architecture=='featlevel':
+        fus_acc_plot=plot_stat_in_time(trials,'fusion_mean_acc',showplot=showplot_toggle)
+        acc_compare_plot=plot_multiple_stats_with_best(trials,['fusion_mean_acc'],runbest='fusion_mean_acc',showplot=showplot_toggle)  
+        fus_acc_box=scatterbox(trials,'fusion_accs',showplot=showplot_toggle)
+        
+        '''saving figures of performance over time'''
+        fus_acc_plot.savefig(os.path.join(resultpath,'fusion_acc.png'))
+        acc_compare_plot.savefig(os.path.join(resultpath,'acc_compare.png'))
+        fus_acc_box.savefig(os.path.join(resultpath,'fusion_box.png'))
+        
+        per_fusalg=boxplot_param(table_readable,'featfuse model','fusion_mean_acc',showplot=showplot_toggle)
+        per_fusalg.savefig(os.path.join(resultpath,'fus_alg.png'))
+        
+    else:
+    
+        emg_acc_plot=plot_stat_in_time(trials, 'emg_mean_acc',showplot=showplot_toggle)
+        eeg_acc_plot=plot_stat_in_time(trials, 'eeg_mean_acc',showplot=showplot_toggle)
+        #plot_stat_in_time(trials, 'loss')
+        fus_acc_plot=plot_stat_in_time(trials,'fusion_mean_acc',showplot=showplot_toggle)
+        #plot_stat_in_time(trials,'elapsed_time',0,200)
+        acc_compare_plot=plot_multiple_stats_with_best(trials,['emg_mean_acc','eeg_mean_acc','fusion_mean_acc'],runbest='fusion_mean_acc',showplot=showplot_toggle)
+        
+        emg_acc_box=scatterbox(trials,'emg_accs',showplot=showplot_toggle)
+        eeg_acc_box=scatterbox(trials,'eeg_accs',showplot=showplot_toggle)
+        fus_acc_box=scatterbox(trials,'fusion_accs',showplot=showplot_toggle)
+        
+        #print('plotting ppt1 just to get a confmat')
+        #ppt1acc=function_fuse_pptn(space_eval(space,best),1,plot_confmats=True)
+    
+        '''saving figures of performance over time'''
+        emg_acc_plot.savefig(os.path.join(resultpath,'emg_acc.png'))
+        eeg_acc_plot.savefig(os.path.join(resultpath,'eeg_acc.png'))
+        fus_acc_plot.savefig(os.path.join(resultpath,'fusion_acc.png'))
+        acc_compare_plot.savefig(os.path.join(resultpath,'acc_compare.png'))
+        
+        emg_acc_box.savefig(os.path.join(resultpath,'emg_box.png'))
+        eeg_acc_box.savefig(os.path.join(resultpath,'eeg_box.png'))
+        fus_acc_box.savefig(os.path.join(resultpath,'fusion_box.png'))
+        
     #for properly evaluating results later: https://towardsdatascience.com/multiclass-classification-evaluation-with-roc-curves-and-roc-auc-294fd4617e3a
-    
-    per_emgmodel=boxplot_param(table_readable,'emg model','fusion_mean_acc',showplot=showplot_toggle)
-    per_eegmodel=boxplot_param(table_readable,'eeg model','fusion_mean_acc',showplot=showplot_toggle)
-    per_fusalg=boxplot_param(table_readable,'fusion algorithm','fusion_mean_acc',showplot=showplot_toggle)
-    
-    per_emgmodel.savefig(os.path.join(resultpath,'emg_model.png'))
-    per_eegmodel.savefig(os.path.join(resultpath,'eeg_model.png'))
-    per_fusalg.savefig(os.path.join(resultpath,'fus_alg.png'))
-    
-    '''
-    acc_per_emg_model=table_readable.sort_values('emg model').plot(x='emg model',y='fusion_mean_acc',style='o')
-    acc_per_eeg_model=table_readable.sort_values('eeg model').plot(x='eeg model',y='fusion_mean_acc',style='o')
-    acc_per_fus_alg=table_readable.sort_values('fusion algorithm').plot(x='fusion algorithm',y='fusion_mean_acc',style='o')
-    
-    acc_per_emg_model.figure.savefig(os.path.join(resultpath,'emg_model.png'))
-    acc_per_eeg_model.figure.savefig(os.path.join(resultpath,'eeg_model.png'))
-    acc_per_fus_alg.figure.savefig(os.path.join(resultpath,'fus_alg.png'))
-    '''
+        '''figures of performance per model choice'''
+        per_emgmodel=boxplot_param(table_readable,'emg model','fusion_mean_acc',showplot=showplot_toggle)
+        per_eegmodel=boxplot_param(table_readable,'eeg model','fusion_mean_acc',showplot=showplot_toggle)
+        per_fusalg=boxplot_param(table_readable,'fusion algorithm','fusion_mean_acc',showplot=showplot_toggle)
+        
+        per_emgmodel.savefig(os.path.join(resultpath,'emg_model.png'))
+        per_eegmodel.savefig(os.path.join(resultpath,'eeg_model.png'))
+        per_fusalg.savefig(os.path.join(resultpath,'fus_alg.png'))
+        
+        '''
+        acc_per_emg_model=table_readable.sort_values('emg model').plot(x='emg model',y='fusion_mean_acc',style='o')
+        acc_per_eeg_model=table_readable.sort_values('eeg model').plot(x='eeg model',y='fusion_mean_acc',style='o')
+        acc_per_fus_alg=table_readable.sort_values('fusion algorithm').plot(x='fusion algorithm',y='fusion_mean_acc',style='o')
+        
+        acc_per_emg_model.figure.savefig(os.path.join(resultpath,'emg_model.png'))
+        acc_per_eeg_model.figure.savefig(os.path.join(resultpath,'eeg_model.png'))
+        acc_per_fus_alg.figure.savefig(os.path.join(resultpath,'fus_alg.png'))
+        '''
     
     raise KeyboardInterrupt('ending execution here!')
                                 

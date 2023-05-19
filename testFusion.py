@@ -1722,6 +1722,9 @@ if __name__ == '__main__':
     
     if len(sys.argv)>1:
         architecture=sys.argv[1]
+        if architecture not in ['decision','featlevel','hierarchical','hierarchical_inv']:
+            errstring=('requested architecture '+architecture+' not recognised, expecting one of:\n decision\n featlevel\n hierarchical\n hierarchical_inv')
+            raise KeyboardInterrupt(errstring)
         trialmode=sys.argv[2]
         platform=sys.argv[3]
         if len(sys.argv)>4:

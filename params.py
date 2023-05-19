@@ -96,6 +96,9 @@ elif platform == 'linux' or 'linux32':
     
     all_channel_waygal_EEG=os.path.normpath(os.path.join(currentpath,'../waygal-raw-eeg/Full_Channel_EEG'))
     
+    jeong_EMGfeats='H:/Jeong11tasks_data/jeong_EMGfeats.csv'
+    eeg_jeongSyncCSP_feats='H:/Jeong11tasks_data/jeongSyncCSPEEGfeats.csv'
+    
     jeong_EMGfeats_server=os.path.join(currentpath,'lit_data_expts/jeong/datasets/jeong_EMGfeats.csv')
 
     jeong_EEGfeats_server=os.path.join(currentpath,'lit_data_expts/jeong/datasets/jeong_EEGfeatsCSPSync.csv')

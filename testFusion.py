@@ -1486,14 +1486,15 @@ def plot_multiple_stats_with_best(trials,stats,runbest=None,ylower=0,yupper=1,sh
         plt.show()
     return fig
 
-def boxplot_param(df_in,param,target,ylower=0,yupper=1):
+def boxplot_param(df_in,param,target,ylower=0,yupper=1,showplot=True):
     fig,ax=plt.subplots()
     dataframe=df_in.copy()
     if isinstance(dataframe[param][0],list):
         dataframe[param]=dataframe[param].apply(lambda x: x[0])
     dataframe.boxplot(column=target,by=param,ax=ax,showmeans=True)
     ax.set_ylim(ylower,yupper)
-    plt.show()
+    if showplot:
+        plt.show()
     return fig
   
 def scatterbox(trials,stat='fusion_accs',ylower=0,yupper=1,showplot=True):
@@ -1643,8 +1644,12 @@ def setup_search_space(architecture):
         
     return space
 
-def optimise_fusion_LOO(prebalance=True,architecture='decision'):
+def optimise_fusion_LOO(prebalance=True,architecture='decision',platform='not server',iters=35):
     space=setup_search_space(architecture)
+    
+    if platform=='server':
+        space.update({'emg_set_path':params.jeong_EMGfeats_server,
+                      'eeg_set_path':params.jeong_EEGfeats_server})
     
     if prebalance:
         emg_set=ml.pd.read_csv(space['emg_set_path'],delimiter=',')
@@ -1656,13 +1661,17 @@ def optimise_fusion_LOO(prebalance=True,architecture='decision'):
     best = fmin(function_fuse_LOO,
                 space=space,
                 algo=tpe.suggest,
-                max_evals=2,
+                max_evals=iters,
                 trials=trials)
     return best, space, trials
 
-def optimise_fusion_withinsubject(prebalance=True,architecture='decision'):
+def optimise_fusion_withinsubject(prebalance=True,architecture='decision',platform='not server',iters=35):
     space=setup_search_space(architecture)
     
+    if platform=='server':
+        space.update({'emg_set_path':params.jeong_EMGfeats_server,
+                      'eeg_set_path':params.jeong_EEGfeats_server})
+        
     if prebalance:
         emg_set=ml.pd.read_csv(space['emg_set_path'],delimiter=',')
         eeg_set=ml.pd.read_csv(space['eeg_set_path'],delimiter=',')
@@ -1673,7 +1682,7 @@ def optimise_fusion_withinsubject(prebalance=True,architecture='decision'):
     best = fmin(function_fuse_withinppt,
                 space=space,
                 algo=tpe.suggest,
-                max_evals=2,
+                max_evals=iters,
                 trials=trials)
     return best, space, trials
     
@@ -1713,16 +1722,29 @@ if __name__ == '__main__':
     
     if len(sys.argv)>1:
         architecture=sys.argv[1]
+        if architecture not in ['decision','featlevel','hierarchical','hierarchical_inv']:
+            errstring=('requested architecture '+architecture+' not recognised, expecting one of:\n decision\n featlevel\n hierarchical\n hierarchical_inv')
+            raise KeyboardInterrupt(errstring)
         trialmode=sys.argv[2]
+        platform=sys.argv[3]
+        if len(sys.argv)>4:
+            num_iters=int(sys.argv[4])
     else:
         architecture='decision'    
         trialmode='LOO'
+        platform='not server'
+        num_iters=1
+        
+    if platform=='server':
+        showplot_toggle=False
+    else:
+        showplot_toggle=True
 
 
     if trialmode=='LOO':
-        best,space,trials=optimise_fusion_LOO(architecture=architecture)
+        best,space,trials=optimise_fusion_LOO(architecture=architecture,platform=platform,iters=num_iters)
     elif trialmode=='WithinPpt':
-        best,space,trials=optimise_fusion_withinsubject(architecture=architecture)
+        best,space,trials=optimise_fusion_withinsubject(architecture=architecture,platform=platform,iters=num_iters)
     #space=stochastic.sample(setup_search_space())
     #best_results=function_fuse_LOO(space)
     #raise
@@ -1772,16 +1794,16 @@ if __name__ == '__main__':
     winner={'Chosen parameters':bestparams,
             'Results':best_results}
     
-    emg_acc_plot=plot_stat_in_time(trials, 'emg_mean_acc',showplot=False)
-    eeg_acc_plot=plot_stat_in_time(trials, 'eeg_mean_acc',showplot=False)
+    emg_acc_plot=plot_stat_in_time(trials, 'emg_mean_acc',showplot=showplot_toggle)
+    eeg_acc_plot=plot_stat_in_time(trials, 'eeg_mean_acc',showplot=showplot_toggle)
     #plot_stat_in_time(trials, 'loss')
-    fus_acc_plot=plot_stat_in_time(trials,'fusion_mean_acc')#,showplot=False)
+    fus_acc_plot=plot_stat_in_time(trials,'fusion_mean_acc',showplot=showplot_toggle)
     #plot_stat_in_time(trials,'elapsed_time',0,200)
-    acc_compare_plot=plot_multiple_stats_with_best(trials,['emg_mean_acc','eeg_mean_acc','fusion_mean_acc'],runbest='fusion_mean_acc')
+    acc_compare_plot=plot_multiple_stats_with_best(trials,['emg_mean_acc','eeg_mean_acc','fusion_mean_acc'],runbest='fusion_mean_acc',showplot=showplot_toggle)
     
-    emg_acc_box=scatterbox(trials,'emg_accs')
-    eeg_acc_box=scatterbox(trials,'eeg_accs')
-    fus_acc_box=scatterbox(trials,'fusion_accs')
+    emg_acc_box=scatterbox(trials,'emg_accs',showplot=showplot_toggle)
+    eeg_acc_box=scatterbox(trials,'eeg_accs',showplot=showplot_toggle)
+    fus_acc_box=scatterbox(trials,'fusion_accs',showplot=showplot_toggle)
     
     table=pd.DataFrame(trials.trials)
     table_readable=pd.concat(
@@ -1823,9 +1845,9 @@ if __name__ == '__main__':
     
     #for properly evaluating results later: https://towardsdatascience.com/multiclass-classification-evaluation-with-roc-curves-and-roc-auc-294fd4617e3a
     
-    per_emgmodel=boxplot_param(table_readable,'emg model','fusion_mean_acc')
-    per_eegmodel=boxplot_param(table_readable,'eeg model','fusion_mean_acc')
-    per_fusalg=boxplot_param(table_readable,'fusion algorithm','fusion_mean_acc')
+    per_emgmodel=boxplot_param(table_readable,'emg model','fusion_mean_acc',showplot=showplot_toggle)
+    per_eegmodel=boxplot_param(table_readable,'eeg model','fusion_mean_acc',showplot=showplot_toggle)
+    per_fusalg=boxplot_param(table_readable,'fusion algorithm','fusion_mean_acc',showplot=showplot_toggle)
     
     per_emgmodel.savefig(os.path.join(resultpath,'emg_model.png'))
     per_eegmodel.savefig(os.path.join(resultpath,'eeg_model.png'))

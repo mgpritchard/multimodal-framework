@@ -1708,6 +1708,7 @@ def save_resultdict(filepath,resultdict,dp=4):
     emg_accs=resultdict['Results'].pop('emg_accs',None)
     eeg_accs=resultdict['Results'].pop('eeg_accs',None)
     fusion_accs=resultdict['Results'].pop('fusion_accs',None)
+    
     f=open(filepath,'w')
     try:
         target=list(resultdict['Results'].keys())[list(resultdict['Results'].values()).index(1-resultdict['Results']['loss'])]
@@ -1715,22 +1716,32 @@ def save_resultdict(filepath,resultdict,dp=4):
     except ValueError:
         target, _ = min(resultdict['Results'].items(), key=lambda x: abs(1-resultdict['Results']['loss'] - x[1]))
         f.write(f"Probably optimising for {target}\n\n")
-    f.write('EEG Parameters:\n')
-    for k in resultdict['Chosen parameters']['eeg'].keys():
-        f.write(f"\t'{k}':'{round(resultdict['Chosen parameters']['eeg'][k],dp)if not isinstance(resultdict['Chosen parameters']['eeg'][k],str) else resultdict['Chosen parameters']['eeg'][k]}'\n")
-    f.write('EMG Parameters:\n')
-    for k in resultdict['Chosen parameters']['emg'].keys():
-        f.write(f"\t'{k}':'{round(resultdict['Chosen parameters']['emg'][k],dp)if not isinstance(resultdict['Chosen parameters']['emg'][k],str) else resultdict['Chosen parameters']['emg'][k]}'\n")
+    
+    if 'eeg' in resultdict['Chosen parameters']:
+        f.write('EEG Parameters:\n')
+        for k in resultdict['Chosen parameters']['eeg'].keys():
+            f.write(f"\t'{k}':'{round(resultdict['Chosen parameters']['eeg'][k],dp)if not isinstance(resultdict['Chosen parameters']['eeg'][k],str) else resultdict['Chosen parameters']['eeg'][k]}'\n")
+    
+    if 'emg' in resultdict['Chosen parameters']:
+        f.write('EMG Parameters:\n')
+        for k in resultdict['Chosen parameters']['emg'].keys():
+            f.write(f"\t'{k}':'{round(resultdict['Chosen parameters']['emg'][k],dp)if not isinstance(resultdict['Chosen parameters']['emg'][k],str) else resultdict['Chosen parameters']['emg'][k]}'\n")
+    
     f.write('Fusion algorithm:\n')
     f.write(f"\t'{'fusion_alg'}':'{resultdict['Chosen parameters']['fusion_alg']}'\n")
     if resultdict['Chosen parameters']['fusion_alg']=='featlevel':
         f.write('Feature-level Fusion Parameters:\n')
         for k in resultdict['Chosen parameters']['featfuse'].keys():
             f.write(f"\t'{k}':'{round(resultdict['Chosen parameters']['featfuse'][k],dp)if not isinstance(resultdict['Chosen parameters']['featfuse'][k],str) else resultdict['Chosen parameters']['featfuse'][k]}'\n")
+    
     f.write('Results:\n')
     resultdict['Results']['status']=status
     for k in resultdict['Results'].keys():
         f.write(f"\t'{k}':'{round(resultdict['Results'][k],dp)if not isinstance(resultdict['Results'][k],str) else resultdict['Results'][k]}'\n")
+    
+    resultdict['Results']['emg_accs']=emg_accs
+    resultdict['Results']['eeg_accs']=eeg_accs
+    resultdict['Results']['fusion_accs']=fusion_accs
     f.close()
 
 if __name__ == '__main__':

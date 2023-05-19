@@ -55,6 +55,10 @@ if platform =='win32':
     
     jeong_EMGdir='H:/Jeong11tasks_data/EMG/Raw_EMGCSVs/'
     jeong_EMGfeats='H:/Jeong11tasks_data/jeong_EMGfeats.csv'
+
+    jeong_EMGfeats_server=os.path.join(currentpath,'lit_data_expts/jeong/datasets/jeong_EMGfeats.csv')
+
+    jeong_EEGfeats_server=os.path.join(currentpath,'lit_data_expts/jeong/datasets/jeong_EEGfeatsCSPSync.csv')
     
     jeong_results_dir='lit_data_expts/jeong/results/'
 elif platform == 'darwin':
@@ -91,3 +95,12 @@ elif platform == 'linux' or 'linux32':
     waygal_results_dir='lit_data_expts/waygal/results/'
     
     all_channel_waygal_EEG=os.path.normpath(os.path.join(currentpath,'../waygal-raw-eeg/Full_Channel_EEG'))
+    
+    jeong_EMGfeats='H:/Jeong11tasks_data/jeong_EMGfeats.csv'
+    eeg_jeongSyncCSP_feats='H:/Jeong11tasks_data/jeongSyncCSPEEGfeats.csv'
+    
+    jeong_EMGfeats_server=os.path.join(currentpath,'lit_data_expts/jeong/datasets/jeong_EMGfeats.csv')
+
+    jeong_EEGfeats_server=os.path.join(currentpath,'lit_data_expts/jeong/datasets/jeong_EEGfeatsCSPSync.csv')
+    
+    jeong_results_dir='lit_data_expts/jeong/results/'

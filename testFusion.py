@@ -1661,34 +1661,14 @@ def setup_search_space(architecture):
         
     return space
 
-def optimise_fusion_LOO(prebalance=True,architecture='decision',platform='not server',iters=35):
-    space=setup_search_space(architecture)
-    
-    if platform=='server':
-        space.update({'emg_set_path':params.jeong_EMGfeats_server,
-                      'eeg_set_path':params.jeong_EEGfeats_server})
-    
-    if prebalance:
-        emg_set=ml.pd.read_csv(space['emg_set_path'],delimiter=',')
-        eeg_set=ml.pd.read_csv(space['eeg_set_path'],delimiter=',')
-        emg_set,eeg_set=balance_set(emg_set,eeg_set)
-        space.update({'emg_set':emg_set,'eeg_set':eeg_set,'data_in_memory':True,'prebalanced':True})
-        
-    trials=Trials() #http://hyperopt.github.io/hyperopt/getting-started/minimizing_functions/#attaching-extra-information-via-the-trials-object
-    best = fmin(function_fuse_LOO,
-                space=space,
-                algo=tpe.suggest,
-                max_evals=iters,
-                trials=trials)
-    return best, space, trials
 
-def optimise_fusion_withinsubject(prebalance=True,architecture='decision',platform='not server',iters=35):
+def optimise_fusion(trialmode,prebalance=True,architecture='decision',platform='not server',iters=35):
     space=setup_search_space(architecture)
     
     if platform=='server':
         space.update({'emg_set_path':params.jeong_EMGfeats_server,
                       'eeg_set_path':params.jeong_EEGfeats_server})
-        
+    
     if prebalance:
         emg_set=ml.pd.read_csv(space['emg_set_path'],delimiter=',')
         eeg_set=ml.pd.read_csv(space['eeg_set_path'],delimiter=',')
@@ -1696,13 +1676,27 @@ def optimise_fusion_withinsubject(prebalance=True,architecture='decision',platfo
         space.update({'emg_set':emg_set,'eeg_set':eeg_set,'data_in_memory':True,'prebalanced':True})
         
     trials=Trials() #http://hyperopt.github.io/hyperopt/getting-started/minimizing_functions/#attaching-extra-information-via-the-trials-object
-    best = fmin(function_fuse_withinppt,
+    
+    if trialmode=='LOO':
+        best = fmin(function_fuse_LOO,
+                    space=space,
+                    algo=tpe.suggest,
+                    max_evals=iters,
+                    trials=trials)
+        
+    elif trialmode=='WithinPpt':
+        #space.update() ADD SVM BACK IN
+        best = fmin(function_fuse_withinppt,
                 space=space,
                 algo=tpe.suggest,
                 max_evals=iters,
                 trials=trials)
+    else:
+        raise ValueError('Unrecognised testing strategy, should be LOO or WithinPpt')
+        
     return best, space, trials
     
+
 def save_resultdict(filepath,resultdict,dp=4):
     '''also get the input arguments and print those?'''
     
@@ -1772,10 +1766,8 @@ if __name__ == '__main__':
         showplot_toggle=True
 
 
-    if trialmode=='LOO':
-        best,space,trials=optimise_fusion_LOO(architecture=architecture,platform=platform,iters=num_iters)
-    elif trialmode=='WithinPpt':
-        best,space,trials=optimise_fusion_withinsubject(architecture=architecture,platform=platform,iters=num_iters)
+    best,space,trials=optimise_fusion(trialmode=trialmode,architecture=architecture,platform=platform,iters=num_iters)
+    
     #space=stochastic.sample(setup_search_space())
     #best_results=function_fuse_LOO(space)
     #raise

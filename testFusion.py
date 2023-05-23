@@ -1027,6 +1027,8 @@ def fusion_LDA(emg_train, eeg_train, emg_test, eeg_test, args):
 
 def function_fuse_LOO(args):
     start=time.time()
+    #print('emg model ',args['emg']['emg_model_type'])
+    #print('eeg model ',args['eeg']['eeg_model_type'])
     if not args['data_in_memory']:
         emg_set_path=args['emg_set_path']
         eeg_set_path=args['eeg_set_path']
@@ -1702,6 +1704,8 @@ def optimise_fusion_withinsubject(prebalance=True,architecture='decision',platfo
     return best, space, trials
     
 def save_resultdict(filepath,resultdict,dp=4):
+    '''also get the input arguments and print those?'''
+    
     #https://stackoverflow.com/questions/61894745/write-dictionary-to-text-file-with-newline
     #sig fig would be nicer https://stackoverflow.com/questions/3410976/how-to-round-a-number-to-significant-figures-in-python
     status=resultdict['Results'].pop('status')
@@ -1748,18 +1752,19 @@ if __name__ == '__main__':
     
     if len(sys.argv)>1:
         architecture=sys.argv[1]
-        if architecture not in ['decision','featlevel','hierarchical','hierarchical_inv']:
-            errstring=('requested architecture '+architecture+' not recognised, expecting one of:\n decision\n featlevel\n hierarchical\n hierarchical_inv')
-            raise KeyboardInterrupt(errstring)
         trialmode=sys.argv[2]
         platform=sys.argv[3]
         if len(sys.argv)>4:
             num_iters=int(sys.argv[4])
     else:
         architecture='decision'    
-        trialmode='LOO'
+        trialmode='WithinPpt'
         platform='not server'
-        num_iters=1
+        num_iters=100
+        
+    if architecture not in ['decision','featlevel','hierarchical','hierarchical_inv']:
+        errstring=('requested architecture '+architecture+' not recognised, expecting one of:\n decision\n featlevel\n hierarchical\n hierarchical_inv')
+        raise KeyboardInterrupt(errstring)
         
     if platform=='server':
         showplot_toggle=False

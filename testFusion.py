@@ -1520,9 +1520,8 @@ def scatterbox(trials,stat='fusion_accs',ylower=0,yupper=1,showplot=True):
     #https://stackoverflow.com/questions/53473733/how-to-add-box-plot-to-scatter-data-in-matplotlib
     return fig
         
-def setup_search_space(architecture):
-    space = {
-            'emg':hp.choice('emg model',[
+def setup_search_space(architecture,include_emg_svm):
+    emgoptions=[
                 {'emg_model_type':'RF',
                  'n_trees':scope.int(hp.quniform('emg.RF.ntrees',10,100,q=5)),
                  #integerising search space https://github.com/hyperopt/hyperopt/issues/566#issuecomment-549510376
@@ -1549,7 +1548,16 @@ def setup_search_space(architecture):
  #               {'emg_model_type':'SVM',    #SKL SVC likely unviable, excessively slow
   #               'svm_C':hp.uniform('emg.svm.c',0.1,100), #use loguniform?
    #              },
-                ]),
+                ]
+    if include_emg_svm:
+        emgoptions.append({'emg_model_type':'SVM_PlattScale',    #SKL SVC likely unviable, excessively slow
+                 'kernel':hp.choice('emg.svm.kernel',['rbf']),#'poly','linear']),
+                 'svm_C':hp.loguniform('emg.svm.c',np.log(0.1),np.log(100)), #use loguniform? #https://queirozf.com/entries/choosing-c-hyperparameter-for-svm-classifiers-examples-with-scikit-learn
+                 'gamma':hp.loguniform('emg.svm.gamma',np.log(0.01),np.log(100)), #maybe log, from lower? #https://vitalflux.com/svm-rbf-kernel-parameters-code-sample/
+                 #eg sklearns gridsearch doc uses SVC as an example with C log(1e0,1e3) & gamma log(1e-4,1e-3)
+                 })
+    space = {
+            'emg':hp.choice('emg model',emgoptions),
             'eeg':hp.choice('eeg model',[
                {'eeg_model_type':'RF',
                  'n_trees':scope.int(hp.quniform('eeg_ntrees',10,100,q=5)),
@@ -1663,7 +1671,8 @@ def setup_search_space(architecture):
 
 
 def optimise_fusion(trialmode,prebalance=True,architecture='decision',platform='not server',iters=35):
-    space=setup_search_space(architecture)
+    emg_svm = True if trialmode=='WithinPpt' else False
+    space=setup_search_space(architecture,emg_svm)
     
     if platform=='server':
         space.update({'emg_set_path':params.jeong_EMGfeats_server,

@@ -37,7 +37,7 @@ def scale_feats_train(data,mode='normalise'):
         return data, None
     if mode=='normalise' or mode=='normalize':
         scaler=Normalizer()
-    elif mode=='standardise':
+    elif mode=='standardise' or mode=='standardize':
         scaler=StandardScaler()
     cols_to_ignore=list(data.filter(regex='^ID_').keys())
     cols_to_ignore.append('Label')

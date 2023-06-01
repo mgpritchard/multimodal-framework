@@ -308,10 +308,8 @@ def synchronously_classify(test_set_emg,test_set_eeg,model_emg,model_eeg,classla
 def synced_predict(test_set_emg,test_set_eeg,model_emg,model_eeg,classlabels,args):
   #  distrolist_emg=[]
     predlist_emg=[]
-    
  #   distrolist_eeg=[]
     predlist_eeg=[]
-    
    # distrolist_fusion=[]
     predlist_fusion=[]
     
@@ -351,7 +349,6 @@ def synced_predict(test_set_emg,test_set_eeg,model_emg,model_eeg,classlabels,arg
        # distrolist_eeg.append(distro_eeg)
         predlist_eeg.append(pred_eeg)
         
-        #distro_fusion=fusion.fuse_mean(distro_emg,distro_eeg)
         distro_fusion=fusion.fuse_select(distro_emg, distro_eeg, args)
         pred_fusion=ml.pred_from_distro(classlabels,distro_fusion)
        # distrolist_fusion.append(distro_fusion)
@@ -361,17 +358,9 @@ def synced_predict(test_set_emg,test_set_eeg,model_emg,model_eeg,classlabels,arg
     return targets, predlist_emg, predlist_eeg, predlist_fusion
 
 def refactor_synced_predict(test_set_emg,test_set_eeg,model_emg,model_eeg,classlabels,args, chosencolseeg=None, chosencolsemg=None):
-    '''
-    if chosencolsemg is None:
-        chosencolsemg=np.arange(len(test_set_emg.columns))
-    if chosencolseeg is None:
-        chosencolseeg=np.arange(len(test_set_eeg.columns))
-    '''
-  #  distrolist_emg=[]
+
     predlist_emg=[]
- #   distrolist_eeg=[]
     predlist_eeg=[]
-   # distrolist_fusion=[]
     predlist_fusion=[]
     targets=[]
     
@@ -384,24 +373,6 @@ def refactor_synced_predict(test_set_emg,test_set_eeg,model_emg,model_eeg,classl
         targets=emg['Label'].values.tolist()
     else:
         raise Exception('Sense check failed, target label should agree between modes')
-    '''
-    for index,emgrow in emg.iterrows():
-        eegrow = eeg[(eeg['ID_pptID']==emgrow['ID_pptID'])
-                              & (eeg['ID_run']==emgrow['ID_run'])
-                              & (eeg['Label']==emgrow['Label'])
-                              & (eeg['ID_gestrep']==emgrow['ID_gestrep'])
-                              & (eeg['ID_tend']==emgrow['ID_tend'])]
-        #syntax like the below would do it closer to a .where
-        #eegrow=test_set_eeg[test_set_eeg[['ID_pptID','Label']]==emgrow[['ID_pptID','Label']]]
-        if eegrow.empty:
-            print('No matching EEG window for EMG window '+str(emgrow['ID_pptID'])+str(emgrow['ID_run'])+str(emgrow['Label'])+str(emgrow['ID_gestrep'])+str(emgrow['ID_tend']))
-            continue
-        
-        TargetLabel=emgrow['Label']
-        if TargetLabel != eegrow['Label'].values:
-            raise Exception('Sense check failed, target label should agree between modes')
-        targets.append(TargetLabel)
-    '''
         
     '''Get values from instances'''
     IDs=list(emg.filter(regex='^ID_').keys())
@@ -422,29 +393,13 @@ def refactor_synced_predict(test_set_emg,test_set_eeg,model_emg,model_eeg,classl
     
     distros_emg=ml.prob_dist(model_emg,emgvals)
     predlist_emg=ml.predlist_from_distrosarr(classlabels,distros_emg)
-    '''
-    for distro in distros_emg:
-        pred_emg=ml.pred_from_distro(classlabels,distro)
-   # distrolist_emg.append(distro_emg)
-        predlist_emg.append(pred_emg)
-    '''
+
     distros_eeg=ml.prob_dist(model_eeg,eegvals)
     predlist_eeg=ml.predlist_from_distrosarr(classlabels,distros_eeg)
-    '''
-    for distro in distros_eeg:
-        pred_eeg=ml.pred_from_distro(classlabels,distro)
-   # distrolist_eeg.append(distro_eeg)
-        predlist_eeg.append(pred_eeg)
-    '''
-    #distro_fusion=fusion.fuse_mean(distro_emg,distro_eeg)
+
     distros_fusion=fusion.fuse_select(distros_emg, distros_eeg, args)
     predlist_fusion=ml.predlist_from_distrosarr(classlabels,distros_fusion)
-    '''
-    for distro in distros_fusion:
-        pred_fusion=ml.pred_from_distro(classlabels,distro)
-       # distrolist_fusion.append(distro_fusion)
-        predlist_fusion.append(pred_fusion) 
-     '''   
+ 
     return targets, predlist_emg, predlist_eeg, predlist_fusion
 
 def evaluate_results(targets, predlist_emg, correctness_emg, predlist_eeg, correctness_eeg, predlist_fusion, correctness_fusion, classlabels, plot_confmats=False):
@@ -640,12 +595,6 @@ def feature_fusion(emg_others,eeg_others,emg_ppt,eeg_ppt,args):
         targets=emg_ppt['Label'].values.tolist()
     else:
         raise RuntimeError('Sense check failed, target classes should match, testing sets are misaligned')
-    '''    
-    targets=[]
-    for index,emgrow in emg_ppt.iterrows():
-        TargetLabel=emgrow['Label']
-        targets.append(TargetLabel)
-    '''
     
     eeg_ppt=ml.drop_ID_cols(eeg_ppt)
     if not args['featfuse_sel_feats_together']:
@@ -761,30 +710,12 @@ def fusion_hierarchical(emg_others,eeg_others,emg_ppt,eeg_ppt,args):
         targets=emg['Label'].values.tolist()
     else:
         raise Exception('Sense check failed, target label should agree between modes')
-    '''
-    for index,emgrow in emg.iterrows():
-        eegrow = eeg[(eeg['ID_pptID']==emgrow['ID_pptID'])
-                              & (eeg['ID_run']==emgrow['ID_run'])
-                              & (eeg['Label']==emgrow['Label'])
-                              & (eeg['ID_gestrep']==emgrow['ID_gestrep'])
-                              & (eeg['ID_tend']==emgrow['ID_tend'])]
-        #syntax like the below would do it closer to a .where
-        #eegrow=test_set_eeg[test_set_eeg[['ID_pptID','Label']]==emgrow[['ID_pptID','Label']]]
-        if eegrow.empty:
-            print('No matching EEG window for EMG window '+str(emgrow['ID_pptID'])+str(emgrow['ID_run'])+str(emgrow['Label'])+str(emgrow['ID_gestrep'])+str(emgrow['ID_tend']))
-            continue
-     
-        TargetLabel=emgrow['Label']
-        if TargetLabel != eegrow['Label'].values:
-            raise Exception('Sense check failed, target label should agree between modes')
-        targets.append(TargetLabel)
-    ''' 
+
     '''Get values from instances'''
     IDs=list(emg.filter(regex='^ID_').keys())
     eeg=eeg.drop(IDs,axis='columns')
     eeg=eeg.iloc[:,sel_cols_eeg]
     eegvals=eeg.drop(['Label'],axis='columns').values    
-    
     
     '''Get EEG Predictions'''
     distros_eeg=ml.prob_dist(eeg_model,eegvals)
@@ -834,7 +765,6 @@ def fusion_hierarchical_inv(emg_others,eeg_others,emg_ppt,eeg_ppt,args):
     sel_cols_eeg=feats.sel_percent_feats_df(eeg_train_split_fusion,percent=15)
     sel_cols_eeg=np.append(sel_cols_eeg,eeg_train_split_fusion.columns.get_loc('Label'))
     eeg_train_split_fusion=eeg_train_split_fusion.iloc[:,sel_cols_eeg]
-
     
     '''Train EMG model'''
     emg_train_split_ML=ml.drop_ID_cols(emg_train_split_ML)
@@ -890,24 +820,6 @@ def fusion_hierarchical_inv(emg_others,eeg_others,emg_ppt,eeg_ppt,args):
         targets=emg['Label'].values.tolist()
     else:
         raise Exception('Sense check failed, target label should agree between modes')
-    
-    '''    
-    for index,eegrow in eeg.iterrows():
-        emgrow = emg[(emg['ID_pptID']==eegrow['ID_pptID'])
-                              & (emg['ID_run']==eegrow['ID_run'])
-                              & (emg['Label']==eegrow['Label'])
-                              & (emg['ID_gestrep']==eegrow['ID_gestrep'])
-                              & (emg['ID_tend']==eegrow['ID_tend'])]
-
-        if emgrow.empty:
-            print('No matching EMG window for EEG window '+str(eegrow['ID_pptID'])+str(eegrow['ID_run'])+str(eegrow['Label'])+str(eegrow['ID_gestrep'])+str(eegrow['ID_tend']))
-            continue
-     
-        TargetLabel=eegrow['Label']
-        if TargetLabel != emgrow['Label'].values:
-            raise Exception('Sense check failed, target label should agree between modes')
-        targets.append(TargetLabel)
-    '''
      
     '''Get values from instances'''
     IDs=list(eeg.filter(regex='^ID_').keys())
@@ -977,23 +889,7 @@ def only_EMG(emg_others,eeg_others,emg_ppt,eeg_ppt,args):
         targets=emg['Label'].values.tolist()
     else:
         raise Exception('Sense check failed, target label should agree between modes')
-    '''
-    for index,eegrow in eeg.iterrows():
-        emgrow = emg[(emg['ID_pptID']==eegrow['ID_pptID'])
-                              & (emg['ID_run']==eegrow['ID_run'])
-                              & (emg['Label']==eegrow['Label'])
-                              & (emg['ID_gestrep']==eegrow['ID_gestrep'])
-                              & (emg['ID_tend']==eegrow['ID_tend'])]
 
-        if emgrow.empty:
-            print('No matching EMG window for EEG window '+str(eegrow['ID_pptID'])+str(eegrow['ID_run'])+str(eegrow['Label'])+str(eegrow['ID_gestrep'])+str(eegrow['ID_tend']))
-            continue
-     
-        TargetLabel=eegrow['Label']
-        if TargetLabel != emgrow['Label'].values:
-            raise Exception('Sense check failed, target label should agree between modes')
-        targets.append(TargetLabel)
-    ''' 
     '''Get values from instances'''
     IDs=list(eeg.filter(regex='^ID_').keys())
     emg=emg.drop(IDs,axis='columns')
@@ -1045,27 +941,7 @@ def only_EEG(emg_others,eeg_others,emg_ppt,eeg_ppt,args):
     if eeg['Label'].equals(emg['Label']):
         targets=eeg['Label'].values.tolist()
     else:
-        raise Exception('Sense check failed, target label should agree between modes')
-    
-    '''
-    for index,eegrow in eeg.iterrows():
-        emgrow = emg[(emg['ID_pptID']==eegrow['ID_pptID'])
-                              & (emg['ID_run']==eegrow['ID_run'])
-                              & (emg['Label']==eegrow['Label'])
-                              & (emg['ID_gestrep']==eegrow['ID_gestrep'])
-                              & (emg['ID_tend']==eegrow['ID_tend'])]
-
-        if emgrow.empty:
-            print('No matching EMG window for EEG window '+str(eegrow['ID_pptID'])+str(eegrow['ID_run'])+str(eegrow['Label'])+str(eegrow['ID_gestrep'])+str(eegrow['ID_tend']))
-            continue
-        
-        TargetLabel=eegrow['Label']
-        
-        if TargetLabel != emgrow['Label'].values:
-            raise Exception('Sense check failed, target label should agree between modes')
-        
-        targets.append(TargetLabel)
-    '''        
+        raise Exception('Sense check failed, target label should agree between modes')        
      
     '''Get values from instances'''
     IDs=list(emg.filter(regex='^ID_').keys())
@@ -1108,7 +984,6 @@ def fusion_SVM(emg_train, eeg_train, emg_test, eeg_test, args):
             eeg_train_split_fusion=feats.scale_feats_test(eeg_train_split_fusion,eegscaler)
             emg_test=feats.scale_feats_test(emg_test,emgscaler)
             eeg_test=feats.scale_feats_test(eeg_test,eegscaler)
-
 
 
     emg_train_split_ML=ml.drop_ID_cols(emg_train_split_ML)
@@ -1338,7 +1213,6 @@ def function_fuse_LOO(args):
             emg_ppt.sort_values(['ID_pptID','ID_run','Label','ID_gestrep','ID_tend'],ascending=[True,True,True,True,True],inplace=True)
             eeg_ppt.sort_values(['ID_pptID','ID_run','Label','ID_gestrep','ID_tend'],ascending=[True,True,True,True,True],inplace=True)
                 
-            #targets, predlist_emg, predlist_eeg, predlist_fusion = synced_predict(emg_ppt, eeg_ppt, emg_model, eeg_model, classlabels,args)
             targets, predlist_emg, predlist_eeg, predlist_fusion = refactor_synced_predict(emg_ppt, eeg_ppt, emg_model, eeg_model, classlabels,args, sel_cols_eeg,sel_cols_emg)
 
         #acc_emg,acc_eeg,acc_fusion=evaluate_results(targets, predlist_emg, correctness_emg, predlist_eeg, correctness_eeg, predlist_fusion, correctness_fusion, classlabels)
@@ -1370,10 +1244,10 @@ def function_fuse_LOO(args):
     median_emg=stats.median(emg_accs)
     mean_eeg=stats.mean(eeg_accs)
     median_eeg=stats.median(eeg_accs)
-    mean_f1_emg=stats.mean(emg_f1s)
-    mean_f1_eeg=stats.mean(eeg_f1s)
-    mean_f1_fusion=stats.mean(f1s)
-    median_f1=stats.median(f1s)
+    #mean_f1_emg=stats.mean(emg_f1s)
+    #mean_f1_eeg=stats.mean(eeg_f1s)
+    #mean_f1_fusion=stats.mean(f1s)
+    #median_f1=stats.median(f1s)
     median_kappa=stats.median(kappas)
     end=time.time()
     #return 1-mean_acc
@@ -1488,14 +1362,12 @@ def function_fuse_withinppt(args):
             targets, predlist_emg, predlist_eeg, predlist_fusion, classlabels=fusion_LDA(emg_train, eeg_train, emg_test, eeg_test, args)
         
         elif args['fusion_alg']=='hierarchical':
-            
-            
+                     
             if args['scalingtype']:
                 emg_train,emgscaler=feats.scale_feats_train(emg_train,args['scalingtype'])
                 eeg_train,eegscaler=feats.scale_feats_train(eeg_train,args['scalingtype'])
                 emg_test=feats.scale_feats_test(emg_test,emgscaler)
-                eeg_test=feats.scale_feats_test(eeg_test,eegscaler)
-                            
+                eeg_test=feats.scale_feats_test(eeg_test,eegscaler)                            
                         
             targets, predlist_emg, predlist_eeg, predlist_fusion, classlabels=fusion_hierarchical(emg_train, eeg_train, emg_test, eeg_test, args)
 
@@ -1565,7 +1437,6 @@ def function_fuse_withinppt(args):
             emg_test.sort_values(['ID_pptID','ID_run','Label','ID_gestrep','ID_tend'],ascending=[True,True,True,True,True],inplace=True)
             eeg_test.sort_values(['ID_pptID','ID_run','Label','ID_gestrep','ID_tend'],ascending=[True,True,True,True,True],inplace=True)
                 
-            #targets, predlist_emg, predlist_eeg, predlist_fusion = synced_predict(emg_ppt, eeg_ppt, emg_model, eeg_model, classlabels,args)
             targets, predlist_emg, predlist_eeg, predlist_fusion = refactor_synced_predict(emg_test, eeg_test, emg_model, eeg_model, classlabels,args, sel_cols_eeg,sel_cols_emg)
 
         #acc_emg,acc_eeg,acc_fusion=evaluate_results(targets, predlist_emg, correctness_emg, predlist_eeg, correctness_eeg, predlist_fusion, correctness_fusion, classlabels)
@@ -1597,10 +1468,10 @@ def function_fuse_withinppt(args):
     median_emg=stats.median(emg_accs)
     mean_eeg=stats.mean(eeg_accs)
     median_eeg=stats.median(eeg_accs)
-    mean_f1_emg=stats.mean(emg_f1s)
-    mean_f1_eeg=stats.mean(eeg_f1s)
-    mean_f1_fusion=stats.mean(f1s)
-    median_f1=stats.median(f1s)
+    #mean_f1_emg=stats.mean(emg_f1s)
+    #mean_f1_eeg=stats.mean(eeg_f1s)
+    #mean_f1_fusion=stats.mean(f1s)
+    #median_f1=stats.median(f1s)
     median_kappa=stats.median(kappas)
     end=time.time()
     #return 1-mean_acc
@@ -1627,7 +1498,6 @@ def plot_opt_in_time(trials):
     ax.plot(range(1, len(trials) + 1),
             [1-x['result']['loss'] for x in trials], 
         color='red', marker='.', linewidth=0)
-    #https://www.kaggle.com/code/fanvacoolt/tutorial-on-hyperopt?scriptVersionId=12981074&cellId=97
     ax.set(title='accuracy over time')
     plt.show()
     
@@ -1652,7 +1522,6 @@ def plot_stat_as_line(trials,stat,ylower=0,yupper=1,showplot=True):
     ax.plot(range(1, len(trials) + 1),
             [x['result'][stat] for x in trials], 
         color='red')
-    #https://www.kaggle.com/code/fanvacoolt/tutorial-on-hyperopt?scriptVersionId=12981074&cellId=97
     ax.set(title=stat+' over optimisation iterations')
     ax.set_ylim(ylower,yupper)
     if showplot:
@@ -1665,7 +1534,6 @@ def plot_multiple_stats(trials,stats,ylower=0,yupper=1,showplot=True):
         ax.plot(range(1, len(trials) + 1),
                 [x['result'][stat] for x in trials],
                 label=(stat))
-        #https://www.kaggle.com/code/fanvacoolt/tutorial-on-hyperopt?scriptVersionId=12981074&cellId=97
     #ax.set(title=stat+' over optimisation iterations')
     ax.legend()#loc='upper center')
     ax.set_ylim(ylower,yupper)

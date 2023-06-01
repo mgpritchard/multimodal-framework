@@ -665,17 +665,14 @@ def fusion_hierarchical(emg_others,eeg_others,emg_ppt,eeg_ppt,args):
     eeg_model = ml.train_optimise(eeg_train_split_ML, args['eeg']['eeg_model_type'], args['eeg'])
     classlabels=eeg_model.classes_
     
-    '''Get EEG preds for EMG training'''
-    eeg_preds_hierarch= []
-    
-    
-    '''Get values from instances'''
-       
+    '''Get values from instances'''  
     IDs=list(eeg_train_split_fusion.filter(regex='^ID_').keys())
     eeg_train_split_fusion=eeg_train_split_fusion.drop(IDs,axis='columns')
     eeg_train_split_fusion=eeg_train_split_fusion.iloc[:,sel_cols_eeg]
     eegvals=eeg_train_split_fusion.drop(['Label'],axis='columns').values
 
+    '''Get EEG preds for EMG training'''
+    eeg_preds_hierarch= []
     distros_eeg=ml.prob_dist(eeg_model,eegvals)
     for distro in distros_eeg:
         pred_eeg=ml.pred_from_distro(classlabels,distro)
@@ -775,17 +772,14 @@ def fusion_hierarchical_inv(emg_others,eeg_others,emg_ppt,eeg_ppt,args):
     emg_model = ml.train_optimise(emg_train_split_ML, args['emg']['emg_model_type'], args['emg'])
     classlabels=emg_model.classes_
     
-    '''Get EMG preds for EEG training'''
-    emg_preds_hierarch= []
-    
-    
     '''Get values from instances'''
-       
     IDs=list(emg_train_split_fusion.filter(regex='^ID_').keys())
     emg_train_split_fusion=emg_train_split_fusion.drop(IDs,axis='columns')
     emg_train_split_fusion=emg_train_split_fusion.iloc[:,sel_cols_emg]
     emgvals=emg_train_split_fusion.drop(['Label'],axis='columns').values
 
+    '''Get EMG preds for EEG training'''
+    emg_preds_hierarch= []
     distros_emg=ml.prob_dist(emg_model,emgvals)
     for distro in distros_emg:
         pred_emg=ml.pred_from_distro(classlabels,distro)
@@ -1378,6 +1372,9 @@ def function_fuse_withinppt(args):
                 eeg_train,eegscaler=feats.scale_feats_train(eeg_train,args['scalingtype'])
                 emg_test=feats.scale_feats_test(emg_test,emgscaler)
                 eeg_test=feats.scale_feats_test(eeg_test,eegscaler)
+                #'''UNDO THE BELOW, JUST TESTING TRAINING ACC'''
+                #emg_test=emg_train.copy(deep=True)
+                #eeg_test=eeg_train.copy(deep=True)
                         
             targets, predlist_emg, predlist_eeg, predlist_fusion, classlabels=fusion_hierarchical_inv(emg_train, eeg_train, emg_test, eeg_test, args)
                  
@@ -1843,10 +1840,10 @@ if __name__ == '__main__':
         if len(sys.argv)>4:
             num_iters=int(sys.argv[4])
     else:
-        architecture='just_emg'    
+        architecture='decision'    
         trialmode='WithinPpt'
         platform='not server'
-        num_iters=100
+        num_iters=3
         
     if architecture not in ['decision','featlevel','hierarchical','hierarchical_inv','just_emg','just_eeg']:
         errstring=('requested architecture '+architecture+' not recognised, expecting one of:\n decision\n featlevel\n hierarchical\n hierarchical_inv')

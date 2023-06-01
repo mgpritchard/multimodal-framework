@@ -379,6 +379,12 @@ def refactor_synced_predict(test_set_emg,test_set_eeg,model_emg,model_eeg,classl
     index_eeg=ml.pd.MultiIndex.from_arrays([test_set_eeg[col] for col in ['ID_pptID','ID_run','Label','ID_gestrep','ID_tend']])
     emg=test_set_emg.loc[index_emg.isin(index_eeg)].reset_index(drop=True)
     eeg=test_set_eeg.loc[index_eeg.isin(index_emg)].reset_index(drop=True)
+    
+    if emg['Label'].equals(eeg['Label']):
+        targets=emg['Label'].values.tolist()
+    else:
+        raise Exception('Sense check failed, target label should agree between modes')
+    '''
     for index,emgrow in emg.iterrows():
         eegrow = eeg[(eeg['ID_pptID']==emgrow['ID_pptID'])
                               & (eeg['ID_run']==emgrow['ID_run'])
@@ -395,6 +401,7 @@ def refactor_synced_predict(test_set_emg,test_set_eeg,model_emg,model_eeg,classl
         if TargetLabel != eegrow['Label'].values:
             raise Exception('Sense check failed, target label should agree between modes')
         targets.append(TargetLabel)
+    '''
         
     '''Get values from instances'''
     IDs=list(emg.filter(regex='^ID_').keys())
@@ -630,15 +637,15 @@ def feature_fusion(emg_others,eeg_others,emg_ppt,eeg_ppt,args):
     
     if emg_ppt['Label'].equals(eeg_ppt['Label']):
         #print('Target classes match, ok to merge sets')
-        pass
+        targets=emg_ppt['Label'].values.tolist()
     else:
-        raise RuntimeError('Target classes should match, testing sets are misaligned')
-        
+        raise RuntimeError('Sense check failed, target classes should match, testing sets are misaligned')
+    '''    
     targets=[]
     for index,emgrow in emg_ppt.iterrows():
         TargetLabel=emgrow['Label']
         targets.append(TargetLabel)
-    
+    '''
     
     eeg_ppt=ml.drop_ID_cols(eeg_ppt)
     if not args['featfuse_sel_feats_together']:
@@ -750,6 +757,11 @@ def fusion_hierarchical(emg_others,eeg_others,emg_ppt,eeg_ppt,args):
     emg=emg_ppt.loc[index_emg.isin(index_eeg)].reset_index(drop=True)
     eeg=eeg_ppt.loc[index_eeg.isin(index_emg)].reset_index(drop=True)
     
+    if emg['Label'].equals(eeg['Label']):
+        targets=emg['Label'].values.tolist()
+    else:
+        raise Exception('Sense check failed, target label should agree between modes')
+    '''
     for index,emgrow in emg.iterrows():
         eegrow = eeg[(eeg['ID_pptID']==emgrow['ID_pptID'])
                               & (eeg['ID_run']==emgrow['ID_run'])
@@ -766,7 +778,7 @@ def fusion_hierarchical(emg_others,eeg_others,emg_ppt,eeg_ppt,args):
         if TargetLabel != eegrow['Label'].values:
             raise Exception('Sense check failed, target label should agree between modes')
         targets.append(TargetLabel)
-     
+    ''' 
     '''Get values from instances'''
     IDs=list(emg.filter(regex='^ID_').keys())
     eeg=eeg.drop(IDs,axis='columns')
@@ -874,6 +886,12 @@ def fusion_hierarchical_inv(emg_others,eeg_others,emg_ppt,eeg_ppt,args):
     emg=emg_ppt.loc[index_emg.isin(index_eeg)].reset_index(drop=True)
     eeg=eeg_ppt.loc[index_eeg.isin(index_emg)].reset_index(drop=True)
     
+    if emg['Label'].equals(eeg['Label']):
+        targets=emg['Label'].values.tolist()
+    else:
+        raise Exception('Sense check failed, target label should agree between modes')
+    
+    '''    
     for index,eegrow in eeg.iterrows():
         emgrow = emg[(emg['ID_pptID']==eegrow['ID_pptID'])
                               & (emg['ID_run']==eegrow['ID_run'])
@@ -889,6 +907,7 @@ def fusion_hierarchical_inv(emg_others,eeg_others,emg_ppt,eeg_ppt,args):
         if TargetLabel != emgrow['Label'].values:
             raise Exception('Sense check failed, target label should agree between modes')
         targets.append(TargetLabel)
+    '''
      
     '''Get values from instances'''
     IDs=list(eeg.filter(regex='^ID_').keys())
@@ -954,6 +973,11 @@ def only_EMG(emg_others,eeg_others,emg_ppt,eeg_ppt,args):
     emg=emg_ppt.loc[index_emg.isin(index_eeg)].reset_index(drop=True)
     eeg=eeg_ppt.loc[index_eeg.isin(index_emg)].reset_index(drop=True)
     
+    if emg['Label'].equals(eeg['Label']):
+        targets=emg['Label'].values.tolist()
+    else:
+        raise Exception('Sense check failed, target label should agree between modes')
+    '''
     for index,eegrow in eeg.iterrows():
         emgrow = emg[(emg['ID_pptID']==eegrow['ID_pptID'])
                               & (emg['ID_run']==eegrow['ID_run'])
@@ -969,7 +993,7 @@ def only_EMG(emg_others,eeg_others,emg_ppt,eeg_ppt,args):
         if TargetLabel != emgrow['Label'].values:
             raise Exception('Sense check failed, target label should agree between modes')
         targets.append(TargetLabel)
-     
+    ''' 
     '''Get values from instances'''
     IDs=list(eeg.filter(regex='^ID_').keys())
     emg=emg.drop(IDs,axis='columns')
@@ -1018,6 +1042,12 @@ def only_EEG(emg_others,eeg_others,emg_ppt,eeg_ppt,args):
     emg=emg_ppt.loc[index_emg.isin(index_eeg)].reset_index(drop=True)
     eeg=eeg_ppt.loc[index_eeg.isin(index_emg)].reset_index(drop=True)
     
+    if eeg['Label'].equals(emg['Label']):
+        targets=eeg['Label'].values.tolist()
+    else:
+        raise Exception('Sense check failed, target label should agree between modes')
+    
+    '''
     for index,eegrow in eeg.iterrows():
         emgrow = emg[(emg['ID_pptID']==eegrow['ID_pptID'])
                               & (emg['ID_run']==eegrow['ID_run'])
@@ -1028,11 +1058,14 @@ def only_EEG(emg_others,eeg_others,emg_ppt,eeg_ppt,args):
         if emgrow.empty:
             print('No matching EMG window for EEG window '+str(eegrow['ID_pptID'])+str(eegrow['ID_run'])+str(eegrow['Label'])+str(eegrow['ID_gestrep'])+str(eegrow['ID_tend']))
             continue
-     
+        
         TargetLabel=eegrow['Label']
+        
         if TargetLabel != emgrow['Label'].values:
             raise Exception('Sense check failed, target label should agree between modes')
+        
         targets.append(TargetLabel)
+    '''        
      
     '''Get values from instances'''
     IDs=list(emg.filter(regex='^ID_').keys())

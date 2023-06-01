@@ -1606,18 +1606,12 @@ def setup_search_space(architecture,include_emg_svm):
                 {'emg_model_type':'gaussNB',
                  'smoothing':hp.loguniform('emg.gnb.smoothing',np.log(1e-9),np.log(1e0)),
                  },
-#                {'emg_model_type':'SVM_PlattScale',    #SKL SVC likely unviable, excessively slow
- #                'kernel':hp.choice('emg.svm.kernel',['rbf']),#'poly','linear']),
-  #               'svm_C':hp.loguniform('emg.svm.c',np.log(0.1),np.log(100)), #use loguniform? #https://queirozf.com/entries/choosing-c-hyperparameter-for-svm-classifiers-examples-with-scikit-learn
-   #              'gamma':hp.loguniform('emg.svm.gamma',np.log(0.01),np.log(100)), #maybe log, from lower? #https://vitalflux.com/svm-rbf-kernel-parameters-code-sample/
-                 #eg sklearns gridsearch doc uses SVC as an example with C log(1e0,1e3) & gamma log(1e-4,1e-3)
-    #             },
  #               {'emg_model_type':'SVM',    #SKL SVC likely unviable, excessively slow
   #               'svm_C':hp.uniform('emg.svm.c',0.1,100), #use loguniform?
    #              },
                 ]
     if include_emg_svm:
-        emgoptions.append({'emg_model_type':'SVM_PlattScale',    #SKL SVC likely unviable, excessively slow
+        emgoptions.append({'emg_model_type':'SVM_PlattScale',
                  'kernel':hp.choice('emg.svm.kernel',['rbf']),#'poly','linear']),
                  'svm_C':hp.loguniform('emg.svm.c',np.log(0.1),np.log(100)), #use loguniform? #https://queirozf.com/entries/choosing-c-hyperparameter-for-svm-classifiers-examples-with-scikit-learn
                  'gamma':hp.loguniform('emg.svm.gamma',np.log(0.01),np.log(100)), #maybe log, from lower? #https://vitalflux.com/svm-rbf-kernel-parameters-code-sample/
@@ -1665,7 +1659,7 @@ def setup_search_space(architecture,include_emg_svm):
             'eeg_weight_opt':hp.uniform('fus.optEEG.EEGweight',0.0,100.0),
             'fusion_alg':hp.choice('fusion algorithm',[
                 'mean',
-                '3_1_emg', #Excluding those which allow it to ignore EEG
+                '3_1_emg',
                 '3_1_eeg',
                 'opt_weight',
                 #'bayes', # NEED TO IMPLEMENT SCALING AND SELECTION
@@ -1715,7 +1709,7 @@ def setup_search_space(architecture,include_emg_svm):
     #             },
                 ]),
             })
-        space.pop('emg',None) #cant do this yet as feat fuse code still creates emg/eeg models
+        space.pop('emg',None)
         space.pop('eeg',None)
         space.pop('svmfuse',None)
         space.pop('ldafuse',None)

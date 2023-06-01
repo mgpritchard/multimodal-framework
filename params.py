@@ -53,6 +53,9 @@ if platform =='win32':
     jeongSyncCSP_EEGdir='H:/Jeong11tasks_data/Synced_CSP_CSVs/'
     eeg_jeongSyncCSP_feats='H:/Jeong11tasks_data/jeongSyncCSPEEGfeats.csv'
     
+    jeongSyncRawEEGdir='H:/Jeong11tasks_data/RawEEGnoCSP_synced/'
+    eeg_jeongSyncRaw_feats='H:/Jeong11tasks_data/jeongSyncRawEEGfeats.csv'
+    
     jeong_EMGdir='H:/Jeong11tasks_data/EMG/Raw_EMGCSVs/'
     jeong_EMGfeats='H:/Jeong11tasks_data/jeong_EMGfeats.csv'
 

@@ -1678,8 +1678,8 @@ def setup_search_space(architecture,include_emg_svm):
             'using_literature_data':True,
             'data_in_memory':False,
             'prebalanced':False,
-            #'scalingtype':'standardise',#'normalise','standardise',None
-            'scalingtype':hp.choice('scaling',['normalise','standardise']),#,None]),
+            'scalingtype':'standardise',
+            #'scalingtype':hp.choice('scaling',['normalise','standardise']),#,None]),
             'plot_confmats':False,
             }
     

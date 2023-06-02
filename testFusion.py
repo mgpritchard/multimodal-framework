@@ -1673,7 +1673,8 @@ def setup_search_space(architecture,include_emg_svm):
             #'emg_set_path':params.emg_set_path_for_system_tests,
             #'eeg_set_path':params.eeg_set_path_for_system_tests,
             'emg_set_path':params.jeong_EMGfeats,
-            'eeg_set_path':params.eeg_jeongSyncCSP_feats,
+            #'eeg_set_path':params.eeg_jeongSyncCSP_feats,
+            'eeg_set_path':params.eeg_jeongSyncRaw_feats,
             'using_literature_data':True,
             'data_in_memory':False,
             'prebalanced':False,
@@ -1750,7 +1751,8 @@ def optimise_fusion(trialmode,prebalance=True,architecture='decision',platform='
     
     if platform=='server':
         space.update({'emg_set_path':params.jeong_EMGfeats_server,
-                      'eeg_set_path':params.jeong_EEGfeats_server})
+                      #'eeg_set_path':params.jeong_EEGfeats_server})
+                      'eeg_set_path':params.jeong_RawEEGfeats_server})
     
     if prebalance:
         emg_set=ml.pd.read_csv(space['emg_set_path'],delimiter=',')
@@ -1768,7 +1770,6 @@ def optimise_fusion(trialmode,prebalance=True,architecture='decision',platform='
                     trials=trials)
         
     elif trialmode=='WithinPpt':
-        #space.update() ADD SVM BACK IN
         best = fmin(function_fuse_withinppt,
                 space=space,
                 algo=tpe.suggest,

@@ -175,6 +175,11 @@ def train_optimise(training_set,modeltype,args):
         model = train_QDA(training_set,args)
     elif modeltype=='SVM_PlattScale':
         model = train_SVC_Platt(training_set,args)
+        
+    # Deep model??
+    #https://scikit-learn.org/stable/modules/neural_networks_supervised.html#mlp-tips
+    
+    #https://github.com/skorch-dev/skorch
    
     return model
 

@@ -53,12 +53,17 @@ if platform =='win32':
     jeongSyncCSP_EEGdir='H:/Jeong11tasks_data/Synced_CSP_CSVs/'
     eeg_jeongSyncCSP_feats='H:/Jeong11tasks_data/jeongSyncCSPEEGfeats.csv'
     
+    jeongSyncRawEEGdir='H:/Jeong11tasks_data/RawEEGnoCSP_synced/'
+    eeg_jeongSyncRaw_feats='H:/Jeong11tasks_data/jeongSyncRawEEGfeats.csv'
+    
     jeong_EMGdir='H:/Jeong11tasks_data/EMG/Raw_EMGCSVs/'
     jeong_EMGfeats='H:/Jeong11tasks_data/jeong_EMGfeats.csv'
 
     jeong_EMGfeats_server=os.path.join(currentpath,'lit_data_expts/jeong/datasets/jeong_EMGfeats.csv')
 
     jeong_EEGfeats_server=os.path.join(currentpath,'lit_data_expts/jeong/datasets/jeong_EEGfeatsCSPSync.csv')
+    
+    jeong_RawEEGfeats_server=os.path.join(currentpath,'lit_data_expts/jeong/datasets/jeong_RawEEGfeatsSync.csv')
     
     jeong_results_dir='lit_data_expts/jeong/results/'
 elif platform == 'darwin':
@@ -98,9 +103,12 @@ elif platform == 'linux' or 'linux32':
     
     jeong_EMGfeats='H:/Jeong11tasks_data/jeong_EMGfeats.csv'
     eeg_jeongSyncCSP_feats='H:/Jeong11tasks_data/jeongSyncCSPEEGfeats.csv'
+    eeg_jeongSyncRaw_feats='H:/Jeong11tasks_data/jeongSyncRawEEGfeats.csv'
     
     jeong_EMGfeats_server=os.path.join(currentpath,'lit_data_expts/jeong/datasets/jeong_EMGfeats.csv')
 
     jeong_EEGfeats_server=os.path.join(currentpath,'lit_data_expts/jeong/datasets/jeong_EEGfeatsCSPSync.csv')
+    
+    jeong_RawEEGfeats_server=os.path.join(currentpath,'lit_data_expts/jeong/datasets/jeong_RawEEGfeatsSync.csv')
     
     jeong_results_dir='lit_data_expts/jeong/results/'

@@ -1826,6 +1826,15 @@ def save_resultdict(filepath,resultdict,dp=4):
     resultdict['Results']['fusion_accs']=fusion_accs
     f.close()
 
+def load_results_obj(path):
+    load_trials=pickle.load(open(path,'rb'))
+    load_table=pd.DataFrame(load_trials.trials)
+    load_table_readable=pd.concat(
+        [pd.DataFrame(load_table['result'].tolist()),
+         pd.DataFrame(pd.DataFrame(load_table['misc'].tolist())['vals'].values.tolist())],
+        axis=1,join='outer')
+    return load_trials,load_table,load_table_readable
+
 if __name__ == '__main__':
     
     if len(sys.argv)>1:
@@ -1916,6 +1925,7 @@ if __name__ == '__main__':
     pickle.dump(trials,open(trials_obj_path,'wb'))
     '''CODE FOR LOADING TRIALS OBJ'''
     #load_trials_var=pickle.load(open(filename,'rb'))
+    #load_trials,load_table,load_table_readable=load_results_obj(filepath)
     
     '''saving best parameters & results'''
     reportpath=os.path.join(resultpath,'params_results_report.txt')

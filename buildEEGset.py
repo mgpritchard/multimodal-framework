@@ -8,7 +8,7 @@ Created on Wed Mar 29 20:45:43 2023
 import params as params
 import handleFeats as feats
 
-dataset='jeongSyncRawEEG'
+dataset='jeongSyncWideband_noCSP'
 
 skipfails=True
 #period=1
@@ -39,6 +39,10 @@ elif dataset=='jeongEMG':
 elif dataset=='jeongSyncRawEEG':
     directory_path=params.jeongSyncRawEEGdir
     output_file=params.eeg_jeongSyncRaw_feats
+    
+elif dataset=='jeongSyncWideband_noCSP':
+    directory_path=params.jeong_noCSP_WidebandDir
+    output_file=params.jeong_noCSP_WidebandFeats
     
 else:
      raise ValueError('I don\'t know what dataset you mean by '+dataset)   

@@ -259,7 +259,8 @@ def train_knn(train_data,args):
 def train_RF_param(train_data,args):
     '''where args is a dictionary with n_trees as an integer item within'''
     n_trees=args['n_trees']
-    model=RandomForestClassifier(n_estimators=n_trees)
+    max_depth=args['max_depth']
+    model=RandomForestClassifier(n_estimators=n_trees,max_depth=max_depth)
     train=train_data.values[:,:-1]
     targets=train_data.values[:,-1]
     model.fit(train.astype(np.float64),targets)

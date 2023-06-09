@@ -1591,6 +1591,7 @@ def setup_search_space(architecture,include_emg_svm):
     emgoptions=[
                 {'emg_model_type':'RF',
                  'n_trees':scope.int(hp.quniform('emg.RF.ntrees',10,100,q=5)),
+                 'max_depth':5,#scope.int(hp.quniform('emg.RF.maxdepth',2,5,q=1)),
                  #integerising search space https://github.com/hyperopt/hyperopt/issues/566#issuecomment-549510376
                  },
                 {'emg_model_type':'kNN',
@@ -1622,6 +1623,7 @@ def setup_search_space(architecture,include_emg_svm):
             'eeg':hp.choice('eeg model',[
                {'eeg_model_type':'RF',
                  'n_trees':scope.int(hp.quniform('eeg_ntrees',10,100,q=5)),
+                 'max_depth':5,#scope.int(hp.quniform('eeg.RF.maxdepth',2,5,q=1)),
                  },
                 #{'eeg_model_type':'kNN',   #Discounting EEG KNN due to reliably slow & low results
                #  'knn_k':scope.int(hp.quniform('eeg.knn.k',1,25,q=1)),
@@ -1693,6 +1695,7 @@ def setup_search_space(architecture,include_emg_svm):
             'featfuse':hp.choice('featfuse model',[
                 {'featfuse_model_type':'RF',
                  'n_trees':scope.int(hp.quniform('featfuse.RF.ntrees',10,100,q=5)),
+                 'max_depth':5,#scope.int(hp.quniform('featfuse.RF.maxdepth',2,5,q=1)),
                  },
                 {'featfuse_model_type':'kNN',
                  'knn_k':scope.int(hp.quniform('featfuse.knn.k',1,25,q=1)),

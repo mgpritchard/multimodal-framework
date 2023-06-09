@@ -554,7 +554,7 @@ def feature_fusion(emg_others,eeg_others,emg_ppt,eeg_ppt,args):
         #emg_model = ml.train_optimise(emg_others_for_solo, args['emg']['emg_model_type'], args['emg'])
         
     
-    sel_cols_eeg=feats.sel_percent_feats_df(eeg_others,percent=15)
+    sel_cols_eeg=feats.sel_percent_feats_df(eeg_others,percent=3)
     sel_cols_eeg=np.append(sel_cols_eeg,eeg_others.columns.get_loc('Label'))
     if not args['featfuse_sel_feats_together']:
         eeg_others = eeg_others.iloc[:,sel_cols_eeg]
@@ -658,7 +658,7 @@ def fusion_hierarchical(emg_others,eeg_others,emg_ppt,eeg_ppt,args):
     
     '''Train EEG model'''
     eeg_train_split_ML=ml.drop_ID_cols(eeg_train_split_ML)
-    sel_cols_eeg=feats.sel_percent_feats_df(eeg_train_split_ML,percent=15)
+    sel_cols_eeg=feats.sel_percent_feats_df(eeg_train_split_ML,percent=3)
     sel_cols_eeg=np.append(sel_cols_eeg,eeg_train_split_ML.columns.get_loc('Label'))
     eeg_train_split_ML=eeg_train_split_ML.iloc[:,sel_cols_eeg]
     
@@ -759,7 +759,7 @@ def fusion_hierarchical_inv(emg_others,eeg_others,emg_ppt,eeg_ppt,args):
     
     eeg_train_split_fusion=ml.drop_ID_cols(eeg_train_split_fusion)
     
-    sel_cols_eeg=feats.sel_percent_feats_df(eeg_train_split_fusion,percent=15)
+    sel_cols_eeg=feats.sel_percent_feats_df(eeg_train_split_fusion,percent=3)
     sel_cols_eeg=np.append(sel_cols_eeg,eeg_train_split_fusion.columns.get_loc('Label'))
     eeg_train_split_fusion=eeg_train_split_fusion.iloc[:,sel_cols_eeg]
     
@@ -912,7 +912,7 @@ def only_EEG(emg_others,eeg_others,emg_ppt,eeg_ppt,args):
 
     '''Train EEG model'''
     eeg_train=ml.drop_ID_cols(eeg_others)
-    sel_cols_eeg=feats.sel_percent_feats_df(eeg_train,percent=15)
+    sel_cols_eeg=feats.sel_percent_feats_df(eeg_train,percent=3)
     sel_cols_eeg=np.append(sel_cols_eeg,eeg_train.columns.get_loc('Label'))
     eeg_train=eeg_train.iloc[:,sel_cols_eeg]
     
@@ -1192,7 +1192,7 @@ def function_fuse_LOO(args):
             emg_others=ml.drop_ID_cols(emg_others)
             eeg_others=ml.drop_ID_cols(eeg_others)
             
-            sel_cols_eeg=feats.sel_percent_feats_df(eeg_others,percent=15)
+            sel_cols_eeg=feats.sel_percent_feats_df(eeg_others,percent=3)
             sel_cols_eeg=np.append(sel_cols_eeg,eeg_others.columns.get_loc('Label'))
             eeg_others=eeg_others.iloc[:,sel_cols_eeg]
             
@@ -1419,7 +1419,7 @@ def function_fuse_withinppt(args):
             emg_train=ml.drop_ID_cols(emg_train)
             eeg_train=ml.drop_ID_cols(eeg_train)
             
-            sel_cols_eeg=feats.sel_percent_feats_df(eeg_train,percent=15)
+            sel_cols_eeg=feats.sel_percent_feats_df(eeg_train,percent=3)
             sel_cols_eeg=np.append(sel_cols_eeg,eeg_train.columns.get_loc('Label'))
             eeg_train=eeg_train.iloc[:,sel_cols_eeg]
             

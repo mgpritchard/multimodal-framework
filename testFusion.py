@@ -843,7 +843,34 @@ def fusion_hierarchical_inv(emg_others,eeg_others,emg_ppt,eeg_ppt,args):
         predlist_hierarch.append(pred_eeg)
     predlist_eeg=predlist_hierarch
     
-    return targets, predlist_emg, predlist_eeg, predlist_hierarch, classlabels
+    if args['get_train_acc']:
+        predlist_emgtrain=[]  
+        predlist_fustrain=[]        
+        #eeg_train=ml.drop_ID_cols(eeg_others)
+        eeg_train=eeg_others.drop(IDs,axis='columns')
+        eeg_train=eeg_train.iloc[:,sel_cols_eeg]
+        #emg_train=ml.drop_ID_cols(emg_others)
+        emg_train=emg_others.drop(IDs,axis='columns')
+        emg_train=emg_train.iloc[:,sel_cols_emg]
+        traintargs=eeg_train['Label'].values.tolist()
+        emgtrainvals=emg_train.drop('Label',axis='columns')#does this need to be .values?
+        distros_emgtrain=ml.prob_dist(emg_model,emgtrainvals)
+        for distro in distros_emgtrain:
+            pred_emgtrain=ml.pred_from_distro(classlabels,distro)
+            predlist_emgtrain.append(pred_emgtrain)
+        onehot_pred_emgtrain=fusion.encode_preds_onehot(predlist_emgtrain,onehot)
+        for idx,lab in enumerate(classlabels):
+            labelcol=len(eeg_train.columns)
+            eeg_train.insert(labelcol-1,('EMGOnehotClass'+str(lab)),onehot_pred_emgtrain[:,idx])
+        eeg_train=eeg_train.drop(['Label'],axis='columns')
+        distros_eegtrain=ml.prob_dist(eeg_model,eeg_train.values)
+        for distro in distros_eegtrain:
+            pred_eegtrain=ml.pred_from_distro(classlabels,distro)
+            predlist_fustrain.append(pred_eegtrain)
+        return targets, predlist_emg, predlist_eeg, predlist_hierarch, classlabels, traintargs, predlist_fustrain
+   
+    else:    
+        return targets, predlist_emg, predlist_eeg, predlist_hierarch, classlabels
 
 
 def only_EMG(emg_others,eeg_others,emg_ppt,eeg_ppt,args):
@@ -1161,8 +1188,11 @@ def function_fuse_LOO(args):
                 eeg_others,eegscaler=feats.scale_feats_train(eeg_others,args['scalingtype'])
                 emg_ppt=feats.scale_feats_test(emg_ppt,emgscaler)
                 eeg_ppt=feats.scale_feats_test(eeg_ppt,eegscaler)
-                                       
-            targets, predlist_emg, predlist_eeg, predlist_fusion, classlabels=fusion_hierarchical_inv(emg_others, eeg_others, emg_ppt, eeg_ppt, args)
+                                                  
+            if not args['get_train_acc']:    
+                targets, predlist_emg, predlist_eeg, predlist_fusion, classlabels=fusion_hierarchical_inv(emg_others, eeg_others, emg_ppt, eeg_ppt, args)
+            else:
+                targets, predlist_emg, predlist_eeg, predlist_fusion, classlabels, traintargs, predlist_train=fusion_hierarchical_inv(emg_others, eeg_others, emg_ppt, eeg_ppt, args)
                  
         elif args['fusion_alg']=='featlevel':  
             
@@ -1402,8 +1432,10 @@ def function_fuse_withinppt(args):
                 #'''UNDO THE BELOW, JUST TESTING TRAINING ACC'''
                 #emg_test=emg_train.copy(deep=True)
                 #eeg_test=eeg_train.copy(deep=True)
-                        
-            targets, predlist_emg, predlist_eeg, predlist_fusion, classlabels=fusion_hierarchical_inv(emg_train, eeg_train, emg_test, eeg_test, args)
+            if not args['get_train_acc']:            
+                targets, predlist_emg, predlist_eeg, predlist_fusion, classlabels=fusion_hierarchical_inv(emg_train, eeg_train, emg_test, eeg_test, args)
+            else:
+                targets, predlist_emg, predlist_eeg, predlist_fusion, classlabels, traintargs, predlist_train = fusion_hierarchical_inv(emg_train, eeg_train, emg_test, eeg_test, args)
                  
         elif args['fusion_alg']=='featlevel': 
             
@@ -1910,7 +1942,6 @@ if __name__ == '__main__':
     #best_results=function_fuse_LOO(space)
     #raise
         
-        
     if 1:    
         chosen_space=space_eval(space,best)
         chosen_space['plot_confmats']=True
@@ -2025,8 +2056,11 @@ if __name__ == '__main__':
         #plot_stat_in_time(trials, 'loss')
         fus_acc_plot=plot_stat_in_time(trials,'fusion_mean_acc',showplot=showplot_toggle)
         #plot_stat_in_time(trials,'elapsed_time',0,200)
-        acc_compare_plot=plot_multiple_stats_with_best(trials,['emg_mean_acc','eeg_mean_acc','fusion_mean_acc'],runbest='fusion_mean_acc',showplot=showplot_toggle)
         
+        #acc_compare_plot=plot_multiple_stats_with_best(trials,['emg_mean_acc','eeg_mean_acc','fusion_mean_acc'],runbest='fusion_mean_acc',showplot=showplot_toggle)
+        # BELOW IF REPORTING TRAIN ACCURACY
+        acc_compare_plot=plot_multiple_stats_with_best(trials,['emg_mean_acc','eeg_mean_acc','fusion_mean_acc','mean_train_acc'],runbest='fusion_mean_acc',showplot=showplot_toggle)
+
         emg_acc_box=scatterbox(trials,'emg_accs',showplot=showplot_toggle)
         eeg_acc_box=scatterbox(trials,'eeg_accs',showplot=showplot_toggle)
         fus_acc_box=scatterbox(trials,'fusion_accs',showplot=showplot_toggle)

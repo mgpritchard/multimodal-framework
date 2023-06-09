@@ -948,8 +948,19 @@ def only_EEG(emg_others,eeg_others,emg_ppt,eeg_ppt,args):
     for distro in distros_eeg:
         pred_eeg=ml.pred_from_distro(classlabels,distro)
         predlist_eeg.append(pred_eeg)
-    
-    return targets, predlist_eeg, predlist_eeg, predlist_eeg, classlabels
+        
+    if args['get_train_acc']:
+        predlist_eegtrain=[]
+        traintargs=eeg_train['Label'].values.tolist()
+        eegtrainvals=eeg_train.drop('Label',axis='columns') #why DOESNT this need to be .values?
+        distros_eegtrain=ml.prob_dist(eeg_model,eegtrainvals)
+        for distro in distros_eegtrain:
+            pred_eegtrain=ml.pred_from_distro(classlabels,distro)
+            predlist_eegtrain.append(pred_eegtrain)
+        return targets, predlist_eeg, predlist_eeg, predlist_eeg, classlabels, traintargs, predlist_eegtrain
+   
+    else:
+        return targets, predlist_eeg, predlist_eeg, predlist_eeg, classlabels
 
 
 
@@ -1079,6 +1090,8 @@ def function_fuse_LOO(args):
     emg_accs=[] #https://stackoverflow.com/questions/13520876/how-can-i-make-multiple-empty-lists-in-python
     eeg_accs=[]
     
+    train_accs=[]
+    
     f1s=[]
     emg_f1s=[]
     eeg_f1s=[]
@@ -1178,9 +1191,12 @@ def function_fuse_LOO(args):
                 eeg_others,eegscaler=feats.scale_feats_train(eeg_others,args['scalingtype'])
                 emg_ppt=feats.scale_feats_test(emg_ppt,emgscaler)
                 eeg_ppt=feats.scale_feats_test(eeg_ppt,eegscaler)
-                
-            targets, predlist_emg, predlist_eeg, predlist_fusion, classlabels=only_EEG(emg_others, eeg_others, emg_ppt, eeg_ppt, args)
-        
+            
+            if not args['get_train_acc']:    
+                targets, predlist_emg, predlist_eeg, predlist_fusion, classlabels=only_EEG(emg_others, eeg_others, emg_ppt, eeg_ppt, args)
+            else:
+                targets, predlist_emg, predlist_eeg, predlist_fusion, classlabels, traintargs, predlist_train=only_EEG(emg_others, eeg_others, emg_ppt, eeg_ppt, args)
+                    
         else:
                         
             if args['scalingtype']:
@@ -1232,6 +1248,13 @@ def function_fuse_LOO(args):
         
         kappas.append(cohen_kappa_score(gest_truth,gest_pred_fusion))
         
+        if args['get_train_acc']:
+            train_truth=[params.idx_to_gestures[gest] for gest in traintargs]
+            train_preds=[params.idx_to_gestures[pred] for pred in predlist_train]
+            train_accs.append(accuracy_score(train_truth,train_preds))
+        else:
+            train_accs.append(0)
+        
     mean_acc=stats.mean(accs)
     median_acc=stats.median(accs)
     mean_emg=stats.mean(emg_accs)
@@ -1243,6 +1266,7 @@ def function_fuse_LOO(args):
     #mean_f1_fusion=stats.mean(f1s)
     #median_f1=stats.median(f1s)
     median_kappa=stats.median(kappas)
+    mean_train_acc=stats.mean(train_accs)
     end=time.time()
     #return 1-mean_acc
     return {
@@ -1262,6 +1286,7 @@ def function_fuse_LOO(args):
         'emg_accs':emg_accs,
         'eeg_accs':eeg_accs,
         'fusion_accs':accs,
+        'mean_train_acc':mean_train_acc,
         'elapsed_time':end-start,}
 
 def function_fuse_withinppt(args):
@@ -1284,6 +1309,8 @@ def function_fuse_withinppt(args):
     accs=[]
     emg_accs=[] #https://stackoverflow.com/questions/13520876/how-can-i-make-multiple-empty-lists-in-python
     eeg_accs=[]
+    
+    train_accs=[]
     
     f1s=[]
     emg_f1s=[]
@@ -1405,9 +1432,13 @@ def function_fuse_withinppt(args):
                 eeg_train,eegscaler=feats.scale_feats_train(eeg_train,args['scalingtype'])
                 emg_test=feats.scale_feats_test(emg_test,emgscaler)
                 eeg_test=feats.scale_feats_test(eeg_test,eegscaler)
-                
-            targets, predlist_emg, predlist_eeg, predlist_fusion, classlabels=only_EEG(emg_train, eeg_train, emg_test, eeg_test, args)
-
+                '''UNDO THE BELOW, JUST TESTING TRAINING ACC'''
+                #emg_test=emg_train.copy(deep=True)
+                #eeg_test=eeg_train.copy(deep=True)
+            if not args['get_train_acc']:    
+                targets, predlist_emg, predlist_eeg, predlist_fusion, classlabels=only_EEG(emg_train, eeg_train, emg_test, eeg_test, args)
+            else:
+                targets, predlist_emg, predlist_eeg, predlist_fusion, classlabels, traintargs, predlist_train=only_EEG(emg_train, eeg_train, emg_test, eeg_test, args)
         else:
             
             if args['scalingtype']:
@@ -1459,6 +1490,13 @@ def function_fuse_withinppt(args):
         
         kappas.append(cohen_kappa_score(gest_truth,gest_pred_fusion))
         
+        if args['get_train_acc']:
+            train_truth=[params.idx_to_gestures[gest] for gest in traintargs]
+            train_preds=[params.idx_to_gestures[pred] for pred in predlist_train]
+            train_accs.append(accuracy_score(train_truth,train_preds))
+        else:
+            train_accs.append(0)
+        
     mean_acc=stats.mean(accs)
     median_acc=stats.median(accs)
     mean_emg=stats.mean(emg_accs)
@@ -1470,6 +1508,7 @@ def function_fuse_withinppt(args):
     #mean_f1_fusion=stats.mean(f1s)
     #median_f1=stats.median(f1s)
     median_kappa=stats.median(kappas)
+    mean_train_acc=stats.mean(train_accs)
     end=time.time()
     #return 1-mean_acc
     return {
@@ -1488,6 +1527,7 @@ def function_fuse_withinppt(args):
         'emg_accs':emg_accs,
         'eeg_accs':eeg_accs,
         'fusion_accs':accs,
+        'mean_train_acc':mean_train_acc,
         'elapsed_time':end-start,}
 
 def plot_opt_in_time(trials):
@@ -1684,6 +1724,7 @@ def setup_search_space(architecture,include_emg_svm):
             'scalingtype':'standardise',
             #'scalingtype':hp.choice('scaling',['normalise','standardise']),#,None]),
             'plot_confmats':False,
+            'get_train_acc':True,
             }
     
     if architecture=='featlevel':
@@ -1965,6 +2006,8 @@ if __name__ == '__main__':
     elif architecture=='just_eeg':
         eeg_acc_plot=plot_stat_in_time(trials,'eeg_mean_acc',showplot=showplot_toggle)
         acc_compare_plot=plot_multiple_stats_with_best(trials,['eeg_mean_acc'],runbest='eeg_mean_acc',showplot=showplot_toggle)  
+        # BELOW IF REPORTING TRAIN ACCURACY
+        #acc_compare_plot=plot_multiple_stats_with_best(trials,['eeg_mean_acc','mean_train_acc'],runbest='eeg_mean_acc',showplot=showplot_toggle)
         eeg_acc_box=scatterbox(trials,'eeg_accs',showplot=showplot_toggle)
         
         '''saving figures of performance over time'''

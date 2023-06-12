@@ -1026,7 +1026,7 @@ def fusion_SVM(emg_train, eeg_train, emg_test, eeg_test, args):
     sel_cols_emg=np.append(sel_cols_emg,emg_train_split_ML.columns.get_loc('Label'))
     emg_train_split_ML=emg_train_split_ML.iloc[:,sel_cols_emg]
     
-    sel_cols_eeg=feats.sel_percent_feats_df(eeg_train_split_ML,percent=15)
+    sel_cols_eeg=feats.sel_percent_feats_df(eeg_train_split_ML,percent=3)
     sel_cols_eeg=np.append(sel_cols_eeg,eeg_train_split_ML.columns.get_loc('Label'))
     eeg_train_split_ML=eeg_train_split_ML.iloc[:,sel_cols_eeg]
        
@@ -1077,7 +1077,7 @@ def fusion_LDA(emg_train, eeg_train, emg_test, eeg_test, args):
     sel_cols_emg=np.append(sel_cols_emg,emg_train_split_ML.columns.get_loc('Label'))
     emg_train_split_ML=emg_train_split_ML.iloc[:,sel_cols_emg]
     
-    sel_cols_eeg=feats.sel_percent_feats_df(eeg_train_split_ML,percent=15)
+    sel_cols_eeg=feats.sel_percent_feats_df(eeg_train_split_ML,percent=3)
     sel_cols_eeg=np.append(sel_cols_eeg,eeg_train_split_ML.columns.get_loc('Label'))
     eeg_train_split_ML=eeg_train_split_ML.iloc[:,sel_cols_eeg]
        

@@ -450,7 +450,7 @@ def plot_confmats(gest_truth,gest_pred_emg,gest_pred_eeg,gest_pred_fusion,gestur
 def train_models_opt(emg_train_set,eeg_train_set,args):
     emg_model_type=args['emg']['emg_model_type']
     eeg_model_type=args['eeg']['eeg_model_type']
-    emg_model = ml.train_optimise(emg_train_set,emg_model_type,args['emg'])
+    emg_model = ml.train_optimise(emg_train_set, emg_model_type, args['emg'])
     eeg_model = ml.train_optimise(eeg_train_set, eeg_model_type, args['eeg'])
     return emg_model,eeg_model
 
@@ -993,7 +993,7 @@ def only_EEG(emg_others,eeg_others,emg_ppt,eeg_ppt,args):
 
 def fusion_SVM(emg_train, eeg_train, emg_test, eeg_test, args):
     emg_train.sort_values(['ID_pptID','ID_run','Label','ID_gestrep','ID_tend'],ascending=[True,True,True,True,True],inplace=True)
-    emg_train.sort_values(['ID_pptID','ID_run','Label','ID_gestrep','ID_tend'],ascending=[True,True,True,True,True],inplace=True)
+    eeg_train.sort_values(['ID_pptID','ID_run','Label','ID_gestrep','ID_tend'],ascending=[True,True,True,True,True],inplace=True)
     
     index_emg=ml.pd.MultiIndex.from_arrays([emg_train[col] for col in ['ID_pptID','ID_run','Label','ID_gestrep','ID_tend']])
     index_eeg=ml.pd.MultiIndex.from_arrays([eeg_train[col] for col in ['ID_pptID','ID_run','Label','ID_gestrep','ID_tend']])
@@ -1046,7 +1046,7 @@ def fusion_SVM(emg_train, eeg_train, emg_test, eeg_test, args):
 
 def fusion_LDA(emg_train, eeg_train, emg_test, eeg_test, args):
     emg_train.sort_values(['ID_pptID','ID_run','Label','ID_gestrep','ID_tend'],ascending=[True,True,True,True,True],inplace=True)
-    emg_train.sort_values(['ID_pptID','ID_run','Label','ID_gestrep','ID_tend'],ascending=[True,True,True,True,True],inplace=True)
+    eeg_train.sort_values(['ID_pptID','ID_run','Label','ID_gestrep','ID_tend'],ascending=[True,True,True,True,True],inplace=True)
     
     index_emg=ml.pd.MultiIndex.from_arrays([emg_train[col] for col in ['ID_pptID','ID_run','Label','ID_gestrep','ID_tend']])
     index_eeg=ml.pd.MultiIndex.from_arrays([eeg_train[col] for col in ['ID_pptID','ID_run','Label','ID_gestrep','ID_tend']])
@@ -1377,7 +1377,7 @@ def function_fuse_withinppt(args):
         
         if args['fusion_alg']=='bayes':
             emg_train.sort_values(['ID_pptID','ID_run','Label','ID_gestrep','ID_tend'],ascending=[True,True,True,True,True],inplace=True)
-            emg_train.sort_values(['ID_pptID','ID_run','Label','ID_gestrep','ID_tend'],ascending=[True,True,True,True,True],inplace=True)
+            eeg_train.sort_values(['ID_pptID','ID_run','Label','ID_gestrep','ID_tend'],ascending=[True,True,True,True,True],inplace=True)
             
             index_emg=ml.pd.MultiIndex.from_arrays([emg_train[col] for col in ['ID_pptID','ID_run','Label','ID_gestrep','ID_tend']])
             index_eeg=ml.pd.MultiIndex.from_arrays([eeg_train[col] for col in ['ID_pptID','ID_run','Label','ID_gestrep','ID_tend']])

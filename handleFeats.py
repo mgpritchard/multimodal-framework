@@ -12,8 +12,10 @@ import os
 from tkinter import Tk
 from tkinter.filedialog import askopenfilename, askopenfilenames, askdirectory, asksaveasfilename
 import generate_training_matrix as genfeats
-from sklearn.feature_selection import SelectPercentile, f_classif
+from sklearn.feature_selection import SelectPercentile, f_classif, SelectFromModel
+from sklearn.svm import LinearSVC
 from sklearn.preprocessing import MinMaxScaler, StandardScaler, Normalizer
+import numpy as np
 
 def select_feats(featureset,alg=None):
     print('\n\n*no feature selection currently implemented*\n\n')
@@ -29,6 +31,19 @@ def sel_percent_feats_df(data,percent=15):
     col_idxs=selector.get_support(indices=True)
     #selected=attribs.iloc[:col_idxs]
     #selected['Label']=target
+    return col_idxs
+
+def sel_feats_l1_df(data,sparsityC=0.01,maxfeats=None):
+    target=data['Label']
+    attribs=data.drop(columns=['Label'])   
+    lsvc = LinearSVC(C=sparsityC, penalty="l1", dual=False).fit(attribs, target)
+    if maxfeats is None:
+        #getting all nonzero feats
+        model = SelectFromModel(lsvc, prefit=True)
+    else:
+        #getting feats up to maxfeats, with no threshold of rating so as to ensure never <maxfeats
+        model = SelectFromModel(lsvc, prefit=True,threshold=-np.inf,max_features=maxfeats)   
+    col_idxs=model.get_support(indices=True)
     return col_idxs
 
 def scale_feats_train(data,mode='normalise'):

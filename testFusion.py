@@ -759,7 +759,8 @@ def fusion_hierarchical_inv(emg_others,eeg_others,emg_ppt,eeg_ppt,args):
     
     eeg_train_split_fusion=ml.drop_ID_cols(eeg_train_split_fusion)
     
-    sel_cols_eeg=feats.sel_percent_feats_df(eeg_train_split_fusion,percent=3)
+    #sel_cols_eeg=feats.sel_percent_feats_df(eeg_train_split_fusion,percent=3)
+    sel_cols_eeg=feats.sel_feats_l1_df(eeg_train_split_fusion,sparsityC=args['l1_sparsity'],maxfeats=args['l1_maxfeats'])
     sel_cols_eeg=np.append(sel_cols_eeg,eeg_train_split_fusion.columns.get_loc('Label'))
     eeg_train_split_fusion=eeg_train_split_fusion.iloc[:,sel_cols_eeg]
     
@@ -939,7 +940,9 @@ def only_EEG(emg_others,eeg_others,emg_ppt,eeg_ppt,args):
 
     '''Train EEG model'''
     eeg_train=ml.drop_ID_cols(eeg_others)
-    sel_cols_eeg=feats.sel_percent_feats_df(eeg_train,percent=3)
+    #sel_cols_eeg=feats.sel_percent_feats_df(eeg_train,percent=3)
+    sel_cols_eeg=feats.sel_feats_l1_df(eeg_train,sparsityC=args['l1_sparsity'],maxfeats=args['l1_maxfeats'])
+    #print('reduced to '+str(len(sel_cols_eeg))+' cols (line 944)')
     sel_cols_eeg=np.append(sel_cols_eeg,eeg_train.columns.get_loc('Label'))
     eeg_train=eeg_train.iloc[:,sel_cols_eeg]
     
@@ -1026,7 +1029,8 @@ def fusion_SVM(emg_train, eeg_train, emg_test, eeg_test, args):
     sel_cols_emg=np.append(sel_cols_emg,emg_train_split_ML.columns.get_loc('Label'))
     emg_train_split_ML=emg_train_split_ML.iloc[:,sel_cols_emg]
     
-    sel_cols_eeg=feats.sel_percent_feats_df(eeg_train_split_ML,percent=3)
+    #sel_cols_eeg=feats.sel_percent_feats_df(eeg_train_split_ML,percent=3)
+    sel_cols_eeg=feats.sel_feats_l1_df(eeg_train_split_ML,sparsityC=args['l1_sparsity'],maxfeats=args['l1_maxfeats'])
     sel_cols_eeg=np.append(sel_cols_eeg,eeg_train_split_ML.columns.get_loc('Label'))
     eeg_train_split_ML=eeg_train_split_ML.iloc[:,sel_cols_eeg]
        
@@ -1077,7 +1081,8 @@ def fusion_LDA(emg_train, eeg_train, emg_test, eeg_test, args):
     sel_cols_emg=np.append(sel_cols_emg,emg_train_split_ML.columns.get_loc('Label'))
     emg_train_split_ML=emg_train_split_ML.iloc[:,sel_cols_emg]
     
-    sel_cols_eeg=feats.sel_percent_feats_df(eeg_train_split_ML,percent=3)
+    #sel_cols_eeg=feats.sel_percent_feats_df(eeg_train_split_ML,percent=3)
+    sel_cols_eeg=feats.sel_feats_l1_df(eeg_train_split_ML,sparsityC=args['l1_sparsity'],maxfeats=args['l1_maxfeats'])
     sel_cols_eeg=np.append(sel_cols_eeg,eeg_train_split_ML.columns.get_loc('Label'))
     eeg_train_split_ML=eeg_train_split_ML.iloc[:,sel_cols_eeg]
        
@@ -1482,7 +1487,8 @@ def function_fuse_withinppt(args):
             emg_train=ml.drop_ID_cols(emg_train)
             eeg_train=ml.drop_ID_cols(eeg_train)
             
-            sel_cols_eeg=feats.sel_percent_feats_df(eeg_train,percent=3)
+            #sel_cols_eeg=feats.sel_percent_feats_df(eeg_train,percent=3)
+            sel_cols_eeg=feats.sel_feats_l1_df(eeg_train,sparsityC=args['l1_sparsity'],maxfeats=args['l1_maxfeats'])
             sel_cols_eeg=np.append(sel_cols_eeg,eeg_train.columns.get_loc('Label'))
             eeg_train=eeg_train.iloc[:,sel_cols_eeg]
             
@@ -1825,6 +1831,7 @@ def setup_search_space(architecture,include_emg_svm):
 def optimise_fusion(trialmode,prebalance=True,architecture='decision',platform='not server',iters=35):
     emg_svm = True if trialmode=='WithinPpt' else False
     space=setup_search_space(architecture,emg_svm)
+    space.update({'trialmode':trialmode})
     
     if platform=='server':
         space.update({'emg_set_path':params.jeong_EMGfeats_server,
@@ -1840,6 +1847,10 @@ def optimise_fusion(trialmode,prebalance=True,architecture='decision',platform='
     trials=Trials() #http://hyperopt.github.io/hyperopt/getting-started/minimizing_functions/#attaching-extra-information-via-the-trials-object
     
     if trialmode=='LOO':
+        space.update({'l1_sparsity':0.005}) #0.00015
+        #space.update({'l1_maxfeats':240}) #this would be sqrt(57600) ie size of train set.
+        space.update({'l1_maxfeats':88}) #consistent with emg, LOO didnt overfit so not reducing further
+        '''DONT necessarily need to do for generalist as not overfitting, switch out in algo funcs'''
         best = fmin(function_fuse_LOO,
                     space=space,
                     algo=tpe.suggest,
@@ -1847,6 +1858,8 @@ def optimise_fusion(trialmode,prebalance=True,architecture='decision',platform='
                     trials=trials)
         
     elif trialmode=='WithinPpt':
+        space.update({'l1_sparsity':0.005}) #0.002
+        space.update({'l1_maxfeats':40}) # sqrt(2400*0.66)=sqrt(1584), ie size of train set
         best = fmin(function_fuse_withinppt,
                 space=space,
                 algo=tpe.suggest,

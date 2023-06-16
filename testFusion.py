@@ -1046,7 +1046,17 @@ def fusion_SVM(emg_train, eeg_train, emg_test, eeg_test, args):
     fuser,onehotEncoder=train_svm_fuser(emg_model,eeg_model,emg_train_split_fusion,eeg_train_split_fusion,classlabels,args,sel_cols_eeg,sel_cols_emg)
     predlist_fusion=fusion.svm_fusion(fuser,onehotEncoder,predlist_emg,predlist_eeg,classlabels)
     
-    return targets, predlist_emg, predlist_eeg, predlist_fusion, classlabels
+    if args['get_train_acc']:
+        emg_train=feats.scale_feats_test(emg_train,emgscaler)
+        eeg_train=feats.scale_feats_test(eeg_train,eegscaler)
+        emg_train.sort_values(['ID_pptID','ID_run','Label','ID_gestrep','ID_tend'],ascending=[True,True,True,True,True],inplace=True)
+        eeg_train.sort_values(['ID_pptID','ID_run','Label','ID_gestrep','ID_tend'],ascending=[True,True,True,True,True],inplace=True)                
+        traintargs, predlist_emgtrain, predlist_eegtrain, _ = refactor_synced_predict(emg_train, eeg_train, emg_model, eeg_model, classlabels,args,sel_cols_eeg,sel_cols_emg)
+        predlist_train=fusion.svm_fusion(fuser,onehotEncoder,predlist_emgtrain,predlist_eegtrain,classlabels)
+        return targets, predlist_emg, predlist_eeg, predlist_fusion, classlabels, traintargs, predlist_train  
+    else:
+        return targets, predlist_emg, predlist_eeg, predlist_fusion, classlabels
+
 
 def fusion_LDA(emg_train, eeg_train, emg_test, eeg_test, args):
     emg_train.sort_values(['ID_pptID','ID_run','Label','ID_gestrep','ID_tend'],ascending=[True,True,True,True,True],inplace=True)
@@ -1097,7 +1107,16 @@ def fusion_LDA(emg_train, eeg_train, emg_test, eeg_test, args):
     fuser,onehotEncoder=train_lda_fuser(emg_model,eeg_model,emg_train_split_fusion,eeg_train_split_fusion,classlabels,args,sel_cols_eeg,sel_cols_emg)
     predlist_fusion=fusion.lda_fusion(fuser,onehotEncoder,predlist_emg,predlist_eeg,classlabels)
     
-    return targets, predlist_emg, predlist_eeg, predlist_fusion, classlabels
+    if args['get_train_acc']:
+        emg_train=feats.scale_feats_test(emg_train,emgscaler)
+        eeg_train=feats.scale_feats_test(eeg_train,eegscaler)
+        emg_train.sort_values(['ID_pptID','ID_run','Label','ID_gestrep','ID_tend'],ascending=[True,True,True,True,True],inplace=True)
+        eeg_train.sort_values(['ID_pptID','ID_run','Label','ID_gestrep','ID_tend'],ascending=[True,True,True,True,True],inplace=True)                
+        traintargs, predlist_emgtrain, predlist_eegtrain, _ = refactor_synced_predict(emg_train, eeg_train, emg_model, eeg_model, classlabels,args,sel_cols_eeg,sel_cols_emg)
+        predlist_train=fusion.svm_fusion(fuser,onehotEncoder,predlist_emgtrain,predlist_eegtrain,classlabels)
+        return targets, predlist_emg, predlist_eeg, predlist_fusion, classlabels, traintargs, predlist_train  
+    else:
+        return targets, predlist_emg, predlist_eeg, predlist_fusion, classlabels
 
 def function_fuse_LOO(args):
     start=time.time()
@@ -1431,10 +1450,16 @@ def function_fuse_withinppt(args):
             predlist_fusion=fusion.bayesian_fusion(fuser,onehotEncoder,predlist_emg,predlist_eeg,classlabels)
         
         elif args['fusion_alg']=='svm':
-            targets, predlist_emg, predlist_eeg, predlist_fusion, classlabels=fusion_SVM(emg_train, eeg_train, emg_test, eeg_test, args)
+            if args['get_train_acc']:
+                targets, predlist_emg, predlist_eeg, predlist_fusion, classlabels, traintargs, predlist_train = fusion_SVM(emg_train, eeg_train, emg_test, eeg_test, args)
+            else:
+                targets, predlist_emg, predlist_eeg, predlist_fusion, classlabels=fusion_SVM(emg_train, eeg_train, emg_test, eeg_test, args)
         
         elif args['fusion_alg']=='lda':
-            targets, predlist_emg, predlist_eeg, predlist_fusion, classlabels=fusion_LDA(emg_train, eeg_train, emg_test, eeg_test, args)
+            if args['get_train_acc']:
+                targets, predlist_emg, predlist_eeg, predlist_fusion, classlabels, traintargs, predlist_train = fusion_LDA(emg_train, eeg_train, emg_test, eeg_test, args)
+            else:
+                targets, predlist_emg, predlist_eeg, predlist_fusion, classlabels=fusion_LDA(emg_train, eeg_train, emg_test, eeg_test, args)
         
         elif args['fusion_alg']=='hierarchical':
                      
@@ -1502,7 +1527,14 @@ def function_fuse_withinppt(args):
                 eeg_train,eegscaler=feats.scale_feats_train(eeg_train,args['scalingtype'])
                 emg_test=feats.scale_feats_test(emg_test,emgscaler)
                 eeg_test=feats.scale_feats_test(eeg_test,eegscaler)
-                
+            
+            if args['get_train_acc']:
+                emg_trainacc=emg_train.copy()
+                eeg_trainacc=eeg_train.copy()
+                emg_trainacc.sort_values(['ID_pptID','ID_run','Label','ID_gestrep','ID_tend'],ascending=[True,True,True,True,True],inplace=True)
+                eeg_trainacc.sort_values(['ID_pptID','ID_run','Label','ID_gestrep','ID_tend'],ascending=[True,True,True,True,True],inplace=True)
+           
+            
             emg_train=ml.drop_ID_cols(emg_train)
             eeg_train=ml.drop_ID_cols(eeg_train)
             
@@ -1523,6 +1555,9 @@ def function_fuse_withinppt(args):
             eeg_test.sort_values(['ID_pptID','ID_run','Label','ID_gestrep','ID_tend'],ascending=[True,True,True,True,True],inplace=True)
                 
             targets, predlist_emg, predlist_eeg, predlist_fusion = refactor_synced_predict(emg_test, eeg_test, emg_model, eeg_model, classlabels,args, sel_cols_eeg,sel_cols_emg)
+
+            if args['get_train_acc']:
+                traintargs, predlist_emgtrain, predlist_eegtrain, predlist_train = refactor_synced_predict(emg_trainacc, eeg_trainacc, emg_model, eeg_model, classlabels, args, sel_cols_eeg,sel_cols_emg)
 
         #acc_emg,acc_eeg,acc_fusion=evaluate_results(targets, predlist_emg, correctness_emg, predlist_eeg, correctness_eeg, predlist_fusion, correctness_fusion, classlabels)
         

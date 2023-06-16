@@ -1695,6 +1695,9 @@ def calc_runningbest(trials,stat=None):
     return best
 
 def plot_multiple_stats_with_best(trials,stats,runbest=None,ylower=0,yupper=1,showplot=True):
+    if isinstance(trials,pd.DataFrame):
+        fig=plot_multi_runbest_df(trials,stats,runbest,ylower,yupper,showplot)
+        return fig
     fig,ax=plt.subplots()
     for stat in stats:
         ax.plot(range(1, len(trials) + 1),
@@ -1704,6 +1707,24 @@ def plot_multiple_stats_with_best(trials,stats,runbest=None,ylower=0,yupper=1,sh
     #ax.set(title=stat+' over optimisation iterations')
     best=calc_runningbest(trials,runbest)
     ax.plot(range(1,len(trials)+1),best,label='running best')
+    ax.legend()#loc='upper center')
+    ax.set_ylim(ylower,yupper)
+    if showplot:
+        plt.show()
+    return fig
+
+def plot_multi_runbest_df(trials,stats,runbest,ylower,yupper,showplot):
+    fig,ax=plt.subplots()
+    for stat in stats:
+        trials[stat].plot(ax=ax,label=stat)
+     #   ax.plot(range(1, len(trials) + 1),
+      #          [trials[stat].T],
+       #         label=(stat))
+        #https://www.kaggle.com/code/fanvacoolt/tutorial-on-hyperopt?scriptVersionId=12981074&cellId=97
+    #ax.set(title=stat+' over optimisation iterations')
+    if runbest is not None:
+        best=np.fmax.accumulate(trials[runbest])
+        best.plot(ax=ax,label='running best')
     ax.legend()#loc='upper center')
     ax.set_ylim(ylower,yupper)
     if showplot:
@@ -2174,6 +2195,21 @@ if __name__ == '__main__':
         per_emgmodel.savefig(os.path.join(resultpath,'emg_model.png'))
         per_eegmodel.savefig(os.path.join(resultpath,'eeg_model.png'))
         per_fusalg.savefig(os.path.join(resultpath,'fus_alg.png'))
+         
+        '''
+        table_readable['delta']=table_readable['fusion_mean_acc']-table_readable['emg_mean_acc']
+table_readable['delta exclude']=np.where(table_readable['emg_mean_acc'] >0.49, table_readable['delta'],0)
+table_readable['delta exclude 2']=np.where(table_readable['fusion_mean_acc'] >0.49, table_readable['delta'],0)
+boxplot_param(table_readable,'eeg model','delta exclude 2',ylower=-0.3,yupper=0.3)
+'''
+#table_readable['delta exclude 3']=np.where(table_readable['emg_mean_acc'] >0.6, table_readable['delta'],0)
+#table_readable['delta exclude 4']=np.where(table_readable['emg_mean_acc'] >table_readable['eeg_mean_acc'], table_readable['delta'],0)
+#boxplot_param(table_readable,'fusion algorithm','delta exclude',ylower=-0.3,yupper=0.3)
+
+#eegtable_readable['overfit level']=eegtable_readable['mean_train_acc']-eegtable_readable['eeg_mean_acc']
+#table_readable['overfit level']=np.where(table_readable['delta'] <0, abs(table_readable['delta']),None)
+#table_readable['train_acc_nonzero']=np.where(table_readable['mean_train_acc']>0,table_readable['mean_train_acc'],np.nan)
+#table_readable['acc_above_chance']=np.where(table_readable['emg_mean_acc']>0.26,table_readable['emg_mean_acc'],np.nan)
         
         '''
         acc_per_emg_model=table_readable.sort_values('emg model').plot(x='emg model',y='fusion_mean_acc',style='o')

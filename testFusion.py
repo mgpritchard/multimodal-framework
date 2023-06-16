@@ -1371,14 +1371,33 @@ def function_fuse_withinppt(args):
         eeg_ppt['ID_stratID']=eeg_ppt['ID_run'].astype(str)+eeg_ppt['Label'].astype(str)+eeg_ppt['ID_gestrep'].astype(str)
         emg_ppt['ID_stratID']=emg_ppt['ID_run'].astype(str)+eeg_ppt['Label'].astype(str)+eeg_ppt['ID_gestrep'].astype(str)
         random_split=random.randint(0,100)
+        #below doesnt work, stratified by performance ie ensures theyre split
         #emg_train,emg_test=train_test_split(emg_ppt,test_size=0.33,random_state=random_split,stratify=emg_ppt[['ID_stratID']])
         #eeg_train,eeg_test=train_test_split(eeg_ppt,test_size=0.33,random_state=random_split,stratify=eeg_ppt[['ID_stratID']])
+        if not emg_ppt['ID_stratID'].equals(eeg_ppt['ID_stratID']):
+            raise ValueError('EMG & EEG performances misaligned')
+        gest_perfs=emg_ppt['ID_stratID'].unique()
+        gest_strat=pd.DataFrame([gest_perfs,[perf.split('.')[1][-1] for perf in gest_perfs]]).transpose()
+        train_split,test_split=train_test_split(gest_strat,test_size=0.33,random_state=random_split,stratify=gest_strat[1])
+        '''
+        #below separates performances but risks unbalancing classes
         emg_train_split,emg_test_split=train_test_split(emg_ppt['ID_stratID'].unique(),test_size=0.33,random_state=random_split)
         eeg_train_split,eeg_test_split=train_test_split(eeg_ppt['ID_stratID'].unique(),test_size=0.33,random_state=random_split)
+
         eeg_train=eeg_ppt[eeg_ppt['ID_stratID'].isin(eeg_train_split)]
         eeg_test=eeg_ppt[eeg_ppt['ID_stratID'].isin(eeg_test_split)]
         emg_train=emg_ppt[emg_ppt['ID_stratID'].isin(emg_train_split)]
         emg_test=emg_ppt[emg_ppt['ID_stratID'].isin(emg_test_split)]
+        '''
+        eeg_train=eeg_ppt[eeg_ppt['ID_stratID'].isin(train_split[0])]
+        eeg_test=eeg_ppt[eeg_ppt['ID_stratID'].isin(test_split[0])]
+        emg_train=emg_ppt[emg_ppt['ID_stratID'].isin(train_split[0])]
+        emg_test=emg_ppt[emg_ppt['ID_stratID'].isin(test_split[0])]
+        '''REVERT BELOW, JUST FOR CHECKING IF TRAIN ACC AFFECTED BY STRATIFICATION'''
+        '''       
+        emg_train,emg_test=train_test_split(emg_ppt,test_size=0.33,random_state=random_split)
+        eeg_train,eeg_test=train_test_split(eeg_ppt,test_size=0.33,random_state=random_split)
+        '''
         
         if args['fusion_alg']=='bayes':
             emg_train.sort_values(['ID_pptID','ID_run','Label','ID_gestrep','ID_tend'],ascending=[True,True,True,True,True],inplace=True)

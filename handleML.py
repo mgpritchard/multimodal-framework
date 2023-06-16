@@ -15,7 +15,7 @@ import matplotlib.pyplot as plt
 import csv
 import sklearn as skl
 from sklearn.naive_bayes import GaussianNB
-from sklearn.ensemble import RandomForestClassifier
+from sklearn.ensemble import RandomForestClassifier, BaggingClassifier
 from sklearn.discriminant_analysis import LinearDiscriminantAnalysis, QuadraticDiscriminantAnalysis
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.svm import SVC
@@ -143,10 +143,39 @@ def train_rf(train_dat,model_path):
         pickle.dump(winner,savepath)
     return winner
 
-def train_optimise(training_set,modeltype,args):
+def train_bag(train_data,modeltype,args):
+    if modeltype=='RF':
+        base_model=RandomForestClassifier(n_estimators=args['n_trees'],max_depth=args['max_depth'])
+    elif modeltype=='gaussNB':
+        base_model=GaussianNB(var_smoothing=args['smoothing'])
+    elif modeltype=='LDA':
+        if args['LDA_solver'] == 'svd':
+            base_model=LinearDiscriminantAnalysis(solver=args['LDA_solver'])
+        else:
+            base_model=LinearDiscriminantAnalysis(solver=args['LDA_solver'],shrinkage=args['shrinkage'])
+    elif modeltype=='kNN':
+        base_model = KNeighborsClassifier(n_neighbors=args['knn_k'])
+    elif modeltype=='QDA':
+        base_model = QuadraticDiscriminantAnalysis(reg_param=args['regularisation'])
+    elif modeltype=='SVM_PlattScale':
+        if args['kernel']=='linear':
+            base_model=SVC(C=args['svm_C'],kernel=args['kernel'],probability=True) #possible need to fix random_state as predict is called multiple times?
+        else:
+            base_model=SVC(C=args['svm_C'],kernel=args['kernel'],gamma=args['gamma'],probability=True)
+            
+    model = BaggingClassifier(base_estimator=base_model,max_samples=0.75)
+    
+    train=train_data.values[:,:-1]
+    targets=train_data.values[:,-1]
+    model.fit(train.astype(np.float64),targets)
+    return model
+
+def train_optimise(training_set,modeltype,args,bagging=False):
     '''where training_set is a Pandas dataframe
     which has Label as the last column but has had ID columns dropped'''
-    
+    if bagging:
+        model=train_bag(training_set,modeltype,args)
+        return model
     if modeltype=='RF':
         model=train_RF_param(training_set,args)
     elif modeltype=='gaussNB':

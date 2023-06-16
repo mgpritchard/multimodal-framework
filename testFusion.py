@@ -946,7 +946,7 @@ def only_EEG(emg_others,eeg_others,emg_ppt,eeg_ppt,args):
     sel_cols_eeg=np.append(sel_cols_eeg,eeg_train.columns.get_loc('Label'))
     eeg_train=eeg_train.iloc[:,sel_cols_eeg]
     
-    eeg_model = ml.train_optimise(eeg_train, args['eeg']['eeg_model_type'], args['eeg'])
+    eeg_model = ml.train_optimise(eeg_train, args['eeg']['eeg_model_type'], args['eeg'],args['bag_eeg'])
     classlabels=eeg_model.classes_   
  
  
@@ -1763,6 +1763,7 @@ def setup_search_space(architecture,include_emg_svm):
             #'scalingtype':hp.choice('scaling',['normalise','standardise']),#,None]),
             'plot_confmats':False,
             'get_train_acc':True,
+            'bag_eeg':False,
             }
     
     if architecture=='featlevel':

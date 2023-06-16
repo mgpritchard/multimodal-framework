@@ -924,7 +924,18 @@ def only_EMG(emg_others,eeg_others,emg_ppt,eeg_ppt,args):
         pred_emg=ml.pred_from_distro(classlabels,distro)
         predlist_emg.append(pred_emg)
     
-    return targets, predlist_emg, predlist_emg, predlist_emg, classlabels
+    if args['get_train_acc']:
+        predlist_emgtrain=[]
+        traintargs=emg_train['Label'].values.tolist()
+        emgtrainvals=emg_train.drop('Label',axis='columns') #why DOESNT this need to be .values?
+        distros_emgtrain=ml.prob_dist(emg_model,emgtrainvals)
+        for distro in distros_emgtrain:
+            pred_emgtrain=ml.pred_from_distro(classlabels,distro)
+            predlist_emgtrain.append(pred_emgtrain)
+        return targets, predlist_emg, predlist_emg, predlist_emg, classlabels, traintargs, predlist_emgtrain
+   
+    else:
+        return targets, predlist_emg, predlist_emg, predlist_emg, classlabels
 
 
 def only_EEG(emg_others,eeg_others,emg_ppt,eeg_ppt,args):
@@ -1235,8 +1246,11 @@ def function_fuse_LOO(args):
                 eeg_others,eegscaler=feats.scale_feats_train(eeg_others,args['scalingtype'])
                 emg_ppt=feats.scale_feats_test(emg_ppt,emgscaler)
                 eeg_ppt=feats.scale_feats_test(eeg_ppt,eegscaler)
-                
-            targets, predlist_emg, predlist_eeg, predlist_fusion, classlabels=only_EMG(emg_others, eeg_others, emg_ppt, eeg_ppt, args)
+            
+            if not args['get_train_acc']:
+                targets, predlist_emg, predlist_eeg, predlist_fusion, classlabels=only_EMG(emg_others, eeg_others, emg_ppt, eeg_ppt, args)
+            else:
+                targets, predlist_emg, predlist_eeg, predlist_fusion, classlabels, traintargs, predlist_train=only_EMG(emg_others, eeg_others, emg_ppt, eeg_ppt, args)
         
         elif args['fusion_alg']=='just_eeg':
             
@@ -1503,8 +1517,11 @@ def function_fuse_withinppt(args):
                 eeg_train,eegscaler=feats.scale_feats_train(eeg_train,args['scalingtype'])
                 emg_test=feats.scale_feats_test(emg_test,emgscaler)
                 eeg_test=feats.scale_feats_test(eeg_test,eegscaler)
-                
-            targets, predlist_emg, predlist_eeg, predlist_fusion, classlabels=only_EMG(emg_train, eeg_train, emg_test, eeg_test, args)
+            
+            if not args['get_train_acc']:
+                targets, predlist_emg, predlist_eeg, predlist_fusion, classlabels=only_EMG(emg_train, eeg_train, emg_test, eeg_test, args)
+            else:
+                targets, predlist_emg, predlist_eeg, predlist_fusion, classlabels, traintargs, predlist_train=only_EMG(emg_train, eeg_train, emg_test, eeg_test, args)
         
         elif args['fusion_alg']=='just_eeg':
             
@@ -2091,7 +2108,9 @@ if __name__ == '__main__':
         
     elif architecture=='just_emg':
         emg_acc_plot=plot_stat_in_time(trials,'emg_mean_acc',showplot=showplot_toggle)
-        acc_compare_plot=plot_multiple_stats_with_best(trials,['emg_mean_acc'],runbest='emg_mean_acc',showplot=showplot_toggle)  
+        #acc_compare_plot=plot_multiple_stats_with_best(trials,['emg_mean_acc'],runbest='emg_mean_acc',showplot=showplot_toggle)  
+        # BELOW IF REPORTING TRAIN ACCURACY
+        acc_compare_plot=plot_multiple_stats_with_best(trials,['emg_mean_acc','mean_train_acc'],runbest='emg_mean_acc',showplot=showplot_toggle)
         emg_acc_box=scatterbox(trials,'emg_accs',showplot=showplot_toggle)
         
         '''saving figures of performance over time'''
@@ -2104,9 +2123,9 @@ if __name__ == '__main__':
         
     elif architecture=='just_eeg':
         eeg_acc_plot=plot_stat_in_time(trials,'eeg_mean_acc',showplot=showplot_toggle)
-        acc_compare_plot=plot_multiple_stats_with_best(trials,['eeg_mean_acc'],runbest='eeg_mean_acc',showplot=showplot_toggle)  
+        #acc_compare_plot=plot_multiple_stats_with_best(trials,['eeg_mean_acc'],runbest='eeg_mean_acc',showplot=showplot_toggle)  
         # BELOW IF REPORTING TRAIN ACCURACY
-        #acc_compare_plot=plot_multiple_stats_with_best(trials,['eeg_mean_acc','mean_train_acc'],runbest='eeg_mean_acc',showplot=showplot_toggle)
+        acc_compare_plot=plot_multiple_stats_with_best(trials,['eeg_mean_acc','mean_train_acc'],runbest='eeg_mean_acc',showplot=showplot_toggle)
         eeg_acc_box=scatterbox(trials,'eeg_accs',showplot=showplot_toggle)
         
         '''saving figures of performance over time'''

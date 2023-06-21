@@ -24,6 +24,7 @@ from sklearn.model_selection import cross_val_score
 from sklearn.model_selection import RepeatedStratifiedKFold
 from sklearn.metrics import accuracy_score
 from sklearn.preprocessing import minmax_scale, label_binarize
+from sklearn.calibration import CalibratedClassifierCV
 import types
 
 #from hyperopt import fmin, tpe, hp, STATUS_OK
@@ -228,7 +229,8 @@ def train_SVC_Platt(train_data,args):
     if kernel=='linear':
         model=SVC(C=C,kernel=kernel,probability=True) #possible need to fix random_state as predict is called multiple times?
     else:
-        model=SVC(C=C,kernel=kernel,gamma=gamma,probability=True)
+        svc=SVC(C=C,kernel=kernel,gamma=gamma)
+        model=CalibratedClassifierCV(svc,cv=5)
     train=train_data.values[:,:-1]
     targets=train_data.values[:,-1]
     model.fit(train.astype(np.float64),targets)

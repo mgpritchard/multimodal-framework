@@ -1311,9 +1311,9 @@ def function_fuse_LOO(args):
         eeg_accs.append(accuracy_score(gest_truth,gest_pred_eeg))
         accs.append(accuracy_score(gest_truth,gest_pred_fusion))
         
-        emg_f1s.append(f1_score(gest_truth,gest_pred_emg,average='weighted'))
-        eeg_f1s.append(f1_score(gest_truth,gest_pred_eeg,average='weighted'))
-        f1s.append(f1_score(gest_truth,gest_pred_fusion,average='weighted'))
+        #emg_f1s.append(f1_score(gest_truth,gest_pred_emg,average='weighted'))
+        #eeg_f1s.append(f1_score(gest_truth,gest_pred_eeg,average='weighted'))
+        #f1s.append(f1_score(gest_truth,gest_pred_fusion,average='weighted'))
         
         kappas.append(cohen_kappa_score(gest_truth,gest_pred_fusion))
         

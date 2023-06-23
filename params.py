@@ -14,6 +14,9 @@ import os
 gestures_to_idx = {'close':1.,'open':2.,'grasp':3.,'lateral':4.,'tripod':5.,'neutral':0.,'cylindrical':6.,'spherical':7.,'lumbrical':8.,'rest':9.}
 idx_to_gestures = {1.:'close',2.:'open',3.:'grasp',4.:'lateral',5.:'tripod',0.:'neutral',6.:'cylindrical',7.:'spherical',8.:'lumbrical',9.:'rest'}
 
+gestures_to_idx_binary = {'neutral':0.,'cylindrical':1.,'spherical':1.,'lumbrical':1.,'rest':0.}
+idx_to_gestures_binary = {1.:'grasp',0.:'rest'}
+
 runletter_to_num = {'a':1,'b':2,'c':3,'d':4,'e':5,'f':6,'g':7,'h':8,'i':9,'j':10,'k':11,'l':12,'m':13,'n':14,'o':15,'p':16}
 runnum_to_letter = {1:'a',2:'b',3:'c',4:'d',5:'e',6:'f',7:'g',8:'h',9:'i',10:'j',11:'k',12:'l',13:'m',14:'n',15:'o',16:'p'}
 

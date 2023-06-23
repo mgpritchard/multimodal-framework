@@ -1276,7 +1276,8 @@ def function_fuse_LOO(args):
             emg_others=ml.drop_ID_cols(emg_others)
             eeg_others=ml.drop_ID_cols(eeg_others)
             
-            sel_cols_eeg=feats.sel_percent_feats_df(eeg_others,percent=3)
+            sel_cols_eeg=feats.sel_feats_l1_df(eeg_others,sparsityC=args['l1_sparsity'],maxfeats=args['l1_maxfeats'])
+            #sel_cols_eeg=feats.sel_percent_feats_df(eeg_others,percent=3)
             sel_cols_eeg=np.append(sel_cols_eeg,eeg_others.columns.get_loc('Label'))
             eeg_others=eeg_others.iloc[:,sel_cols_eeg]
             
@@ -1942,7 +1943,7 @@ def optimise_fusion(trialmode,prebalance=True,architecture='decision',platform='
     if trialmode=='LOO':
         space.update({'l1_sparsity':0.005}) #0.00015
         #space.update({'l1_maxfeats':240}) #this would be sqrt(57600) ie size of train set.
-        space.update({'l1_maxfeats':88}) #consistent with emg, LOO didnt overfit so not reducing further
+        space.update({'l1_maxfeats':88}) #88 consistent with emg, LOO didnt overfit so not reducing further
         '''DONT necessarily need to do for generalist as not overfitting, switch out in algo funcs'''
         best = fmin(function_fuse_LOO,
                     space=space,

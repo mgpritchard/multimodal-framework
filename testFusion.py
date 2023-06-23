@@ -1594,9 +1594,9 @@ def function_fuse_withinppt(args):
         eeg_accs.append(accuracy_score(gest_truth,gest_pred_eeg))
         accs.append(accuracy_score(gest_truth,gest_pred_fusion))
         
-        emg_f1s.append(f1_score(gest_truth,gest_pred_emg,average='weighted'))
-        eeg_f1s.append(f1_score(gest_truth,gest_pred_eeg,average='weighted'))
-        f1s.append(f1_score(gest_truth,gest_pred_fusion,average='weighted'))
+        #emg_f1s.append(f1_score(gest_truth,gest_pred_emg,average='weighted'))
+        #eeg_f1s.append(f1_score(gest_truth,gest_pred_eeg,average='weighted'))
+        #f1s.append(f1_score(gest_truth,gest_pred_fusion,average='weighted'))
         
         kappas.append(cohen_kappa_score(gest_truth,gest_pred_fusion))
         
@@ -1786,7 +1786,7 @@ def setup_search_space(architecture,include_emg_svm):
         emgoptions.append({'emg_model_type':'SVM_PlattScale',
                  'kernel':hp.choice('emg.svm.kernel',['rbf']),#'poly','linear']),
                  'svm_C':hp.loguniform('emg.svm.c',np.log(0.1),np.log(100)), #use loguniform? #https://queirozf.com/entries/choosing-c-hyperparameter-for-svm-classifiers-examples-with-scikit-learn
-                 'gamma':hp.loguniform('emg.svm.gamma',np.log(0.01),np.log(100)), #maybe log, from lower? #https://vitalflux.com/svm-rbf-kernel-parameters-code-sample/
+                 'gamma':hp.loguniform('emg.svm.gamma',np.log(0.01),np.log(1)), #maybe log, from lower? #https://vitalflux.com/svm-rbf-kernel-parameters-code-sample/
                  #eg sklearns gridsearch doc uses SVC as an example with C log(1e0,1e3) & gamma log(1e-4,1e-3)
                  })
     space = {
@@ -2028,10 +2028,10 @@ if __name__ == '__main__':
         if len(sys.argv)>4:
             num_iters=int(sys.argv[4])
     else:
-        architecture='decision'    
+        architecture='just_emg'    
         trialmode='WithinPpt'
         platform='not server'
-        num_iters=3
+        num_iters=35
         
     if architecture not in ['decision','featlevel','hierarchical','hierarchical_inv','just_emg','just_eeg']:
         errstring=('requested architecture '+architecture+' not recognised, expecting one of:\n decision\n featlevel\n hierarchical\n hierarchical_inv')

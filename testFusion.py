@@ -1154,9 +1154,9 @@ def function_fuse_LOO(args):
     
     train_accs=[]
     
-    f1s=[]
-    emg_f1s=[]
-    eeg_f1s=[]
+    #f1s=[]
+    #emg_f1s=[]
+    #eeg_f1s=[]
     
     kappas=[]
     for idx,emg_mask in enumerate(emg_masks):
@@ -1381,9 +1381,9 @@ def function_fuse_withinppt(args):
     
     train_accs=[]
     
-    f1s=[]
-    emg_f1s=[]
-    eeg_f1s=[]
+    #f1s=[]
+    #emg_f1s=[]
+    #eeg_f1s=[]
     
     kappas=[]
     for idx,emg_mask in enumerate(emg_masks):

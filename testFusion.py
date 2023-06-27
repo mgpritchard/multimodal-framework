@@ -554,7 +554,8 @@ def feature_fusion(emg_others,eeg_others,emg_ppt,eeg_ppt,args):
         #emg_model = ml.train_optimise(emg_others_for_solo, args['emg']['emg_model_type'], args['emg'])
         
     
-    sel_cols_eeg=feats.sel_percent_feats_df(eeg_others,percent=3)
+    #sel_cols_eeg=feats.sel_percent_feats_df(eeg_others,percent=3)
+    sel_cols_eeg=feats.sel_feats_l1_df(eeg_others,sparsityC=args['l1_sparsity'],maxfeats=args['l1_maxfeats'])
     sel_cols_eeg=np.append(sel_cols_eeg,eeg_others.columns.get_loc('Label'))
     if not args['featfuse_sel_feats_together']:
         eeg_others = eeg_others.iloc[:,sel_cols_eeg]
@@ -658,7 +659,8 @@ def fusion_hierarchical(emg_others,eeg_others,emg_ppt,eeg_ppt,args):
     
     '''Train EEG model'''
     eeg_train_split_ML=ml.drop_ID_cols(eeg_train_split_ML)
-    sel_cols_eeg=feats.sel_percent_feats_df(eeg_train_split_ML,percent=3)
+    #sel_cols_eeg=feats.sel_percent_feats_df(eeg_train_split_ML,percent=3)
+    sel_cols_eeg=feats.sel_feats_l1_df(eeg_train_split_ML,sparsityC=args['l1_sparsity'],maxfeats=args['l1_maxfeats'])
     sel_cols_eeg=np.append(sel_cols_eeg,eeg_train_split_ML.columns.get_loc('Label'))
     eeg_train_split_ML=eeg_train_split_ML.iloc[:,sel_cols_eeg]
     
@@ -2049,7 +2051,7 @@ if __name__ == '__main__':
         if len(sys.argv)>4:
             num_iters=int(sys.argv[4])
     else:
-        architecture='decision'    
+        architecture='featlevel'    
         trialmode='WithinPpt'
         platform='not server'
         num_iters=35

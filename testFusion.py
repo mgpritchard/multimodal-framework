@@ -1758,7 +1758,7 @@ def scatterbox(trials,stat='fusion_accs',ylower=0,yupper=1,showplot=True):
     #https://stackoverflow.com/questions/53473733/how-to-add-box-plot-to-scatter-data-in-matplotlib
     return fig
         
-def setup_search_space(architecture,include_emg_svm):
+def setup_search_space(architecture,include_svm):
     emgoptions=[
                 {'emg_model_type':'RF',
                  'n_trees':scope.int(hp.quniform('emg.RF.ntrees',10,100,q=5)),
@@ -1782,23 +1782,14 @@ def setup_search_space(architecture,include_emg_svm):
   #               'svm_C':hp.uniform('emg.svm.c',0.1,100), #use loguniform?
    #              },
                 ]
-    if include_emg_svm:
-        emgoptions.append({'emg_model_type':'SVM_PlattScale',
-                 'kernel':hp.choice('emg.svm.kernel',['rbf']),#'poly','linear']),
-                 'svm_C':hp.loguniform('emg.svm.c',np.log(0.1),np.log(100)), #use loguniform? #https://queirozf.com/entries/choosing-c-hyperparameter-for-svm-classifiers-examples-with-scikit-learn
-                 'gamma':hp.loguniform('emg.svm.gamma',np.log(0.01),np.log(1)), #maybe log, from lower? #https://vitalflux.com/svm-rbf-kernel-parameters-code-sample/
-                 #eg sklearns gridsearch doc uses SVC as an example with C log(1e0,1e3) & gamma log(1e-4,1e-3)
-                 })
-    space = {
-            'emg':hp.choice('emg model',emgoptions),
-            'eeg':hp.choice('eeg model',[
-               {'eeg_model_type':'RF',
+    eegoptions=[
+                {'eeg_model_type':'RF',
                  'n_trees':scope.int(hp.quniform('eeg_ntrees',10,100,q=5)),
                  'max_depth':5,#scope.int(hp.quniform('eeg.RF.maxdepth',2,5,q=1)),
                  },
-                #{'eeg_model_type':'kNN',   #Discounting EEG KNN due to reliably slow & low results
-               #  'knn_k':scope.int(hp.quniform('eeg.knn.k',1,25,q=1)),
-                # },
+                {'eeg_model_type':'kNN', #Previously discounted EEG KNN due to reliably slow & low results
+                 'knn_k':scope.int(hp.quniform('eeg.knn.k',1,25,q=1)),
+                 },
                 {'eeg_model_type':'LDA',
                  'LDA_solver':hp.choice('eeg.LDA_solver',['svd','lsqr','eigen']),
                  'shrinkage':hp.uniform('eeg.lda.shrinkage',0.0,1.0),
@@ -1809,17 +1800,27 @@ def setup_search_space(architecture,include_emg_svm):
                 {'eeg_model_type':'gaussNB',
                  'smoothing':hp.loguniform('eeg.gnb.smoothing',np.log(1e-9),np.log(1e0)),
                  },
-#                {'eeg_model_type':'SVM_PlattScale',
- #                'kernel':hp.choice('eeg.svm.kernel',['rbf']),#'poly','linear']),
-  #               'svm_C':hp.loguniform('eeg.svm.c',np.log(0.01),np.log(100)),
-   #              'gamma':hp.loguniform('eeg.svm.gamma',np.log(0.01),np.log(100)),
-               #https://www.kaggle.com/code/donkeys/exploring-hyperopt-parameter-tuning?scriptVersionId=12655875&cellId=64
-                # naming convention https://github.com/hyperopt/hyperopt/issues/380#issuecomment-685173200
-    #             },
  #               {'eeg_model_type':'SVM',    #SKL SVC likely unviable, excessively slow
   #               'svm_C':hp.uniform('eeg.svm.c',0.1,100), #use loguniform?
    #              },
-                ]),
+                ]
+    if include_svm:
+        emgoptions.append({'emg_model_type':'SVM_PlattScale',
+                 'kernel':hp.choice('emg.svm.kernel',['rbf']),#'poly','linear']),
+                 'svm_C':hp.loguniform('emg.svm.c',np.log(0.1),np.log(100)), #use loguniform? #https://queirozf.com/entries/choosing-c-hyperparameter-for-svm-classifiers-examples-with-scikit-learn
+                 'gamma':hp.loguniform('emg.svm.gamma',np.log(0.01),np.log(1)), #maybe log, from lower? #https://vitalflux.com/svm-rbf-kernel-parameters-code-sample/
+                 #eg sklearns gridsearch doc uses SVC as an example with C log(1e0,1e3) & gamma log(1e-4,1e-3)
+                 })
+        eegoptions.append({'eeg_model_type':'SVM_PlattScale',
+                 'kernel':hp.choice('eeg.svm.kernel',['rbf']),#'poly','linear']),
+                 'svm_C':hp.loguniform('eeg.svm.c',np.log(0.01),np.log(100)),
+                 'gamma':hp.loguniform('eeg.svm.gamma',np.log(0.01),np.log(1)), 
+                 #https://www.kaggle.com/code/donkeys/exploring-hyperopt-parameter-tuning?scriptVersionId=12655875&cellId=64
+                 # naming convention https://github.com/hyperopt/hyperopt/issues/380#issuecomment-685173200
+                 })
+    space = {
+            'emg':hp.choice('emg model',emgoptions),
+            'eeg':hp.choice('eeg model',eegoptions),
             'svmfuse':{
                 #'kernel':hp.choice('eeg.svm.kernel',['rbf']),#'poly','linear']),
                 'svm_C':hp.loguniform('fus.svm.c',np.log(0.01),np.log(100)),
@@ -1923,8 +1924,8 @@ def setup_search_space(architecture,include_emg_svm):
 
 
 def optimise_fusion(trialmode,prebalance=True,architecture='decision',platform='not server',iters=35):
-    emg_svm = True if trialmode=='WithinPpt' else False
-    space=setup_search_space(architecture,emg_svm)
+    incl_svm = True if trialmode=='WithinPpt' else False
+    space=setup_search_space(architecture,incl_svm)
     space.update({'trialmode':trialmode})
     
     if platform=='server':

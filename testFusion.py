@@ -1852,38 +1852,62 @@ def setup_search_space(architecture,include_svm):
             'scalingtype':'standardise',
             #'scalingtype':hp.choice('scaling',['normalise','standardise']),#,None]),
             'plot_confmats':False,
-            'get_train_acc':True,
+            'get_train_acc':False,
             'bag_eeg':False,
             }
     
     if architecture=='featlevel':
-        space.update({
-            'fusion_alg':hp.choice('fusion algorithm',['featlevel',]),
-            'featfuse_sel_feats_together':False,#hp.choice('selfeatstogether',[True,False]),
-            #somehow when this is true theres an issue with the Label col. think we end up with
-            #either two label cols or none depending on whether we add it to selcols_emgeeg twice
-            'featfuse':hp.choice('featfuse model',[
-                {'featfuse_model_type':'RF',
-                 'n_trees':scope.int(hp.quniform('featfuse.RF.ntrees',10,100,q=5)),
-                 'max_depth':5,#scope.int(hp.quniform('featfuse.RF.maxdepth',2,5,q=1)),
-                 },
-                {'featfuse_model_type':'kNN',
-                 'knn_k':scope.int(hp.quniform('featfuse.knn.k',1,25,q=1)),
-                 },
-                {'featfuse_model_type':'LDA',
-                 'LDA_solver':hp.choice('featfuse.LDA_solver',['svd','lsqr','eigen']),
-                 'shrinkage':hp.uniform('featfuse.lda.shrinkage',0.0,1.0),
-                 },
-                {'featfuse_model_type':'QDA',
-                 'regularisation':hp.uniform('featfuse.qda.regularisation',0.0,1.0), #https://www.kaggle.com/code/code1110/best-parameter-s-for-qda/notebook
-                 },
-                {'featfuse_model_type':'SVM_PlattScale', #keep this commented out
-                 'kernel':hp.choice('eeg.svm.kernel',['rbf']),#'poly','linear']),
-                 'svm_C':hp.loguniform('eeg.svm.c',np.log(0.01),np.log(100)),
-                 'gamma':hp.loguniform('eeg.svm.gamma',np.log(0.01),np.log(1)),
-                 },
-                ]),
-            })
+        if include_svm:
+            space.update({
+                'fusion_alg':hp.choice('fusion algorithm',['featlevel',]),
+                'featfuse_sel_feats_together':False,#hp.choice('selfeatstogether',[True,False]),
+                #somehow when this is true theres an issue with the Label col. think we end up with
+                #either two label cols or none depending on whether we add it to selcols_emgeeg twice
+                'featfuse':hp.choice('featfuse model',[
+                    {'featfuse_model_type':'RF',
+                     'n_trees':scope.int(hp.quniform('featfuse.RF.ntrees',10,100,q=5)),
+                     'max_depth':5,#scope.int(hp.quniform('featfuse.RF.maxdepth',2,5,q=1)),
+                     },
+                    {'featfuse_model_type':'kNN',
+                     'knn_k':scope.int(hp.quniform('featfuse.knn.k',1,25,q=1)),
+                     },
+                    {'featfuse_model_type':'LDA',
+                     'LDA_solver':hp.choice('featfuse.LDA_solver',['svd','lsqr','eigen']),
+                     'shrinkage':hp.uniform('featfuse.lda.shrinkage',0.0,1.0),
+                     },
+                    {'featfuse_model_type':'QDA',
+                     'regularisation':hp.uniform('featfuse.qda.regularisation',0.0,1.0), #https://www.kaggle.com/code/code1110/best-parameter-s-for-qda/notebook
+                     },
+                    {'featfuse_model_type':'SVM_PlattScale', #keep this commented out
+                     'kernel':hp.choice('eeg.svm.kernel',['rbf']),#'poly','linear']),
+                     'svm_C':hp.loguniform('eeg.svm.c',np.log(0.01),np.log(100)),
+                     'gamma':hp.loguniform('eeg.svm.gamma',np.log(0.01),np.log(1)),
+                     },
+                    ]),
+                })
+        else:
+            space.update({
+                'fusion_alg':hp.choice('fusion algorithm',['featlevel',]),
+                'featfuse_sel_feats_together':False,#hp.choice('selfeatstogether',[True,False]),
+                #somehow when this is true theres an issue with the Label col. think we end up with
+                #either two label cols or none depending on whether we add it to selcols_emgeeg twice
+                'featfuse':hp.choice('featfuse model',[
+                    {'featfuse_model_type':'RF',
+                     'n_trees':scope.int(hp.quniform('featfuse.RF.ntrees',10,100,q=5)),
+                     'max_depth':5,#scope.int(hp.quniform('featfuse.RF.maxdepth',2,5,q=1)),
+                     },
+                    {'featfuse_model_type':'kNN',
+                     'knn_k':scope.int(hp.quniform('featfuse.knn.k',1,25,q=1)),
+                     },
+                    {'featfuse_model_type':'LDA',
+                     'LDA_solver':hp.choice('featfuse.LDA_solver',['svd','lsqr','eigen']),
+                     'shrinkage':hp.uniform('featfuse.lda.shrinkage',0.0,1.0),
+                     },
+                    {'featfuse_model_type':'QDA',
+                     'regularisation':hp.uniform('featfuse.qda.regularisation',0.0,1.0), #https://www.kaggle.com/code/code1110/best-parameter-s-for-qda/notebook
+                     },
+                    ]),
+                })
         space.pop('emg',None)
         space.pop('eeg',None)
         space.pop('svmfuse',None)
@@ -2025,7 +2049,7 @@ if __name__ == '__main__':
         if len(sys.argv)>4:
             num_iters=int(sys.argv[4])
     else:
-        architecture='just_emg'    
+        architecture='decision'    
         trialmode='WithinPpt'
         platform='not server'
         num_iters=35
@@ -2163,9 +2187,9 @@ if __name__ == '__main__':
         fus_acc_plot=plot_stat_in_time(trials,'fusion_mean_acc',showplot=showplot_toggle)
         #plot_stat_in_time(trials,'elapsed_time',0,200)
         
-        #acc_compare_plot=plot_multiple_stats_with_best(trials,['emg_mean_acc','eeg_mean_acc','fusion_mean_acc'],runbest='fusion_mean_acc',showplot=showplot_toggle)
+        acc_compare_plot=plot_multiple_stats_with_best(trials,['emg_mean_acc','eeg_mean_acc','fusion_mean_acc'],runbest='fusion_mean_acc',showplot=showplot_toggle)
         # BELOW IF REPORTING TRAIN ACCURACY
-        acc_compare_plot=plot_multiple_stats_with_best(trials,['emg_mean_acc','eeg_mean_acc','fusion_mean_acc','mean_train_acc'],runbest='fusion_mean_acc',showplot=showplot_toggle)
+        #acc_compare_plot=plot_multiple_stats_with_best(trials,['emg_mean_acc','eeg_mean_acc','fusion_mean_acc','mean_train_acc'],runbest='fusion_mean_acc',showplot=showplot_toggle)
 
         emg_acc_box=scatterbox(trials,'emg_accs',showplot=showplot_toggle)
         eeg_acc_box=scatterbox(trials,'eeg_accs',showplot=showplot_toggle)
@@ -2193,6 +2217,9 @@ if __name__ == '__main__':
         per_emgmodel.savefig(os.path.join(resultpath,'emg_model.png'))
         per_eegmodel.savefig(os.path.join(resultpath,'eeg_model.png'))
         per_fusalg.savefig(os.path.join(resultpath,'fus_alg.png'))
+        
+        #boxplot_param(table_readable,'emg model','emg_mean_acc')
+        #boxplot_param(table_readable,'eeg model','eeg_mean_acc')
          
         '''
         table_readable['delta']=table_readable['fusion_mean_acc']-table_readable['emg_mean_acc']

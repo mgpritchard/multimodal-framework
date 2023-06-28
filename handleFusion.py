@@ -76,9 +76,10 @@ def train_svm_fuser(mode1,mode2,targets,args):
     return model
 
 def svm_fusion(fuser,onehot,predlist_emg,predlist_eeg,classlabels):
-    onehot_pred_emg=encode_preds_onehot(predlist_emg,onehot)
-    onehot_pred_eeg=encode_preds_onehot(predlist_eeg,onehot)
-    fusion_preds=fuser.predict(np.column_stack([onehot_pred_emg,onehot_pred_eeg]))
+    if onehot is not None:
+        predlist_emg=encode_preds_onehot(predlist_emg,onehot)
+        predlist_eeg=encode_preds_onehot(predlist_eeg,onehot)
+    fusion_preds=fuser.predict(np.column_stack([predlist_emg,predlist_eeg]))
     return fusion_preds
 
 def train_lda_fuser(mode1,mode2,targets,args):
@@ -93,9 +94,10 @@ def train_lda_fuser(mode1,mode2,targets,args):
     return model
 
 def lda_fusion(fuser,onehot,predlist_emg,predlist_eeg,classlabels):
-    onehot_pred_emg=encode_preds_onehot(predlist_emg,onehot)
-    onehot_pred_eeg=encode_preds_onehot(predlist_eeg,onehot)
-    fusion_preds=fuser.predict(np.column_stack([onehot_pred_emg,onehot_pred_eeg]))
+    if onehot is not None:
+        predlist_emg=encode_preds_onehot(predlist_emg,onehot)
+        predlist_eeg=encode_preds_onehot(predlist_eeg,onehot)
+    fusion_preds=fuser.predict(np.column_stack([predlist_emg,predlist_eeg]))
     return fusion_preds
 
 def train_rf_fuser(mode1,mode2,targets,args):

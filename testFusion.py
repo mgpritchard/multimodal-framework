@@ -512,19 +512,27 @@ def train_bayes_fuser(model_emg,model_eeg,emg_set,eeg_set,classlabels,args):
     return fuser, onehot
 
 def train_svm_fuser(model_emg,model_eeg,emg_set,eeg_set,classlabels,args,sel_cols_eeg,sel_cols_emg):
-    targets,predlist_emg,predlist_eeg,_=refactor_synced_predict(emg_set, eeg_set, model_emg, model_eeg, classlabels, args,sel_cols_eeg,sel_cols_emg)
-    onehot=fusion.setup_onehot(classlabels)
-    onehot_pred_emg=fusion.encode_preds_onehot(predlist_emg,onehot)
-    onehot_pred_eeg=fusion.encode_preds_onehot(predlist_eeg,onehot)
-    fuser=fusion.train_svm_fuser(onehot_pred_emg, onehot_pred_eeg, targets, args['svmfuse'])
+    targets,predlist_emg,predlist_eeg,_,distros_emg,distros_eeg,_=refactor_synced_predict(emg_set, eeg_set, model_emg, model_eeg, classlabels, args,sel_cols_eeg,sel_cols_emg,get_distros=args['stack_distros'])
+    if not args['stack_distros']:
+        onehot=fusion.setup_onehot(classlabels)
+        onehot_pred_emg=fusion.encode_preds_onehot(predlist_emg,onehot)
+        onehot_pred_eeg=fusion.encode_preds_onehot(predlist_eeg,onehot)
+        fuser=fusion.train_svm_fuser(onehot_pred_emg, onehot_pred_eeg, targets, args['svmfuse'])
+    else:
+        onehot=None
+        fuser=fusion.train_svm_fuser(distros_emg, distros_eeg, targets, args['svmfuse'])
     return fuser, onehot
 
 def train_lda_fuser(model_emg,model_eeg,emg_set,eeg_set,classlabels,args,sel_cols_eeg,sel_cols_emg):
-    targets,predlist_emg,predlist_eeg,_=refactor_synced_predict(emg_set, eeg_set, model_emg, model_eeg, classlabels, args,sel_cols_eeg,sel_cols_emg)
-    onehot=fusion.setup_onehot(classlabels)
-    onehot_pred_emg=fusion.encode_preds_onehot(predlist_emg,onehot)
-    onehot_pred_eeg=fusion.encode_preds_onehot(predlist_eeg,onehot)
-    fuser=fusion.train_lda_fuser(onehot_pred_emg, onehot_pred_eeg, targets, args['ldafuse'])
+    targets,predlist_emg,predlist_eeg,_,distros_emg,distros_eeg,_=refactor_synced_predict(emg_set, eeg_set, model_emg, model_eeg, classlabels, args,sel_cols_eeg,sel_cols_emg,get_distros=args['stack_distros'])
+    if not args['stack_distros']:
+        onehot=fusion.setup_onehot(classlabels)
+        onehot_pred_emg=fusion.encode_preds_onehot(predlist_emg,onehot)
+        onehot_pred_eeg=fusion.encode_preds_onehot(predlist_eeg,onehot)
+        fuser=fusion.train_lda_fuser(onehot_pred_emg, onehot_pred_eeg, targets, args['ldafuse'])
+    else:
+        onehot=None
+        fuser=fusion.train_lda_fuser(distros_emg, distros_eeg, targets, args['ldafuse'])
     return fuser, onehot
 
 def train_RF_fuser(model_emg,model_eeg,emg_set,eeg_set,classlabels,args,sel_cols_eeg,sel_cols_emg):
@@ -1069,18 +1077,24 @@ def fusion_SVM(emg_train, eeg_train, emg_test, eeg_test, args):
 
     emg_test.sort_values(['ID_pptID','ID_run','Label','ID_gestrep','ID_tend'],ascending=[True,True,True,True,True],inplace=True)
     eeg_test.sort_values(['ID_pptID','ID_run','Label','ID_gestrep','ID_tend'],ascending=[True,True,True,True,True],inplace=True)                
-    targets, predlist_emg, predlist_eeg, _ = refactor_synced_predict(emg_test, eeg_test, emg_model, eeg_model, classlabels,args,sel_cols_eeg,sel_cols_emg)
+    targets, predlist_emg, predlist_eeg, _, distros_emg, distros_eeg, _  = refactor_synced_predict(emg_test, eeg_test, emg_model, eeg_model, classlabels,args,sel_cols_eeg,sel_cols_emg,get_distros=args['stack_distros'])
     
     fuser,onehotEncoder=train_svm_fuser(emg_model,eeg_model,emg_train_split_fusion,eeg_train_split_fusion,classlabels,args,sel_cols_eeg,sel_cols_emg)
-    predlist_fusion=fusion.svm_fusion(fuser,onehotEncoder,predlist_emg,predlist_eeg,classlabels)
+    if args['stack_distros']:
+        predlist_fusion=fusion.svm_fusion(fuser,onehotEncoder,distros_emg,distros_eeg,classlabels)
+    else:
+        predlist_fusion=fusion.svm_fusion(fuser,onehotEncoder,predlist_emg,predlist_eeg,classlabels)
     
     if args['get_train_acc']:
         emg_train=feats.scale_feats_test(emg_train,emgscaler)
         eeg_train=feats.scale_feats_test(eeg_train,eegscaler)
         emg_train.sort_values(['ID_pptID','ID_run','Label','ID_gestrep','ID_tend'],ascending=[True,True,True,True,True],inplace=True)
         eeg_train.sort_values(['ID_pptID','ID_run','Label','ID_gestrep','ID_tend'],ascending=[True,True,True,True,True],inplace=True)                
-        traintargs, predlist_emgtrain, predlist_eegtrain, _ = refactor_synced_predict(emg_train, eeg_train, emg_model, eeg_model, classlabels,args,sel_cols_eeg,sel_cols_emg)
-        predlist_train=fusion.svm_fusion(fuser,onehotEncoder,predlist_emgtrain,predlist_eegtrain,classlabels)
+        traintargs, predlist_emgtrain, predlist_eegtrain, _, distros_emgtrain, distros_eegtrain, _ = refactor_synced_predict(emg_train, eeg_train, emg_model, eeg_model, classlabels,args,sel_cols_eeg,sel_cols_emg,get_distros=args['stack_distros'])
+        if args['stack_distros']:
+            predlist_train=fusion.svm_fusion(fuser,onehotEncoder,distros_emgtrain,distros_eegtrain,classlabels)
+        else:
+            predlist_train=fusion.svm_fusion(fuser,onehotEncoder,predlist_emgtrain,predlist_eegtrain,classlabels)
         return targets, predlist_emg, predlist_eeg, predlist_fusion, classlabels, traintargs, predlist_train  
     else:
         return targets, predlist_emg, predlist_eeg, predlist_fusion, classlabels
@@ -1130,18 +1144,24 @@ def fusion_LDA(emg_train, eeg_train, emg_test, eeg_test, args):
 
     emg_test.sort_values(['ID_pptID','ID_run','Label','ID_gestrep','ID_tend'],ascending=[True,True,True,True,True],inplace=True)
     eeg_test.sort_values(['ID_pptID','ID_run','Label','ID_gestrep','ID_tend'],ascending=[True,True,True,True,True],inplace=True)                
-    targets, predlist_emg, predlist_eeg, _ = refactor_synced_predict(emg_test, eeg_test, emg_model, eeg_model, classlabels,args,sel_cols_eeg,sel_cols_emg)
+    targets, predlist_emg, predlist_eeg, _, distros_emg, distros_eeg, _ = refactor_synced_predict(emg_test, eeg_test, emg_model, eeg_model, classlabels,args,sel_cols_eeg,sel_cols_emg,get_distros=args['stack_distros'])
     
     fuser,onehotEncoder=train_lda_fuser(emg_model,eeg_model,emg_train_split_fusion,eeg_train_split_fusion,classlabels,args,sel_cols_eeg,sel_cols_emg)
-    predlist_fusion=fusion.lda_fusion(fuser,onehotEncoder,predlist_emg,predlist_eeg,classlabels)
+    if args['stack_distros']:
+        predlist_fusion=fusion.lda_fusion(fuser,onehotEncoder,distros_emg,distros_eeg,classlabels)
+    else:
+        predlist_fusion=fusion.lda_fusion(fuser,onehotEncoder,predlist_emg,predlist_eeg,classlabels)
     
     if args['get_train_acc']:
         emg_train=feats.scale_feats_test(emg_train,emgscaler)
         eeg_train=feats.scale_feats_test(eeg_train,eegscaler)
         emg_train.sort_values(['ID_pptID','ID_run','Label','ID_gestrep','ID_tend'],ascending=[True,True,True,True,True],inplace=True)
         eeg_train.sort_values(['ID_pptID','ID_run','Label','ID_gestrep','ID_tend'],ascending=[True,True,True,True,True],inplace=True)                
-        traintargs, predlist_emgtrain, predlist_eegtrain, _ = refactor_synced_predict(emg_train, eeg_train, emg_model, eeg_model, classlabels,args,sel_cols_eeg,sel_cols_emg)
-        predlist_train=fusion.svm_fusion(fuser,onehotEncoder,predlist_emgtrain,predlist_eegtrain,classlabels)
+        traintargs, predlist_emgtrain, predlist_eegtrain, _, distros_emgtrain, distros_eegtrain, _ = refactor_synced_predict(emg_train, eeg_train, emg_model, eeg_model, classlabels,args,sel_cols_eeg,sel_cols_emg,get_distros=args['stack_distros'])
+        if args['stack_distros']:
+            predlist_train=fusion.lda_fusion(fuser,onehotEncoder,distros_emgtrain,distros_eegtrain,classlabels)
+        else:
+            predlist_train=fusion.lda_fusion(fuser,onehotEncoder,predlist_emgtrain,predlist_eegtrain,classlabels)
         return targets, predlist_emg, predlist_eeg, predlist_fusion, classlabels, traintargs, predlist_train  
     else:
         return targets, predlist_emg, predlist_eeg, predlist_fusion, classlabels
@@ -1292,6 +1312,9 @@ def function_fuse_LOO(args):
         
         elif args['fusion_alg']=='lda':
             targets, predlist_emg, predlist_eeg, predlist_fusion, classlabels=fusion_LDA(emg_others, eeg_others, emg_ppt, eeg_ppt, args)
+            
+        elif args['fusion_alg']=='rf':
+            targets, predlist_emg, predlist_eeg, predlist_fusion, classlabels=fusion_RF(emg_others, eeg_others, emg_ppt, eeg_ppt, args)
        
         elif args['fusion_alg']=='hierarchical':
             

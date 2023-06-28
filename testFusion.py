@@ -2002,6 +2002,9 @@ def setup_search_space(architecture,include_svm):
                     {'featfuse_model_type':'QDA',
                      'regularisation':hp.uniform('featfuse.qda.regularisation',0.0,1.0), #https://www.kaggle.com/code/code1110/best-parameter-s-for-qda/notebook
                      },
+                    {'featfuse_model_type':'gaussNB',
+                     'smoothing':hp.loguniform('featfuse.gnb.smoothing',np.log(1e-9),np.log(1e0)),
+                     },
                     {'featfuse_model_type':'SVM_PlattScale', #keep this commented out
                      'kernel':hp.choice('eeg.svm.kernel',['rbf']),#'poly','linear']),
                      'svm_C':hp.loguniform('eeg.svm.c',np.log(0.01),np.log(100)),

@@ -357,7 +357,7 @@ def synced_predict(test_set_emg,test_set_eeg,model_emg,model_eeg,classlabels,arg
         targets.append(TargetLabel)
     return targets, predlist_emg, predlist_eeg, predlist_fusion
 
-def refactor_synced_predict(test_set_emg,test_set_eeg,model_emg,model_eeg,classlabels,args, chosencolseeg=None, chosencolsemg=None):
+def refactor_synced_predict(test_set_emg,test_set_eeg,model_emg,model_eeg,classlabels,args, chosencolseeg=None, chosencolsemg=None, get_distros=False):
 
     predlist_emg=[]
     predlist_eeg=[]
@@ -399,8 +399,11 @@ def refactor_synced_predict(test_set_emg,test_set_eeg,model_emg,model_eeg,classl
 
     distros_fusion=fusion.fuse_select(distros_emg, distros_eeg, args)
     predlist_fusion=ml.predlist_from_distrosarr(classlabels,distros_fusion)
- 
-    return targets, predlist_emg, predlist_eeg, predlist_fusion
+    
+    if get_distros:
+        return targets, predlist_emg, predlist_eeg, predlist_fusion, distros_emg, distros_eeg, distros_fusion
+    else:
+        return targets, predlist_emg, predlist_eeg, predlist_fusion, None, None, None
 
 def evaluate_results(targets, predlist_emg, correctness_emg, predlist_eeg, correctness_eeg, predlist_fusion, correctness_fusion, classlabels, plot_confmats=False):
     '''Evaluate accuracy'''
@@ -522,6 +525,18 @@ def train_lda_fuser(model_emg,model_eeg,emg_set,eeg_set,classlabels,args,sel_col
     onehot_pred_emg=fusion.encode_preds_onehot(predlist_emg,onehot)
     onehot_pred_eeg=fusion.encode_preds_onehot(predlist_eeg,onehot)
     fuser=fusion.train_lda_fuser(onehot_pred_emg, onehot_pred_eeg, targets, args['ldafuse'])
+    return fuser, onehot
+
+def train_RF_fuser(model_emg,model_eeg,emg_set,eeg_set,classlabels,args,sel_cols_eeg,sel_cols_emg):
+    targets,predlist_emg,predlist_eeg,_,distros_emg,distros_eeg,_=refactor_synced_predict(emg_set, eeg_set, model_emg, model_eeg, classlabels, args,sel_cols_eeg,sel_cols_emg,get_distros=args['stack_distros'])
+    if not args['stack_distros']:
+        onehot=fusion.setup_onehot(classlabels)
+        onehot_pred_emg=fusion.encode_preds_onehot(predlist_emg,onehot)
+        onehot_pred_eeg=fusion.encode_preds_onehot(predlist_eeg,onehot)
+        fuser=fusion.train_rf_fuser(onehot_pred_emg, onehot_pred_eeg, targets, args['RFfuse'])
+    else:
+        onehot=None
+        fuser=fusion.train_rf_fuser(distros_emg, distros_eeg, targets, args['RFfuse'])
     return fuser, onehot
 
 def feature_fusion(emg_others,eeg_others,emg_ppt,eeg_ppt,args):
@@ -1131,6 +1146,78 @@ def fusion_LDA(emg_train, eeg_train, emg_test, eeg_test, args):
     else:
         return targets, predlist_emg, predlist_eeg, predlist_fusion, classlabels
 
+
+def fusion_RF(emg_train, eeg_train, emg_test, eeg_test, args):
+    emg_train.sort_values(['ID_pptID','ID_run','Label','ID_gestrep','ID_tend'],ascending=[True,True,True,True,True],inplace=True)
+    eeg_train.sort_values(['ID_pptID','ID_run','Label','ID_gestrep','ID_tend'],ascending=[True,True,True,True,True],inplace=True)
+    
+    index_emg=ml.pd.MultiIndex.from_arrays([emg_train[col] for col in ['ID_pptID','ID_run','Label','ID_gestrep','ID_tend']])
+    index_eeg=ml.pd.MultiIndex.from_arrays([eeg_train[col] for col in ['ID_pptID','ID_run','Label','ID_gestrep','ID_tend']])
+    emg_train=emg_train.loc[index_emg.isin(index_eeg)].reset_index(drop=True)
+    eeg_train=eeg_train.loc[index_eeg.isin(index_emg)].reset_index(drop=True)
+            
+    emg_train['ID_splitIndex']=emg_train['Label'].astype(str)+emg_train['ID_pptID'].astype(str)
+    eeg_train['ID_splitIndex']=eeg_train['Label'].astype(str)+eeg_train['ID_pptID'].astype(str)
+    #https://stackoverflow.com/questions/45516424/sklearn-train-test-split-on-pandas-stratify-by-multiple-columns
+    random_split=random.randint(0,100)
+    emg_train_split_ML,emg_train_split_fusion=train_test_split(emg_train,test_size=0.33,random_state=random_split,stratify=emg_train[['ID_splitIndex']])
+    eeg_train_split_ML,eeg_train_split_fusion=train_test_split(eeg_train,test_size=0.33,random_state=random_split,stratify=eeg_train[['ID_splitIndex']])
+    #https://stackoverflow.com/questions/43095076/scikit-learn-train-test-split-can-i-ensure-same-splits-on-different-datasets
+    
+    
+    if args['scalingtype']:
+            emg_train_split_ML,emgscaler=feats.scale_feats_train(emg_train_split_ML,args['scalingtype'])
+            eeg_train_split_ML,eegscaler=feats.scale_feats_train(eeg_train_split_ML,args['scalingtype'])
+            emg_train_split_fusion=feats.scale_feats_test(emg_train_split_fusion,emgscaler)
+            eeg_train_split_fusion=feats.scale_feats_test(eeg_train_split_fusion,eegscaler)
+            emg_test=feats.scale_feats_test(emg_test,emgscaler)
+            eeg_test=feats.scale_feats_test(eeg_test,eegscaler)
+
+
+    emg_train_split_ML=ml.drop_ID_cols(emg_train_split_ML)
+    eeg_train_split_ML=ml.drop_ID_cols(eeg_train_split_ML)
+    
+    
+    sel_cols_emg=feats.sel_percent_feats_df(emg_train_split_ML,percent=15)
+    sel_cols_emg=np.append(sel_cols_emg,emg_train_split_ML.columns.get_loc('Label'))
+    emg_train_split_ML=emg_train_split_ML.iloc[:,sel_cols_emg]
+    
+    #sel_cols_eeg=feats.sel_percent_feats_df(eeg_train_split_ML,percent=3)
+    sel_cols_eeg=feats.sel_feats_l1_df(eeg_train_split_ML,sparsityC=args['l1_sparsity'],maxfeats=args['l1_maxfeats'])
+    sel_cols_eeg=np.append(sel_cols_eeg,eeg_train_split_ML.columns.get_loc('Label'))
+    eeg_train_split_ML=eeg_train_split_ML.iloc[:,sel_cols_eeg]
+       
+    
+    emg_model,eeg_model=train_models_opt(emg_train_split_ML,eeg_train_split_ML,args)
+    
+    classlabels = emg_model.classes_
+
+    emg_test.sort_values(['ID_pptID','ID_run','Label','ID_gestrep','ID_tend'],ascending=[True,True,True,True,True],inplace=True)
+    eeg_test.sort_values(['ID_pptID','ID_run','Label','ID_gestrep','ID_tend'],ascending=[True,True,True,True,True],inplace=True)                
+    
+    targets, predlist_emg, predlist_eeg, _, distros_emg, distros_eeg, _ = refactor_synced_predict(emg_test, eeg_test, emg_model, eeg_model, classlabels,args,sel_cols_eeg,sel_cols_emg,get_distros=args['stack_distros'])
+    
+    fuser,onehotEncoder=train_RF_fuser(emg_model,eeg_model,emg_train_split_fusion,eeg_train_split_fusion,classlabels,args,sel_cols_eeg,sel_cols_emg)
+    if args['stack_distros']:
+        predlist_fusion=fusion.rf_fusion(fuser,onehotEncoder,distros_emg,distros_eeg,classlabels)
+    else:
+        predlist_fusion=fusion.rf_fusion(fuser,onehotEncoder,predlist_emg,predlist_eeg,classlabels)
+    
+    if args['get_train_acc']:
+        emg_train=feats.scale_feats_test(emg_train,emgscaler)
+        eeg_train=feats.scale_feats_test(eeg_train,eegscaler)
+        emg_train.sort_values(['ID_pptID','ID_run','Label','ID_gestrep','ID_tend'],ascending=[True,True,True,True,True],inplace=True)
+        eeg_train.sort_values(['ID_pptID','ID_run','Label','ID_gestrep','ID_tend'],ascending=[True,True,True,True,True],inplace=True)                
+        traintargs, predlist_emgtrain, predlist_eegtrain, _, distros_emgtrain, distros_eegtrain, _ = refactor_synced_predict(emg_train, eeg_train, emg_model, eeg_model, classlabels,args,sel_cols_eeg,sel_cols_emg,get_distros=args['stack_distros'])
+        if args['stack_distros']:
+            predlist_train=fusion.rf_fusion(fuser,onehotEncoder,distros_emgtrain,distros_eegtrain,classlabels)
+        else:
+            predlist_train=fusion.rf_fusion(fuser,onehotEncoder,predlist_emgtrain,predlist_eegtrain,classlabels)
+        return targets, predlist_emg, predlist_eeg, predlist_fusion, classlabels, traintargs, predlist_train  
+    else:
+        return targets, predlist_emg, predlist_eeg, predlist_fusion, classlabels
+
+
 def function_fuse_LOO(args):
     start=time.time()
     #print('emg model ',args['emg']['emg_model_type'])
@@ -1477,6 +1564,12 @@ def function_fuse_withinppt(args):
                 targets, predlist_emg, predlist_eeg, predlist_fusion, classlabels, traintargs, predlist_train = fusion_LDA(emg_train, eeg_train, emg_test, eeg_test, args)
             else:
                 targets, predlist_emg, predlist_eeg, predlist_fusion, classlabels=fusion_LDA(emg_train, eeg_train, emg_test, eeg_test, args)
+        
+        elif args['fusion_alg']=='rf':
+            if args['get_train_acc']:
+                targets, predlist_emg, predlist_eeg, predlist_fusion, classlabels, traintargs, predlist_train = fusion_RF(emg_train, eeg_train, emg_test, eeg_test, args)
+            else:
+                targets, predlist_emg, predlist_eeg, predlist_fusion, classlabels=fusion_RF(emg_train, eeg_train, emg_test, eeg_test, args)
         
         elif args['fusion_alg']=='hierarchical':
                      
@@ -1832,6 +1925,10 @@ def setup_search_space(architecture,include_svm):
                 'LDA_solver':hp.choice('fus.LDA.solver',['svd','lsqr','eigen']),
                 'shrinkage':hp.uniform('fus.lda.shrinkage',0.0,1.0),
                 },
+            'RFfuse':{
+                'n_trees':scope.int(hp.quniform('fus.RF.ntrees',10,100,q=5)),
+                'max_depth':5,#scope.int(hp.quniform('fus.RF.maxdepth',2,5,q=1)),
+                },
             'eeg_weight_opt':hp.uniform('fus.optEEG.EEGweight',0.0,100.0),
             'fusion_alg':hp.choice('fusion algorithm',[
                 'mean',
@@ -1842,6 +1939,7 @@ def setup_search_space(architecture,include_svm):
                 'highest_conf',
                 'svm',
                 'lda',
+                'rf',
                 ]),
             #'emg_set_path':params.emg_set_path_for_system_tests,
             #'eeg_set_path':params.eeg_set_path_for_system_tests,
@@ -1856,6 +1954,7 @@ def setup_search_space(architecture,include_svm):
             'plot_confmats':False,
             'get_train_acc':False,
             'bag_eeg':False,
+            'stack_distros':hp.choice('decision.stack_distros',[True,False]),
             }
     
     if architecture=='featlevel':

@@ -98,6 +98,21 @@ def lda_fusion(fuser,onehot,predlist_emg,predlist_eeg,classlabels):
     fusion_preds=fuser.predict(np.column_stack([onehot_pred_emg,onehot_pred_eeg]))
     return fusion_preds
 
+def train_rf_fuser(mode1,mode2,targets,args):
+    train=np.column_stack([mode1,mode2])
+    n_trees=args['n_trees']
+    max_depth=args['max_depth']
+    model=ml.RandomForestClassifier(n_estimators=n_trees,max_depth=max_depth)
+    model.fit(train.astype(np.float64),targets)
+    return model
+
+def rf_fusion(fuser,onehot,predlist_emg,predlist_eeg,classlabels):
+    if onehot is not None:
+        predlist_emg=encode_preds_onehot(predlist_emg,onehot)
+        predlist_eeg=encode_preds_onehot(predlist_eeg,onehot)
+    fusion_preds=fuser.predict(np.column_stack([predlist_emg,predlist_eeg]))
+    return fusion_preds
+
 def reward_pattern_match():
     pass
     #assess trace of class probability. reward static high or low or
@@ -170,6 +185,9 @@ def fuse_select(emg,eeg,args):
         fusion = fuse_mean(emg,eeg)
     elif alg=='lda':
         '''LDA fusion is not done here, just keeping system happy'''
+        fusion = fuse_mean(emg,eeg)
+    elif alg=='rf':
+        '''RF fusion is not done here, just keeping system happy'''
         fusion = fuse_mean(emg,eeg)
     else:
         msg='Fusion algorithm '+alg+' not recognised'

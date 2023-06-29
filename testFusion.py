@@ -1977,7 +1977,7 @@ def setup_search_space(architecture,include_svm):
             'plot_confmats':False,
             'get_train_acc':False,
             'bag_eeg':False,
-            'stack_distros':hp.choice('decision.stack_distros',[True,False]),
+            'stack_distros':True,#hp.choice('decision.stack_distros',[True,False]),
             }
     
     if architecture=='featlevel':

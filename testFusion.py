@@ -2168,20 +2168,27 @@ if __name__ == '__main__':
     if len(sys.argv)>1:
         architecture=sys.argv[1]
         trialmode=sys.argv[2]
+        if trialmode=='not_server':
+            trialmode='not server'
         platform=sys.argv[3]
         if len(sys.argv)>4:
             num_iters=int(sys.argv[4])
+        if len(sys.argv)>5:
+            showplots=sys.argv[5].lower()
+        else:
+            showplots=None
     else:
-        architecture='featlevel'    
+        architecture='hierarchical'    
         trialmode='WithinPpt'
         platform='not server'
-        num_iters=35
+        num_iters=3
+        showplots=None
         
     if architecture not in ['decision','featlevel','hierarchical','hierarchical_inv','just_emg','just_eeg']:
         errstring=('requested architecture '+architecture+' not recognised, expecting one of:\n decision\n featlevel\n hierarchical\n hierarchical_inv')
         raise KeyboardInterrupt(errstring)
         
-    if platform=='server':
+    if (platform=='server') or (showplots=='false'):
         showplot_toggle=False
     else:
         showplot_toggle=True

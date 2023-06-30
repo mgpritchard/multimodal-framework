@@ -504,7 +504,7 @@ def function_fuse_pptn(args,n,plot_confmats=False,emg_set_path=None,eeg_set_path
     return 1-acc_fusion
 
 def train_bayes_fuser(model_emg,model_eeg,emg_set,eeg_set,classlabels,args):
-    targets,predlist_emg,predlist_eeg,_=refactor_synced_predict(emg_set, eeg_set, model_emg, model_eeg, classlabels, args)
+    targets,predlist_emg,predlist_eeg,_,_,_,_=refactor_synced_predict(emg_set, eeg_set, model_emg, model_eeg, classlabels, args)
     onehot=fusion.setup_onehot(classlabels)
     onehot_pred_emg=fusion.encode_preds_onehot(predlist_emg,onehot)
     onehot_pred_eeg=fusion.encode_preds_onehot(predlist_eeg,onehot)
@@ -1302,7 +1302,7 @@ def function_fuse_LOO(args):
         
             emg_ppt.sort_values(['ID_pptID','ID_run','Label','ID_gestrep','ID_tend'],ascending=[True,True,True,True,True],inplace=True)
             eeg_ppt.sort_values(['ID_pptID','ID_run','Label','ID_gestrep','ID_tend'],ascending=[True,True,True,True,True],inplace=True)                
-            targets, predlist_emg, predlist_eeg, _ = refactor_synced_predict(emg_ppt, eeg_ppt, emg_model, eeg_model, classlabels,args)
+            targets, predlist_emg, predlist_eeg, _,_,_,_ = refactor_synced_predict(emg_ppt, eeg_ppt, emg_model, eeg_model, classlabels,args)
             
             fuser,onehotEncoder=train_bayes_fuser(emg_model,eeg_model,emg_train_split_fusion,eeg_train_split_fusion,classlabels,args)
             predlist_fusion=fusion.bayesian_fusion(fuser,onehotEncoder,predlist_emg,predlist_eeg,classlabels)
@@ -1404,7 +1404,7 @@ def function_fuse_LOO(args):
             emg_ppt.sort_values(['ID_pptID','ID_run','Label','ID_gestrep','ID_tend'],ascending=[True,True,True,True,True],inplace=True)
             eeg_ppt.sort_values(['ID_pptID','ID_run','Label','ID_gestrep','ID_tend'],ascending=[True,True,True,True,True],inplace=True)
                 
-            targets, predlist_emg, predlist_eeg, predlist_fusion = refactor_synced_predict(emg_ppt, eeg_ppt, emg_model, eeg_model, classlabels,args, sel_cols_eeg,sel_cols_emg)
+            targets, predlist_emg, predlist_eeg, predlist_fusion,_,_,_= refactor_synced_predict(emg_ppt, eeg_ppt, emg_model, eeg_model, classlabels,args, sel_cols_eeg,sel_cols_emg)
 
         #acc_emg,acc_eeg,acc_fusion=evaluate_results(targets, predlist_emg, correctness_emg, predlist_eeg, correctness_eeg, predlist_fusion, correctness_fusion, classlabels)
         
@@ -1571,7 +1571,7 @@ def function_fuse_withinppt(args):
         
             emg_test.sort_values(['ID_pptID','ID_run','Label','ID_gestrep','ID_tend'],ascending=[True,True,True,True,True],inplace=True)
             eeg_test.sort_values(['ID_pptID','ID_run','Label','ID_gestrep','ID_tend'],ascending=[True,True,True,True,True],inplace=True)                
-            targets, predlist_emg, predlist_eeg, _ = refactor_synced_predict(emg_test, eeg_test, emg_model, eeg_model, classlabels,args)
+            targets, predlist_emg, predlist_eeg, _,_,_,_ = refactor_synced_predict(emg_test, eeg_test, emg_model, eeg_model, classlabels,args)
             
             fuser,onehotEncoder=train_bayes_fuser(emg_model,eeg_model,emg_train_split_fusion,eeg_train_split_fusion,classlabels,args)
             predlist_fusion=fusion.bayesian_fusion(fuser,onehotEncoder,predlist_emg,predlist_eeg,classlabels)
@@ -1611,9 +1611,7 @@ def function_fuse_withinppt(args):
                 eeg_train,eegscaler=feats.scale_feats_train(eeg_train,args['scalingtype'])
                 emg_test=feats.scale_feats_test(emg_test,emgscaler)
                 eeg_test=feats.scale_feats_test(eeg_test,eegscaler)
-                #'''UNDO THE BELOW, JUST TESTING TRAINING ACC'''
-                #emg_test=emg_train.copy(deep=True)
-                #eeg_test=eeg_train.copy(deep=True)
+
             if not args['get_train_acc']:            
                 targets, predlist_emg, predlist_eeg, predlist_fusion, classlabels=fusion_hierarchical_inv(emg_train, eeg_train, emg_test, eeg_test, args)
             else:
@@ -1649,9 +1647,7 @@ def function_fuse_withinppt(args):
                 eeg_train,eegscaler=feats.scale_feats_train(eeg_train,args['scalingtype'])
                 emg_test=feats.scale_feats_test(emg_test,emgscaler)
                 eeg_test=feats.scale_feats_test(eeg_test,eegscaler)
-                '''UNDO THE BELOW, JUST TESTING TRAINING ACC'''
-                #emg_test=emg_train.copy(deep=True)
-                #eeg_test=eeg_train.copy(deep=True)
+
             if not args['get_train_acc']:    
                 targets, predlist_emg, predlist_eeg, predlist_fusion, classlabels=only_EEG(emg_train, eeg_train, emg_test, eeg_test, args)
             else:
@@ -1690,10 +1686,10 @@ def function_fuse_withinppt(args):
             emg_test.sort_values(['ID_pptID','ID_run','Label','ID_gestrep','ID_tend'],ascending=[True,True,True,True,True],inplace=True)
             eeg_test.sort_values(['ID_pptID','ID_run','Label','ID_gestrep','ID_tend'],ascending=[True,True,True,True,True],inplace=True)
                 
-            targets, predlist_emg, predlist_eeg, predlist_fusion = refactor_synced_predict(emg_test, eeg_test, emg_model, eeg_model, classlabels,args, sel_cols_eeg,sel_cols_emg)
+            targets, predlist_emg, predlist_eeg, predlist_fusion,_,_,_ = refactor_synced_predict(emg_test, eeg_test, emg_model, eeg_model, classlabels,args, sel_cols_eeg,sel_cols_emg)
 
             if args['get_train_acc']:
-                traintargs, predlist_emgtrain, predlist_eegtrain, predlist_train = refactor_synced_predict(emg_trainacc, eeg_trainacc, emg_model, eeg_model, classlabels, args, sel_cols_eeg,sel_cols_emg)
+                traintargs, predlist_emgtrain, predlist_eegtrain, predlist_train,_,_,_ = refactor_synced_predict(emg_trainacc, eeg_trainacc, emg_model, eeg_model, classlabels, args, sel_cols_eeg,sel_cols_emg)
 
         #acc_emg,acc_eeg,acc_fusion=evaluate_results(targets, predlist_emg, correctness_emg, predlist_eeg, correctness_eeg, predlist_fusion, correctness_fusion, classlabels)
         
@@ -2278,9 +2274,9 @@ if __name__ == '__main__':
         
     elif architecture=='just_emg':
         emg_acc_plot=plot_stat_in_time(trials,'emg_mean_acc',showplot=showplot_toggle)
-        #acc_compare_plot=plot_multiple_stats_with_best(trials,['emg_mean_acc'],runbest='emg_mean_acc',showplot=showplot_toggle)  
+        acc_compare_plot=plot_multiple_stats_with_best(trials,['emg_mean_acc'],runbest='emg_mean_acc',showplot=showplot_toggle)  
         # BELOW IF REPORTING TRAIN ACCURACY
-        acc_compare_plot=plot_multiple_stats_with_best(trials,['emg_mean_acc','mean_train_acc'],runbest='emg_mean_acc',showplot=showplot_toggle)
+        #acc_compare_plot=plot_multiple_stats_with_best(trials,['emg_mean_acc','mean_train_acc'],runbest='emg_mean_acc',showplot=showplot_toggle)
         emg_acc_box=scatterbox(trials,'emg_accs',showplot=showplot_toggle)
         
         '''saving figures of performance over time'''
@@ -2293,9 +2289,9 @@ if __name__ == '__main__':
         
     elif architecture=='just_eeg':
         eeg_acc_plot=plot_stat_in_time(trials,'eeg_mean_acc',showplot=showplot_toggle)
-        #acc_compare_plot=plot_multiple_stats_with_best(trials,['eeg_mean_acc'],runbest='eeg_mean_acc',showplot=showplot_toggle)  
+        acc_compare_plot=plot_multiple_stats_with_best(trials,['eeg_mean_acc'],runbest='eeg_mean_acc',showplot=showplot_toggle)  
         # BELOW IF REPORTING TRAIN ACCURACY
-        acc_compare_plot=plot_multiple_stats_with_best(trials,['eeg_mean_acc','mean_train_acc'],runbest='eeg_mean_acc',showplot=showplot_toggle)
+        #acc_compare_plot=plot_multiple_stats_with_best(trials,['eeg_mean_acc','mean_train_acc'],runbest='eeg_mean_acc',showplot=showplot_toggle)
         eeg_acc_box=scatterbox(trials,'eeg_accs',showplot=showplot_toggle)
         
         '''saving figures of performance over time'''

@@ -22,5 +22,5 @@ zip lit_data_expts/jeong/results/EEG_only.zip lit_data_expts/jeong/results/Fusio
 rm lit_data_expts/jeong/results/Fusion_CSP/LOO/*
 
 python testFusion.py featlevel LOO server 100 False
-zip lit_data_expts/jeong/results/featlevel.zip lit_data_expts/jeong/results/Fusion_CSP/LOO/*
+zip lit_data_expts/jeong/results/featlevel_jointselect.zip lit_data_expts/jeong/results/Fusion_CSP/LOO/*
 rm lit_data_expts/jeong/results/Fusion_CSP/LOO/*

@@ -567,36 +567,28 @@ def feature_fusion(emg_others,eeg_others,emg_ppt,eeg_ppt,args):
     eeg_others=ml.drop_ID_cols(eeg_others)
     emg_others=ml.drop_ID_cols(emg_others)
     
-    sel_cols_emg=feats.sel_percent_feats_df(emg_others,percent=15)
-    sel_cols_emg=np.append(sel_cols_emg,emg_others.columns.get_loc('Label'))
     if not args['featfuse_sel_feats_together']:
-        emg_others = emg_others.iloc[:,sel_cols_emg]
-        #emg_model = ml.train_optimise(emg_others, args['emg']['emg_model_type'], args['emg'])
-    else:
-        emg_others_for_solo = emg_others.iloc[:,sel_cols_emg]
-        #emg_model = ml.train_optimise(emg_others_for_solo, args['emg']['emg_model_type'], args['emg'])
         
+        sel_cols_emg=feats.sel_percent_feats_df(emg_others,percent=15)
+        sel_cols_emg=np.append(sel_cols_emg,emg_others.columns.get_loc('Label'))
+        emg_others = emg_others.iloc[:,sel_cols_emg]        
     
-    #sel_cols_eeg=feats.sel_percent_feats_df(eeg_others,percent=3)
-    sel_cols_eeg=feats.sel_feats_l1_df(eeg_others,sparsityC=args['l1_sparsity'],maxfeats=args['l1_maxfeats'])
-    sel_cols_eeg=np.append(sel_cols_eeg,eeg_others.columns.get_loc('Label'))
-    if not args['featfuse_sel_feats_together']:
+        #sel_cols_eeg=feats.sel_percent_feats_df(eeg_others,percent=3)
+        sel_cols_eeg=feats.sel_feats_l1_df(eeg_others,sparsityC=args['l1_sparsity'],maxfeats=args['l1_maxfeats'])
+        sel_cols_eeg=np.append(sel_cols_eeg,eeg_others.columns.get_loc('Label'))
         eeg_others = eeg_others.iloc[:,sel_cols_eeg]
-        #eeg_model = ml.train_optimise(eeg_others, args['eeg']['eeg_model_type'], args['eeg'])
-    else:
-        eeg_others_for_solo = eeg_others.iloc[:,sel_cols_eeg]
-        #eeg_model = ml.train_optimise(eeg_others_for_solo, args['eeg']['eeg_model_type'], args['eeg'])
 
 
     eeg_others.drop('Label',axis='columns',inplace=True)
     eeg_others.rename(columns=lambda x: 'EEG_'+x, inplace=True)
-    #emg_others[('EEG_',varname)]=eeg_others[varname] for varname in eeg_others.columns.values()
     labelcol=emg_others.pop('Label')
     emgeeg_others=pd.concat([emg_others,eeg_others],axis=1)
     emgeeg_others['Label']=labelcol
     
     if args['featfuse_sel_feats_together']:
-        sel_cols_emgeeg=feats.sel_percent_feats_df(emgeeg_others,percent=15)
+        #sel_cols_emgeeg=feats.sel_percent_feats_df(emgeeg_others,percent=15)
+        sel_cols_emgeeg=feats.sel_feats_l1_df(emgeeg_others,sparsityC=args['l1_sparsity'],maxfeats=args['l1_maxfeats']+88)
+        '''here we are taking total features = N(EEG feats) + N(EMG feats) = N(EEG) + 88'''
         sel_cols_emgeeg=np.append(sel_cols_emgeeg,emgeeg_others.columns.get_loc('Label'))
         emgeeg_others = emgeeg_others.iloc[:,sel_cols_emgeeg]
     
@@ -607,7 +599,6 @@ def feature_fusion(emg_others,eeg_others,emg_ppt,eeg_ppt,args):
     '''TESTING ON PPT DATA'''
     emg_ppt.sort_values(['ID_pptID','ID_run','Label','ID_gestrep','ID_tend'],ascending=[True,True,True,True,True],inplace=True)
     eeg_ppt.sort_values(['ID_pptID','ID_run','Label','ID_gestrep','ID_tend'],ascending=[True,True,True,True,True],inplace=True)                
-    #targets, predlist_emg, predlist_eeg, _ = refactor_synced_predict(emg_ppt, eeg_ppt, emg_model, eeg_model, classlabels,args,sel_cols_eeg,sel_cols_emg)
     
     index_emg_ppt=ml.pd.MultiIndex.from_arrays([emg_ppt[col] for col in ['ID_pptID','ID_run','Label','ID_gestrep','ID_tend']])
     index_eeg_ppt=ml.pd.MultiIndex.from_arrays([eeg_ppt[col] for col in ['ID_pptID','ID_run','Label','ID_gestrep','ID_tend']])
@@ -621,29 +612,36 @@ def feature_fusion(emg_others,eeg_others,emg_ppt,eeg_ppt,args):
         raise RuntimeError('Sense check failed, target classes should match, testing sets are misaligned')
     
     eeg_ppt=ml.drop_ID_cols(eeg_ppt)
+    emg_ppt=ml.drop_ID_cols(emg_ppt)
+    
     if not args['featfuse_sel_feats_together']:
+        '''selecting feats modally before join'''
         eeg_ppt=eeg_ppt.iloc[:,sel_cols_eeg]
-        emg_ppt=ml.drop_ID_cols(emg_ppt)
         emg_ppt=emg_ppt.iloc[:,sel_cols_emg]
     
+    '''joining modalities'''
     eeg_ppt.drop('Label',axis='columns',inplace=True)
     eeg_ppt.rename(columns=lambda x: 'EEG_'+x, inplace=True)
     #emg_others[('EEG_',varname)]=eeg_others[varname] for varname in eeg_others.columns.values()
     labelcol_ppt=emg_ppt.pop('Label')
     emgeeg_ppt=pd.concat([emg_ppt,eeg_ppt],axis=1)
     emgeeg_ppt['Label']=labelcol_ppt
+    
+    if args['featfuse_sel_feats_together']:
+        '''selecting feats after join'''
+        emgeeg_ppt=emgeeg_ppt.iloc[:,sel_cols_emgeeg]
         
     #emgeeg_ppt.sort_values(['ID_pptID','ID_run','Label','ID_gestrep','ID_tend'],ascending=[True,True,True,True,True],inplace=True)
     #these are already sorted above before appending together?
     predlist_fusion=[]
         
     '''Get values from instances'''
-    IDs=list(emgeeg_ppt.filter(regex='^ID_').keys())
-    emgeeg_vals=emgeeg_ppt.drop(IDs,axis='columns').values
+#    IDs=list(emgeeg_ppt.filter(regex='^ID_').keys())
+ #   emgeeg_vals=emgeeg_ppt.drop(IDs,axis='columns').values
     
-    if args['featfuse_sel_feats_together']:
-       sel_cols_emgeeg=np.append(sel_cols_emgeeg,emgeeg_ppt.columns.get_loc('Label'))
-       emgeeg_ppt = emgeeg_ppt.iloc[:,sel_cols_emgeeg]
+ #   if args['featfuse_sel_feats_together']:
+  #     sel_cols_emgeeg=np.append(sel_cols_emgeeg,emgeeg_ppt.columns.get_loc('Label'))
+   #    emgeeg_ppt = emgeeg_ppt.iloc[:,sel_cols_emgeeg]
     
     emgeeg_vals=emgeeg_ppt.drop(['Label'],axis='columns').values
         
@@ -2007,7 +2005,7 @@ def setup_search_space(architecture,include_svm):
         if include_svm:
             space.update({
                 'fusion_alg':hp.choice('fusion algorithm',['featlevel',]),
-                'featfuse_sel_feats_together':False,#hp.choice('selfeatstogether',[True,False]),
+                'featfuse_sel_feats_together':True,#hp.choice('selfeatstogether',[True,False]),
                 #somehow when this is true theres an issue with the Label col. think we end up with
                 #either two label cols or none depending on whether we add it to selcols_emgeeg twice
                 'featfuse':hp.choice('featfuse model',[
@@ -2038,7 +2036,7 @@ def setup_search_space(architecture,include_svm):
         else:
             space.update({
                 'fusion_alg':hp.choice('fusion algorithm',['featlevel',]),
-                'featfuse_sel_feats_together':False,#hp.choice('selfeatstogether',[True,False]),
+                'featfuse_sel_feats_together':True,#hp.choice('selfeatstogether',[True,False]),
                 #somehow when this is true theres an issue with the Label col. think we end up with
                 #either two label cols or none depending on whether we add it to selcols_emgeeg twice
                 'featfuse':hp.choice('featfuse model',[
@@ -2205,10 +2203,10 @@ if __name__ == '__main__':
         else:
             showplots=None
     else:
-        architecture='hierarchical'    
+        architecture='featlevel'    
         trialmode='WithinPpt'
         platform='not server'
-        num_iters=3
+        num_iters=100
         showplots=None
         
     if architecture not in ['decision','featlevel','hierarchical','hierarchical_inv','just_emg','just_eeg']:

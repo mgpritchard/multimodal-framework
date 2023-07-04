@@ -2099,7 +2099,8 @@ def optimise_fusion(trialmode,prebalance=True,architecture='decision',platform='
     if platform=='server':
         space.update({'emg_set_path':params.jeong_EMGfeats_server,
                       #'eeg_set_path':params.jeong_EEGfeats_server})
-                      'eeg_set_path':params.jeong_RawEEGfeats_server})
+                      #'eeg_set_path':params.jeong_RawEEGfeats_server})
+                      'eeg_set_path':params.jeong_noCSP_WidebandFeats_server})
     
     if prebalance:
         emg_set=ml.pd.read_csv(space['emg_set_path'],delimiter=',')

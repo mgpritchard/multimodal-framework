@@ -71,6 +71,8 @@ if platform =='win32':
     
     jeong_RawEEGfeats_server=os.path.join(currentpath,'lit_data_expts/jeong/datasets/jeong_RawEEGfeatsSync.csv')
     
+    jeong_noCSP_WidebandFeats_server=os.path.join(currentpath,'lit_data_expts/jeong/datasets/jeongEEGnoCSP_WBFeats.csv')
+    
     jeong_results_dir='lit_data_expts/jeong/results/'
 elif platform == 'darwin':
     #mac
@@ -116,5 +118,7 @@ elif platform == 'linux' or 'linux32':
     jeong_EEGfeats_server=os.path.join(currentpath,'lit_data_expts/jeong/datasets/jeong_EEGfeatsCSPSync.csv')
     
     jeong_RawEEGfeats_server=os.path.join(currentpath,'lit_data_expts/jeong/datasets/jeong_RawEEGfeatsSync.csv')
+    
+    jeong_noCSP_WidebandFeats_server=os.path.join(currentpath,'lit_data_expts/jeong/datasets/jeongEEGnoCSP_WBFeats.csv')
     
     jeong_results_dir='lit_data_expts/jeong/results/'

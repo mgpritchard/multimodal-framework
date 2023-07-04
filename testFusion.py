@@ -2194,9 +2194,9 @@ if __name__ == '__main__':
     if len(sys.argv)>1:
         architecture=sys.argv[1]
         trialmode=sys.argv[2]
-        if trialmode=='not_server':
-            trialmode='not server'
         platform=sys.argv[3]
+        if platform=='not_server':
+            platform='not server'
         if len(sys.argv)>4:
             num_iters=int(sys.argv[4])
         if len(sys.argv)>5:

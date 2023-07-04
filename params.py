@@ -112,6 +112,8 @@ elif platform == 'linux' or 'linux32':
     jeong_EMGfeats='H:/Jeong11tasks_data/jeong_EMGfeats.csv'
     eeg_jeongSyncCSP_feats='H:/Jeong11tasks_data/jeongSyncCSPEEGfeats.csv'
     eeg_jeongSyncRaw_feats='H:/Jeong11tasks_data/jeongSyncRawEEGfeats.csv'
+    jeong_noCSP_WidebandDir='H:/Jeong11tasks_data/EEGnoCSP_wideband/'
+    jeong_noCSP_WidebandFeats='H:/Jeong11tasks_data/EEGnoCSP_WidebandFeats.csv'
     
     jeong_EMGfeats_server=os.path.join(currentpath,'lit_data_expts/jeong/datasets/jeong_EMGfeats.csv')
 

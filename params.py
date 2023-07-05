@@ -74,6 +74,9 @@ if platform =='win32':
     jeong_noCSP_WidebandFeats_server=os.path.join(currentpath,'lit_data_expts/jeong/datasets/jeongEEGnoCSP_WBFeats.csv')
     
     jeong_results_dir='lit_data_expts/jeong/results/'
+    
+    eegLOOfeatpath=r"C:\Users\pritcham\Desktop\emg_feat.csv"
+    emgLOOfeatpath=r"C:\Users\pritcham\Desktop\eeg_feat.csv"
 elif platform == 'darwin':
     #mac
     path='macpath'

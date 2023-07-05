@@ -1291,6 +1291,12 @@ def function_fuse_LOO(args):
     #f1s=[]
     #emg_f1s=[]
     #eeg_f1s=[]
+    '''TEMP'''
+    eeg_feat_idxs=[]
+    eeg_feat_names=[]
+    
+    emg_feat_idxs=[]
+    emg_feat_names=[]
     
     kappas=[]
     for idx,emg_mask in enumerate(emg_masks):
@@ -1422,6 +1428,12 @@ def function_fuse_LOO(args):
             sel_cols_emg=np.append(sel_cols_emg,emg_others.columns.get_loc('Label'))
             emg_others=emg_others.iloc[:,sel_cols_emg]
             
+            '''TEMP'''
+            eeg_feat_idxs.append(sel_cols_eeg)
+            eeg_feat_names.append(eeg_others.columns.values)
+            emg_feat_idxs.append(sel_cols_emg)
+            emg_feat_names.append(emg_others.columns.values)
+            
             emg_model,eeg_model=train_models_opt(emg_others,eeg_others,args)
         
             classlabels = emg_model.classes_
@@ -1460,7 +1472,20 @@ def function_fuse_LOO(args):
             train_accs.append(accuracy_score(train_truth,train_preds))
         else:
             train_accs.append(0)
-        
+    '''TEMP'''
+    pickle.dump(eeg_feat_idxs,open(r"C:\Users\pritcham\Desktop\eeg_feat_idx.pckl",'wb'))
+    pickle.dump(eeg_feat_names,open(r"C:\Users\pritcham\Desktop\eeg_feat_name.pckl",'wb'))
+    pickle.dump(emg_feat_idxs,open(r"C:\Users\pritcham\Desktop\emg_feat_idx.pckl",'wb'))
+    pickle.dump(emg_feat_names,open(r"C:\Users\pritcham\Desktop\emg_feat_name.pckl",'wb'))
+    eeg_feats_idx_df=pd.DataFrame(eeg_feat_idxs)
+    eeg_feats_idx_df.to_csv(r"C:\Users\pritcham\Desktop\eeg_feat_idx.csv",index=False,header=False)
+    eeg_feats_df=pd.DataFrame(eeg_feat_names)
+    eeg_feats_df.to_csv(r"C:\Users\pritcham\Desktop\eeg_feat.csv",index=False,header=False)
+    emg_feats_idx_df=pd.DataFrame(emg_feat_idxs)
+    emg_feats_idx_df.to_csv(r"C:\Users\pritcham\Desktop\emg_feat_idx.csv",index=False,header=False)
+    emg_feats_df=pd.DataFrame(emg_feat_names)
+    emg_feats_df.to_csv(r"C:\Users\pritcham\Desktop\emg_feat.csv",index=False,header=False)
+    
     mean_acc=stats.mean(accs)
     median_acc=stats.median(accs)
     mean_emg=stats.mean(emg_accs)
@@ -1976,14 +2001,14 @@ def setup_search_space(architecture,include_svm):
             'eeg_weight_opt':hp.uniform('fus.optEEG.EEGweight',0.0,100.0),
             'fusion_alg':hp.choice('fusion algorithm',[
                 'mean',
-                '3_1_emg',
-                '3_1_eeg',
-                'opt_weight',
+ #               '3_1_emg',
+  #              '3_1_eeg',
+   #             'opt_weight',
                 #'bayes', # NEED TO IMPLEMENT SCALING AND SELECTION
-                'highest_conf',
-                'svm',
-                'lda',
-                'rf',
+    #            'highest_conf',
+     #           'svm',
+      #          'lda',
+       #         'rf',
                 ]),
             #'emg_set_path':params.emg_set_path_for_system_tests,
             #'eeg_set_path':params.eeg_set_path_for_system_tests,
@@ -2204,10 +2229,10 @@ if __name__ == '__main__':
         else:
             showplots=None
     else:
-        architecture='featlevel'    
-        trialmode='WithinPpt'
+        architecture='decision'    
+        trialmode='LOO'
         platform='not server'
-        num_iters=100
+        num_iters=1
         showplots=None
         
     if architecture not in ['decision','featlevel','hierarchical','hierarchical_inv','just_emg','just_eeg']:

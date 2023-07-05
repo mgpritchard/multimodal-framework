@@ -1292,11 +1292,11 @@ def function_fuse_LOO(args):
     #emg_f1s=[]
     #eeg_f1s=[]
     '''TEMP'''
-    eeg_feat_idxs=[]
-    eeg_feat_names=[]
+#    eeg_feat_idxs=[]
+ #   eeg_feat_names=[]
     
-    emg_feat_idxs=[]
-    emg_feat_names=[]
+ #   emg_feat_idxs=[]
+  #  emg_feat_names=[]
     
     kappas=[]
     for idx,emg_mask in enumerate(emg_masks):
@@ -1428,11 +1428,11 @@ def function_fuse_LOO(args):
             sel_cols_emg=np.append(sel_cols_emg,emg_others.columns.get_loc('Label'))
             emg_others=emg_others.iloc[:,sel_cols_emg]
             
-            '''TEMP'''
-            eeg_feat_idxs.append(sel_cols_eeg)
-            eeg_feat_names.append(eeg_others.columns.values)
-            emg_feat_idxs.append(sel_cols_emg)
-            emg_feat_names.append(emg_others.columns.values)
+#            '''TEMP'''
+ #           eeg_feat_idxs.append(sel_cols_eeg)
+  #          eeg_feat_names.append(eeg_others.columns.values)
+   #         emg_feat_idxs.append(sel_cols_emg)
+    #        emg_feat_names.append(emg_others.columns.values)
             
             emg_model,eeg_model=train_models_opt(emg_others,eeg_others,args)
         
@@ -1473,18 +1473,18 @@ def function_fuse_LOO(args):
         else:
             train_accs.append(0)
     '''TEMP'''
-    pickle.dump(eeg_feat_idxs,open(r"C:\Users\pritcham\Desktop\eeg_feat_idx.pckl",'wb'))
-    pickle.dump(eeg_feat_names,open(r"C:\Users\pritcham\Desktop\eeg_feat_name.pckl",'wb'))
-    pickle.dump(emg_feat_idxs,open(r"C:\Users\pritcham\Desktop\emg_feat_idx.pckl",'wb'))
-    pickle.dump(emg_feat_names,open(r"C:\Users\pritcham\Desktop\emg_feat_name.pckl",'wb'))
-    eeg_feats_idx_df=pd.DataFrame(eeg_feat_idxs)
-    eeg_feats_idx_df.to_csv(r"C:\Users\pritcham\Desktop\eeg_feat_idx.csv",index=False,header=False)
-    eeg_feats_df=pd.DataFrame(eeg_feat_names)
-    eeg_feats_df.to_csv(r"C:\Users\pritcham\Desktop\eeg_feat.csv",index=False,header=False)
-    emg_feats_idx_df=pd.DataFrame(emg_feat_idxs)
-    emg_feats_idx_df.to_csv(r"C:\Users\pritcham\Desktop\emg_feat_idx.csv",index=False,header=False)
-    emg_feats_df=pd.DataFrame(emg_feat_names)
-    emg_feats_df.to_csv(r"C:\Users\pritcham\Desktop\emg_feat.csv",index=False,header=False)
+#    pickle.dump(eeg_feat_idxs,open(r"C:\Users\pritcham\Desktop\eeg_feat_idx.pckl",'wb'))
+ #   pickle.dump(eeg_feat_names,open(r"C:\Users\pritcham\Desktop\eeg_feat_name.pckl",'wb'))
+  #  pickle.dump(emg_feat_idxs,open(r"C:\Users\pritcham\Desktop\emg_feat_idx.pckl",'wb'))
+   # pickle.dump(emg_feat_names,open(r"C:\Users\pritcham\Desktop\emg_feat_name.pckl",'wb'))
+#    eeg_feats_idx_df=pd.DataFrame(eeg_feat_idxs)
+ #   eeg_feats_idx_df.to_csv(r"C:\Users\pritcham\Desktop\eeg_feat_idx.csv",index=False,header=False)
+  #  eeg_feats_df=pd.DataFrame(eeg_feat_names)
+   # eeg_feats_df.to_csv(r"C:\Users\pritcham\Desktop\eeg_feat.csv",index=False,header=False)
+#    emg_feats_idx_df=pd.DataFrame(emg_feat_idxs)
+ #   emg_feats_idx_df.to_csv(r"C:\Users\pritcham\Desktop\emg_feat_idx.csv",index=False,header=False)
+  #  emg_feats_df=pd.DataFrame(emg_feat_names)
+   # emg_feats_df.to_csv(r"C:\Users\pritcham\Desktop\emg_feat.csv",index=False,header=False)
     
     mean_acc=stats.mean(accs)
     median_acc=stats.median(accs)

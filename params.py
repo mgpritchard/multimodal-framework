@@ -75,8 +75,10 @@ if platform =='win32':
     
     jeong_results_dir='lit_data_expts/jeong/results/'
     
-    eegLOOfeatpath=r"C:\Users\pritcham\Desktop\emg_feat.csv"
-    emgLOOfeatpath=r"C:\Users\pritcham\Desktop\eeg_feat.csv"
+    emgLOOfeatpath=os.path.join(currentpath, 'lit_data_expts/jeong/datasets/emg_LOO_feats_15pct.csv')
+    eegLOOfeatpath=os.path.join(currentpath, 'lit_data_expts/jeong/datasets/eeg_LOO_feats_L1_88.csv')
+    #REPLACE BELOW WHEN FOUND
+    jointemgeegLOOfeatpath=os.path.join(currentpath, 'lit_data_expts/jeong/datasets/eeg_LOO_feats_L1_88.csv')
 elif platform == 'darwin':
     #mac
     path='macpath'
@@ -127,3 +129,8 @@ elif platform == 'linux' or 'linux32':
     jeong_noCSP_WidebandFeats_server=os.path.join(currentpath,'lit_data_expts/jeong/datasets/jeongEEGnoCSP_WBFeats.csv')
     
     jeong_results_dir='lit_data_expts/jeong/results/'
+    
+    emgLOOfeatpath=os.path.join(currentpath, 'lit_data_expts/jeong/datasets/emg_LOO_feats_15pct.csv')
+    eegLOOfeatpath=os.path.join(currentpath, 'lit_data_expts/jeong/datasets/eeg_LOO_feats_L1_88.csv')
+    #REPLACE BELOW WHEN FOUND
+    jointemgeegLOOfeatpath=os.path.join(currentpath, 'lit_data_expts/jeong/datasets/eeg_LOO_feats_L1_88.csv')

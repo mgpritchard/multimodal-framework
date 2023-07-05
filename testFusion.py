@@ -570,13 +570,19 @@ def feature_fusion(emg_others,eeg_others,emg_ppt,eeg_ppt,args):
     
     if not args['featfuse_sel_feats_together']:
         
-        sel_cols_emg=feats.sel_percent_feats_df(emg_others,percent=15)
-        sel_cols_emg=np.append(sel_cols_emg,emg_others.columns.get_loc('Label'))
-        emg_others = emg_others.iloc[:,sel_cols_emg]        
-    
-        #sel_cols_eeg=feats.sel_percent_feats_df(eeg_others,percent=3)
-        sel_cols_eeg=feats.sel_feats_l1_df(eeg_others,sparsityC=args['l1_sparsity'],maxfeats=args['l1_maxfeats'])
-        sel_cols_eeg=np.append(sel_cols_eeg,eeg_others.columns.get_loc('Label'))
+        if args['trialmode']=='WithinPpt':
+            sel_cols_emg=feats.sel_percent_feats_df(emg_others,percent=15)
+            sel_cols_emg=np.append(sel_cols_emg,emg_others.columns.get_loc('Label'))
+
+            #sel_cols_eeg=feats.sel_percent_feats_df(eeg_others,percent=3)
+            sel_cols_eeg=feats.sel_feats_l1_df(eeg_others,sparsityC=args['l1_sparsity'],maxfeats=args['l1_maxfeats'])
+            sel_cols_eeg=np.append(sel_cols_eeg,eeg_others.columns.get_loc('Label'))
+        elif args['trialmode']=='LOO':
+            idx=int(emg_ppt['ID_pptID'].iloc[0])-1
+            sel_cols_emg=[emg_others.columns.get_loc(col) for col in args['emg_feats_LOO'].iloc[idx].tolist()]
+            sel_cols_eeg=[eeg_others.columns.get_loc(col) for col in args['eeg_feats_LOO'].iloc[idx].tolist()]
+            
+        emg_others = emg_others.iloc[:,sel_cols_emg] 
         eeg_others = eeg_others.iloc[:,sel_cols_eeg]
 
 
@@ -938,8 +944,12 @@ def only_EMG(emg_others,eeg_others,emg_ppt,eeg_ppt,args):
 
     '''Train EMG model'''
     emg_train=ml.drop_ID_cols(emg_others)
-    sel_cols_emg=feats.sel_percent_feats_df(emg_train,percent=15)
-    sel_cols_emg=np.append(sel_cols_emg,emg_train.columns.get_loc('Label'))
+    if args['trialmode']=='WithinPpt':
+        sel_cols_emg=feats.sel_percent_feats_df(emg_train,percent=15)
+        sel_cols_emg=np.append(sel_cols_emg,emg_train.columns.get_loc('Label'))
+    elif args['trialmode']=='LOO':
+        idx=int(emg_ppt['ID_pptID'].iloc[0])-1
+        sel_cols_emg=[emg_train.columns.get_loc(col) for col in args['emg_feats_LOO'].iloc[idx].tolist()]
     emg_train=emg_train.iloc[:,sel_cols_emg]
     
     emg_model = ml.train_optimise(emg_train, args['emg']['emg_model_type'], args['emg'])
@@ -1002,10 +1012,14 @@ def only_EEG(emg_others,eeg_others,emg_ppt,eeg_ppt,args):
 
     '''Train EEG model'''
     eeg_train=ml.drop_ID_cols(eeg_others)
-    #sel_cols_eeg=feats.sel_percent_feats_df(eeg_train,percent=3)
-    sel_cols_eeg=feats.sel_feats_l1_df(eeg_train,sparsityC=args['l1_sparsity'],maxfeats=args['l1_maxfeats'])
-    #print('reduced to '+str(len(sel_cols_eeg))+' cols (line 944)')
-    sel_cols_eeg=np.append(sel_cols_eeg,eeg_train.columns.get_loc('Label'))
+    if args['trialmode']=='WithinPpt':
+        #sel_cols_eeg=feats.sel_percent_feats_df(eeg_train,percent=3)
+        sel_cols_eeg=feats.sel_feats_l1_df(eeg_train,sparsityC=args['l1_sparsity'],maxfeats=args['l1_maxfeats'])
+        #print('reduced to '+str(len(sel_cols_eeg))+' cols (line 944)')
+        sel_cols_eeg=np.append(sel_cols_eeg,eeg_train.columns.get_loc('Label'))
+    elif args['trialmode']=='LOO':
+        idx=int(eeg_ppt['ID_pptID'].iloc[0])-1
+        sel_cols_eeg=[eeg_train.columns.get_loc(col) for col in args['eeg_feats_LOO'].iloc[idx].tolist()]
     eeg_train=eeg_train.iloc[:,sel_cols_eeg]
     
     eeg_model = ml.train_optimise(eeg_train, args['eeg']['eeg_model_type'], args['eeg'],args['bag_eeg'])

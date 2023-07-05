@@ -132,20 +132,21 @@ def balance_single_mode(dataset):
 def balance_set(emg_set,eeg_set):
     #print('initial')
     #_,_=inspect_set_balance(emg_set=emg_set,eeg_set=eeg_set)
+    emg_set.sort_values(['ID_pptID','ID_run','Label','ID_gestrep','ID_tend'],ascending=[True,True,True,True,True],inplace=True)
+    eeg_set.sort_values(['ID_pptID','ID_run','Label','ID_gestrep','ID_tend'],ascending=[True,True,True,True,True],inplace=True)
+
     
     index_emg=ml.pd.MultiIndex.from_arrays([emg_set[col] for col in ['ID_pptID','ID_run','Label','ID_gestrep','ID_tend']])
     index_eeg=ml.pd.MultiIndex.from_arrays([eeg_set[col] for col in ['ID_pptID','ID_run','Label','ID_gestrep','ID_tend']])
     emg=emg_set.loc[index_emg.isin(index_eeg)].reset_index(drop=True)
     eeg=eeg_set.loc[index_eeg.isin(index_emg)].reset_index(drop=True)
     
-    emg.sort_values(['ID_pptID','ID_run','Label','ID_gestrep','ID_tend'],ascending=[True,True,True,True,True],inplace=True)
-    eeg.sort_values(['ID_pptID','ID_run','Label','ID_gestrep','ID_tend'],ascending=[True,True,True,True,True],inplace=True)
     
     eeg['ID_stratID']=eeg['ID_pptID'].astype(str)+eeg['Label'].astype(str)
     emg['ID_stratID']=emg['ID_pptID'].astype(str)+emg['Label'].astype(str)
     
     stratsize=np.min(emg['ID_stratID'].value_counts())
-    balemg = emg.groupby('ID_stratID')
+    balemg = emg.groupby('ID_stratID',group_keys=False)
     #g.apply(lambda x: x.sample(g.size().min()))
     #https://stackoverflow.com/questions/45839316/pandas-balancing-data
     balemg=balemg.apply(lambda x: x.sample(stratsize))
@@ -1349,13 +1350,11 @@ def function_fuse_LOO(args):
        
         elif args['fusion_alg']=='hierarchical':
             
-            
             if args['scalingtype']:
                 emg_others,emgscaler=feats.scale_feats_train(emg_others,args['scalingtype'])
                 eeg_others,eegscaler=feats.scale_feats_train(eeg_others,args['scalingtype'])
                 emg_ppt=feats.scale_feats_test(emg_ppt,emgscaler)
                 eeg_ppt=feats.scale_feats_test(eeg_ppt,eegscaler)
-                            
             
             targets, predlist_emg, predlist_eeg, predlist_fusion, classlabels=fusion_hierarchical(emg_others, eeg_others, emg_ppt, eeg_ppt, args)
 
@@ -2057,9 +2056,9 @@ def setup_search_space(architecture,include_svm):
                      'smoothing':hp.loguniform('featfuse.gnb.smoothing',np.log(1e-9),np.log(1e0)),
                      },
                     {'featfuse_model_type':'SVM_PlattScale', #keep this commented out
-                     'kernel':hp.choice('eeg.svm.kernel',['rbf']),#'poly','linear']),
-                     'svm_C':hp.loguniform('eeg.svm.c',np.log(0.01),np.log(100)),
-                     'gamma':hp.loguniform('eeg.svm.gamma',np.log(0.01),np.log(1)),
+                     'kernel':hp.choice('featfuse.svm.kernel',['rbf']),#'poly','linear']),
+                     'svm_C':hp.loguniform('featfuse.svm.c',np.log(0.01),np.log(100)),
+                     'gamma':hp.loguniform('featfuse.svm.gamma',np.log(0.01),np.log(1)),
                      },
                     ]),
                 })
@@ -2090,18 +2089,21 @@ def setup_search_space(architecture,include_svm):
         space.pop('eeg',None)
         space.pop('svmfuse',None)
         space.pop('ldafuse',None)
+        space.pop('RFfuse',None)
         space.pop('eeg_weight_opt',None)
         
     elif architecture=='hierarchical':
         space.update({'fusion_alg':hp.choice('fusion algorithm',['hierarchical',])})
         space.pop('svmfuse',None)
         space.pop('ldafuse',None)
+        space.pop('RFfuse',None)
         space.pop('eeg_weight_opt',None)
         
     elif architecture=='hierarchical_inv':
         space.update({'fusion_alg':hp.choice('fusion algorithm',['hierarchical_inv',])})
         space.pop('svmfuse',None)
         space.pop('ldafuse',None)
+        space.pop('RFfuse',None)
         space.pop('eeg_weight_opt',None)
         
     elif architecture=='just_emg':
@@ -2109,6 +2111,7 @@ def setup_search_space(architecture,include_svm):
         space.pop('eeg',None)
         space.pop('svmfuse',None)
         space.pop('ldafuse',None)
+        space.pop('RFfuse',None)
         space.pop('eeg_weight_opt',None)
     
     elif architecture=='just_eeg':
@@ -2116,6 +2119,7 @@ def setup_search_space(architecture,include_svm):
         space.pop('emg',None)
         space.pop('svmfuse',None)
         space.pop('ldafuse',None)
+        space.pop('RFfuse',None)
         space.pop('eeg_weight_opt',None)
         
     return space
@@ -2260,7 +2264,7 @@ if __name__ == '__main__':
     #best_results=function_fuse_LOO(space)
     #raise
         
-    if 1:    
+    if 1:  #if showplots ?  
         chosen_space=space_eval(space,best)
         chosen_space['plot_confmats']=True
         if trialmode=='LOO':

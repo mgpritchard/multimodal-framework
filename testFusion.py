@@ -2048,7 +2048,7 @@ def setup_search_space(architecture,include_svm):
         if include_svm:
             space.update({
                 'fusion_alg':hp.choice('fusion algorithm',['featlevel',]),
-                'featfuse_sel_feats_together':True,#hp.choice('selfeatstogether',[True,False]),
+                'featfuse_sel_feats_together':False,#hp.choice('selfeatstogether',[True,False]),
                 #somehow when this is true theres an issue with the Label col. think we end up with
                 #either two label cols or none depending on whether we add it to selcols_emgeeg twice
                 'featfuse':hp.choice('featfuse model',[
@@ -2079,7 +2079,7 @@ def setup_search_space(architecture,include_svm):
         else:
             space.update({
                 'fusion_alg':hp.choice('fusion algorithm',['featlevel',]),
-                'featfuse_sel_feats_together':True,#hp.choice('selfeatstogether',[True,False]),
+                'featfuse_sel_feats_together':False,#hp.choice('selfeatstogether',[True,False]),
                 #somehow when this is true theres an issue with the Label col. think we end up with
                 #either two label cols or none depending on whether we add it to selcols_emgeeg twice
                 'featfuse':hp.choice('featfuse model',[
@@ -2310,7 +2310,10 @@ if __name__ == '__main__':
     for static in ['eeg_set_path','emg_set_path','using_literature_data']:
         bestparams.pop(static)
     bestparams.pop('eeg_set')
-    bestparams.pop('emg_set')    
+    bestparams.pop('emg_set')
+    bestparams.pop('eeg_feats_LOO',None)
+    #bestparams.drop('emg_feats_LOO',errors='ignore') #if a DF   
+    bestparams.pop('emg_feats_LOO',None)
     
     print(bestparams)
    # print('Best Coehns Kappa between ground truth and fusion predictions: ',

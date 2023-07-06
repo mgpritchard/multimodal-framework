@@ -593,10 +593,15 @@ def feature_fusion(emg_others,eeg_others,emg_ppt,eeg_ppt,args):
     emgeeg_others['Label']=labelcol
     
     if args['featfuse_sel_feats_together']:
-        #sel_cols_emgeeg=feats.sel_percent_feats_df(emgeeg_others,percent=15)
-        sel_cols_emgeeg=feats.sel_feats_l1_df(emgeeg_others,sparsityC=args['l1_sparsity'],maxfeats=args['l1_maxfeats']+88)
-        '''here we are taking total features = N(EEG feats) + N(EMG feats) = N(EEG) + 88'''
-        sel_cols_emgeeg=np.append(sel_cols_emgeeg,emgeeg_others.columns.get_loc('Label'))
+        if args['trialmode']=='WithinPpt':
+            #sel_cols_emgeeg=feats.sel_percent_feats_df(emgeeg_others,percent=15)
+            sel_cols_emgeeg=feats.sel_feats_l1_df(emgeeg_others,sparsityC=args['l1_sparsity'],maxfeats=args['l1_maxfeats']+88)
+            '''here we are taking total features = N(EEG feats) + N(EMG feats) = N(EEG) + 88'''
+            sel_cols_emgeeg=np.append(sel_cols_emgeeg,emgeeg_others.columns.get_loc('Label'))
+        elif args['trialmode']=='LOO':
+            idx=int(emg_ppt['ID_pptID'].iloc[0])-1
+            sel_cols_emgeeg=[emgeeg_others.columns.get_loc(col) for col in args['jointemgeeg_feats_LOO'].iloc[idx].tolist()]
+
         emgeeg_others = emgeeg_others.iloc[:,sel_cols_emgeeg]
     
     emgeeg_model = ml.train_optimise(emgeeg_others, args['featfuse']['featfuse_model_type'],args['featfuse'])
@@ -2060,7 +2065,7 @@ def setup_search_space(architecture,include_svm):
         if include_svm:
             space.update({
                 'fusion_alg':hp.choice('fusion algorithm',['featlevel',]),
-                'featfuse_sel_feats_together':False,#hp.choice('selfeatstogether',[True,False]),
+                'featfuse_sel_feats_together':True,#hp.choice('selfeatstogether',[True,False]),
                 #somehow when this is true theres an issue with the Label col. think we end up with
                 #either two label cols or none depending on whether we add it to selcols_emgeeg twice
                 'featfuse':hp.choice('featfuse model',[
@@ -2091,7 +2096,7 @@ def setup_search_space(architecture,include_svm):
         else:
             space.update({
                 'fusion_alg':hp.choice('fusion algorithm',['featlevel',]),
-                'featfuse_sel_feats_together':False,#hp.choice('selfeatstogether',[True,False]),
+                'featfuse_sel_feats_together':True,#hp.choice('selfeatstogether',[True,False]),
                 #somehow when this is true theres an issue with the Label col. think we end up with
                 #either two label cols or none depending on whether we add it to selcols_emgeeg twice
                 'featfuse':hp.choice('featfuse model',[
@@ -2177,8 +2182,10 @@ def optimise_fusion(trialmode,prebalance=True,architecture='decision',platform='
         '''DONT necessarily need to do for generalist as not overfitting, switch out in algo funcs'''
         emg_cols=pd.read_csv(params.emgLOOfeatpath,delimiter=',',header=None)
         eeg_cols=pd.read_csv(params.eegLOOfeatpath,delimiter=',',header=None)
+        emgeegcols=pd.read_csv(params.jointemgeegLOOfeatpath,delimiter=',',header=None)
         space.update({'emg_feats_LOO':emg_cols,
-                      'eeg_feats_LOO':eeg_cols})
+                      'eeg_feats_LOO':eeg_cols,
+                      'jointemgeeg_feats_LOO':emgeegcols,})
         best = fmin(function_fuse_LOO,
                     space=space,
                     algo=tpe.suggest,
@@ -2326,6 +2333,7 @@ if __name__ == '__main__':
     bestparams.pop('eeg_feats_LOO',None)
     #bestparams.drop('emg_feats_LOO',errors='ignore') #if a DF   
     bestparams.pop('emg_feats_LOO',None)
+    bestparams.pop('jointemgeeg_feats_LOO',None)
     
     print(bestparams)
    # print('Best Coehns Kappa between ground truth and fusion predictions: ',

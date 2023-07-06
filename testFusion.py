@@ -658,7 +658,8 @@ def feature_fusion(emg_others,eeg_others,emg_ppt,eeg_ppt,args):
         pred_fusion=ml.pred_from_distro(classlabels,distro)
         predlist_fusion.append(pred_fusion) 
     
-    return targets, predlist_fusion, predlist_fusion, predlist_fusion, classlabels
+    #return targets, predlist_fusion, predlist_fusion, predlist_fusion, classlabels
+    return targets, predlist_fusion, predlist_fusion, predlist_fusion, classlabels, sel_cols_emgeeg, emgeeg_others.columns.values
 
 def fusion_hierarchical(emg_others,eeg_others,emg_ppt,eeg_ppt,args):
     '''TRAINING ON NON-PPT DATA'''
@@ -1312,6 +1313,8 @@ def function_fuse_LOO(args):
     
  #   emg_feat_idxs=[]
   #  emg_feat_names=[]
+    joint_feat_idxs=[]
+    joint_feat_names=[]
     
     kappas=[]
     for idx,emg_mask in enumerate(emg_masks):
@@ -1393,7 +1396,10 @@ def function_fuse_LOO(args):
                 emg_ppt=feats.scale_feats_test(emg_ppt,emgscaler)
                 eeg_ppt=feats.scale_feats_test(eeg_ppt,eegscaler)
                             
-            targets, predlist_emg, predlist_eeg, predlist_fusion, classlabels=feature_fusion(emg_others, eeg_others, emg_ppt, eeg_ppt, args)
+            #targets, predlist_emg, predlist_eeg, predlist_fusion, classlabels=feature_fusion(emg_others, eeg_others, emg_ppt, eeg_ppt, args)
+            targets, predlist_emg, predlist_eeg, predlist_fusion, classlabels,colsidx,colnames=feature_fusion(emg_others, eeg_others, emg_ppt, eeg_ppt, args)
+            joint_feat_idxs.append(colsidx)
+            joint_feat_names.append(colnames)
         
         elif args['fusion_alg']=='just_emg':
             
@@ -1503,6 +1509,12 @@ def function_fuse_LOO(args):
  #   emg_feats_idx_df.to_csv(r"C:\Users\pritcham\Desktop\emg_feat_idx.csv",index=False,header=False)
   #  emg_feats_df=pd.DataFrame(emg_feat_names)
    # emg_feats_df.to_csv(r"C:\Users\pritcham\Desktop\emg_feat.csv",index=False,header=False)
+    pickle.dump(joint_feat_idxs,open(r"C:\Users\pritcham\Desktop\joint_feat_idx.pckl",'wb'))
+    pickle.dump(joint_feat_names,open(r"C:\Users\pritcham\Desktop\joint_feat_name.pckl",'wb'))
+    joint_feats_idx_df=pd.DataFrame(joint_feat_idxs)
+    joint_feats_idx_df.to_csv(r"C:\Users\pritcham\Desktop\joint_feat_idx.csv",index=False,header=False)
+    joint_feats_df=pd.DataFrame(joint_feat_names)
+    joint_feats_df.to_csv(r"C:\Users\pritcham\Desktop\joint_feat.csv",index=False,header=False)
     
     mean_acc=stats.mean(accs)
     median_acc=stats.median(accs)
@@ -2256,7 +2268,7 @@ if __name__ == '__main__':
         else:
             showplots=None
     else:
-        architecture='decision'    
+        architecture='featlevel'    
         trialmode='LOO'
         platform='not server'
         num_iters=1

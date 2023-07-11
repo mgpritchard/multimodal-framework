@@ -825,8 +825,12 @@ def fusion_hierarchical(emg_others,eeg_others,emg_ppt,eeg_ppt,args):
     eeg_others['ID_splitIndex']=eeg_others['Label'].astype(str)+eeg_others['ID_pptID'].astype(str)
     #https://stackoverflow.com/questions/45516424/sklearn-train-test-split-on-pandas-stratify-by-multiple-columns
     
-    sel_cols_eeg=feats.sel_feats_l1_df(ml.drop_ID_cols(eeg_others),sparsityC=args['l1_sparsity'],maxfeats=args['l1_maxfeats'])
-    sel_cols_eeg=np.append(sel_cols_eeg,ml.drop_ID_cols(eeg_others).columns.get_loc('Label'))
+    if args['trialmode']=='WithinPpt':
+        sel_cols_eeg=feats.sel_feats_l1_df(ml.drop_ID_cols(eeg_others),sparsityC=args['l1_sparsity'],maxfeats=args['l1_maxfeats'])
+        sel_cols_eeg=np.append(sel_cols_eeg,ml.drop_ID_cols(eeg_others).columns.get_loc('Label'))
+    elif args['trialmode']=='LOO':
+        idx=int(eeg_ppt['ID_pptID'].iloc[0])-1
+        sel_cols_eeg=[ml.drop_ID_cols(eeg_others).columns.get_loc(col) for col in args['eeg_feats_LOO'].iloc[idx].tolist()]
     
     random_split=random.randint(0,100)
     folds=StratifiedKFold(random_state=random_split,n_splits=3,shuffle=False)
@@ -873,8 +877,12 @@ def fusion_hierarchical(emg_others,eeg_others,emg_ppt,eeg_ppt,args):
     
     emg_train=emg_others
     emg_train=ml.drop_ID_cols(emg_train)
-    sel_cols_emg=feats.sel_percent_feats_df(emg_train,percent=15)
-    sel_cols_emg=np.append(sel_cols_emg,emg_train.columns.get_loc('Label'))
+    if args['trialmode']=='WithinPpt':
+        sel_cols_emg=feats.sel_percent_feats_df(emg_train,percent=15)
+        sel_cols_emg=np.append(sel_cols_emg,emg_train.columns.get_loc('Label'))
+    elif args['trialmode']=='LOO':
+        idx=int(emg_ppt['ID_pptID'].iloc[0])-1
+        sel_cols_emg=[emg_train.columns.get_loc(col) for col in args['emg_feats_LOO'].iloc[idx].tolist()]
     emg_train=emg_train.iloc[:,sel_cols_emg]
     
     lab=emg_train.pop('Label')
@@ -956,8 +964,12 @@ def fusion_hierarchical_inv(emg_others,eeg_others,emg_ppt,eeg_ppt,args):
     eeg_others['ID_splitIndex']=eeg_others['Label'].astype(str)+eeg_others['ID_pptID'].astype(str)
     #https://stackoverflow.com/questions/45516424/sklearn-train-test-split-on-pandas-stratify-by-multiple-columns
     
-    sel_cols_emg=feats.sel_percent_feats_df(ml.drop_ID_cols(emg_others),percent=15)
-    sel_cols_emg=np.append(sel_cols_emg,ml.drop_ID_cols(emg_others).columns.get_loc('Label'))
+    if args['trialmode']=='WithinPpt':
+        sel_cols_emg=feats.sel_percent_feats_df(ml.drop_ID_cols(emg_others),percent=15)
+        sel_cols_emg=np.append(sel_cols_emg,ml.drop_ID_cols(emg_others).columns.get_loc('Label'))
+    elif args['trialmode']=='LOO':
+        idx=int(emg_ppt['ID_pptID'].iloc[0])-1
+        sel_cols_emg=[ml.drop_ID_cols(emg_others).columns.get_loc(col) for col in args['emg_feats_LOO'].iloc[idx].tolist()]
 	
     random_split=random.randint(0,100)
     folds=StratifiedKFold(random_state=random_split,n_splits=3,shuffle=False)
@@ -1006,8 +1018,12 @@ def fusion_hierarchical_inv(emg_others,eeg_others,emg_ppt,eeg_ppt,args):
 	
     eeg_train=eeg_others
     eeg_train=ml.drop_ID_cols(eeg_train)
-    sel_cols_eeg=feats.sel_feats_l1_df(eeg_train,sparsityC=args['l1_sparsity'],maxfeats=args['l1_maxfeats'])
-    sel_cols_eeg=np.append(sel_cols_eeg,eeg_train.columns.get_loc('Label'))
+    if args['trialmode']=='WithinPpt':
+        sel_cols_eeg=feats.sel_feats_l1_df(eeg_train,sparsityC=args['l1_sparsity'],maxfeats=args['l1_maxfeats'])
+        sel_cols_eeg=np.append(sel_cols_eeg,eeg_train.columns.get_loc('Label'))
+    elif args['trialmode']=='LOO':
+        idx=int(eeg_ppt['ID_pptID'].iloc[0])-1
+        sel_cols_eeg=[eeg_train.columns.get_loc(col) for col in args['eeg_feats_LOO'].iloc[idx].tolist()]
     eeg_train=eeg_train.iloc[:,sel_cols_eeg]
 	
     lab=eeg_train.pop('Label')
@@ -1401,10 +1417,15 @@ def fusion_SVM(emg_train, eeg_train, emg_test, eeg_test, args):
     eeg_train['ID_splitIndex']=eeg_train['Label'].astype(str)+eeg_train['ID_pptID'].astype(str)
     #https://stackoverflow.com/questions/45516424/sklearn-train-test-split-on-pandas-stratify-by-multiple-columns
     
-    sel_cols_emg=feats.sel_percent_feats_df(ml.drop_ID_cols(emg_train),percent=15)
-    sel_cols_emg=np.append(sel_cols_emg,ml.drop_ID_cols(emg_train).columns.get_loc('Label'))
-    sel_cols_eeg=feats.sel_feats_l1_df(ml.drop_ID_cols(eeg_train),sparsityC=args['l1_sparsity'],maxfeats=args['l1_maxfeats'])
-    sel_cols_eeg=np.append(sel_cols_eeg,ml.drop_ID_cols(eeg_train).columns.get_loc('Label'))
+    if args['trialmode']=='WithinPpt':
+        sel_cols_emg=feats.sel_percent_feats_df(ml.drop_ID_cols(emg_train),percent=15)
+        sel_cols_emg=np.append(sel_cols_emg,ml.drop_ID_cols(emg_train).columns.get_loc('Label'))
+        sel_cols_eeg=feats.sel_feats_l1_df(ml.drop_ID_cols(eeg_train),sparsityC=args['l1_sparsity'],maxfeats=args['l1_maxfeats'])
+        sel_cols_eeg=np.append(sel_cols_eeg,ml.drop_ID_cols(eeg_train).columns.get_loc('Label'))
+    elif args['trialmode']=='LOO':
+        idx=int(eeg_test['ID_pptID'].iloc[0])-1
+        sel_cols_eeg=[ml.drop_ID_cols(eeg_train).columns.get_loc(col) for col in args['eeg_feats_LOO'].iloc[idx].tolist()]
+        sel_cols_emg=[ml.drop_ID_cols(emg_train).columns.get_loc(col) for col in args['emg_feats_LOO'].iloc[idx].tolist()]
     
     random_split=random.randint(0,100)
     folds=StratifiedKFold(random_state=random_split,n_splits=3,shuffle=False)
@@ -1559,10 +1580,15 @@ def fusion_LDA(emg_train, eeg_train, emg_test, eeg_test, args):
     eeg_train['ID_splitIndex']=eeg_train['Label'].astype(str)+eeg_train['ID_pptID'].astype(str)
     #https://stackoverflow.com/questions/45516424/sklearn-train-test-split-on-pandas-stratify-by-multiple-columns
     
-    sel_cols_emg=feats.sel_percent_feats_df(ml.drop_ID_cols(emg_train),percent=15)
-    sel_cols_emg=np.append(sel_cols_emg,ml.drop_ID_cols(emg_train).columns.get_loc('Label'))
-    sel_cols_eeg=feats.sel_feats_l1_df(ml.drop_ID_cols(eeg_train),sparsityC=args['l1_sparsity'],maxfeats=args['l1_maxfeats'])
-    sel_cols_eeg=np.append(sel_cols_eeg,ml.drop_ID_cols(eeg_train).columns.get_loc('Label'))
+    if args['trialmode']=='WithinPpt':
+        sel_cols_emg=feats.sel_percent_feats_df(ml.drop_ID_cols(emg_train),percent=15)
+        sel_cols_emg=np.append(sel_cols_emg,ml.drop_ID_cols(emg_train).columns.get_loc('Label'))
+        sel_cols_eeg=feats.sel_feats_l1_df(ml.drop_ID_cols(eeg_train),sparsityC=args['l1_sparsity'],maxfeats=args['l1_maxfeats'])
+        sel_cols_eeg=np.append(sel_cols_eeg,ml.drop_ID_cols(eeg_train).columns.get_loc('Label'))
+    elif args['trialmode']=='LOO':
+        idx=int(eeg_test['ID_pptID'].iloc[0])-1
+        sel_cols_eeg=[ml.drop_ID_cols(eeg_train).columns.get_loc(col) for col in args['eeg_feats_LOO'].iloc[idx].tolist()]
+        sel_cols_emg=[ml.drop_ID_cols(emg_train).columns.get_loc(col) for col in args['emg_feats_LOO'].iloc[idx].tolist()]
     
     random_split=random.randint(0,100)
     folds=StratifiedKFold(random_state=random_split,n_splits=3,shuffle=False)
@@ -1714,10 +1740,15 @@ def fusion_RF(emg_train, eeg_train, emg_test, eeg_test, args):
     eeg_train['ID_splitIndex']=eeg_train['Label'].astype(str)+eeg_train['ID_pptID'].astype(str)
     #https://stackoverflow.com/questions/45516424/sklearn-train-test-split-on-pandas-stratify-by-multiple-columns
     
-    sel_cols_emg=feats.sel_percent_feats_df(ml.drop_ID_cols(emg_train),percent=15)
-    sel_cols_emg=np.append(sel_cols_emg,ml.drop_ID_cols(emg_train).columns.get_loc('Label'))
-    sel_cols_eeg=feats.sel_feats_l1_df(ml.drop_ID_cols(eeg_train),sparsityC=args['l1_sparsity'],maxfeats=args['l1_maxfeats'])
-    sel_cols_eeg=np.append(sel_cols_eeg,ml.drop_ID_cols(eeg_train).columns.get_loc('Label'))
+    if args['trialmode']=='WithinPpt':
+        sel_cols_emg=feats.sel_percent_feats_df(ml.drop_ID_cols(emg_train),percent=15)
+        sel_cols_emg=np.append(sel_cols_emg,ml.drop_ID_cols(emg_train).columns.get_loc('Label'))
+        sel_cols_eeg=feats.sel_feats_l1_df(ml.drop_ID_cols(eeg_train),sparsityC=args['l1_sparsity'],maxfeats=args['l1_maxfeats'])
+        sel_cols_eeg=np.append(sel_cols_eeg,ml.drop_ID_cols(eeg_train).columns.get_loc('Label'))
+    elif args['trialmode']=='LOO':
+        idx=int(eeg_test['ID_pptID'].iloc[0])-1
+        sel_cols_eeg=[ml.drop_ID_cols(eeg_train).columns.get_loc(col) for col in args['eeg_feats_LOO'].iloc[idx].tolist()]
+        sel_cols_emg=[ml.drop_ID_cols(emg_train).columns.get_loc(col) for col in args['emg_feats_LOO'].iloc[idx].tolist()]
     
     random_split=random.randint(0,100)
     folds=StratifiedKFold(random_state=random_split,n_splits=3,shuffle=False)
@@ -2044,8 +2075,9 @@ def function_fuse_LOO(args):
                 sel_cols_emg=feats.sel_percent_feats_df(emg_others,percent=15)
                 sel_cols_emg=np.append(sel_cols_emg,emg_others.columns.get_loc('Label'))
             elif args['trialmode']=='LOO':
-                sel_cols_eeg=[eeg_others.columns.get_loc(col) for col in args['eeg_feats_LOO'].iloc[idx].tolist()]
-                sel_cols_emg=[emg_others.columns.get_loc(col) for col in args['emg_feats_LOO'].iloc[idx].tolist()]
+                pptidx=int(emg_ppt['ID_pptID'].iloc[0])-1
+                sel_cols_eeg=[eeg_others.columns.get_loc(col) for col in args['eeg_feats_LOO'].iloc[pptidx].tolist()]
+                sel_cols_emg=[emg_others.columns.get_loc(col) for col in args['emg_feats_LOO'].iloc[pptidx].tolist()]
                 
             eeg_others=eeg_others.iloc[:,sel_cols_eeg]
             emg_others=emg_others.iloc[:,sel_cols_emg]
@@ -2647,14 +2679,14 @@ def setup_search_space(architecture,include_svm):
             'eeg_weight_opt':hp.uniform('fus.optEEG.EEGweight',0.0,100.0),
             'fusion_alg':hp.choice('fusion algorithm',[
                 'mean',
- #               '3_1_emg',
-  #              '3_1_eeg',
-   #             'opt_weight',
+                '3_1_emg',
+                '3_1_eeg',
+                'opt_weight',
                 #'bayes', # NEED TO IMPLEMENT SCALING AND SELECTION
-    #            'highest_conf',
-     #           'svm',
-      #          'lda',
-       #         'rf',
+                'highest_conf',
+                'svm',
+                'lda',
+                'rf',
                 ]),
             #'emg_set_path':params.emg_set_path_for_system_tests,
             #'eeg_set_path':params.eeg_set_path_for_system_tests,
@@ -2678,7 +2710,7 @@ def setup_search_space(architecture,include_svm):
         if include_svm:
             space.update({
                 'fusion_alg':hp.choice('fusion algorithm',['featlevel',]),
-                'featfuse_sel_feats_together':True,#hp.choice('selfeatstogether',[True,False]),
+                'featfuse_sel_feats_together':False,#hp.choice('selfeatstogether',[True,False]),
                 #somehow when this is true theres an issue with the Label col. think we end up with
                 #either two label cols or none depending on whether we add it to selcols_emgeeg twice
                 'featfuse':hp.choice('featfuse model',[
@@ -2709,7 +2741,7 @@ def setup_search_space(architecture,include_svm):
         else:
             space.update({
                 'fusion_alg':hp.choice('fusion algorithm',['featlevel',]),
-                'featfuse_sel_feats_together':True,#hp.choice('selfeatstogether',[True,False]),
+                'featfuse_sel_feats_together':False,#hp.choice('selfeatstogether',[True,False]),
                 #somehow when this is true theres an issue with the Label col. think we end up with
                 #either two label cols or none depending on whether we add it to selcols_emgeeg twice
                 'featfuse':hp.choice('featfuse model',[
@@ -2891,8 +2923,8 @@ if __name__ == '__main__':
         else:
             showplots=None
     else:
-        architecture='featlevel'    
-        trialmode='LOO'
+        architecture='decision'    
+        trialmode='WithinPpt'
         platform='not server'
         num_iters=1
         showplots=None

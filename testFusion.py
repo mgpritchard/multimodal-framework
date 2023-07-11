@@ -2658,8 +2658,10 @@ def setup_search_space(architecture,include_svm):
                 ]),
             #'emg_set_path':params.emg_set_path_for_system_tests,
             #'eeg_set_path':params.eeg_set_path_for_system_tests,
-            'emg_set_path':params.jeong_EMGfeats,
-            'eeg_set_path':params.jeong_noCSP_WidebandFeats,
+            #'emg_set_path':params.jeong_EMGfeats,
+            'emg_set_path':params.jeong_emg_noholdout,
+            #'eeg_set_path':params.jeong_noCSP_WidebandFeats,
+            'eeg_set_path':params.jeong_eeg_noholdout,
             #'eeg_set_path':'H:/Jeong11tasks_data/DUMMY_EEG.csv',
             'using_literature_data':True,
             'data_in_memory':False,
@@ -2724,6 +2726,9 @@ def setup_search_space(architecture,include_svm):
                      },
                     {'featfuse_model_type':'QDA',
                      'regularisation':hp.uniform('featfuse.qda.regularisation',0.0,1.0), #https://www.kaggle.com/code/code1110/best-parameter-s-for-qda/notebook
+                     },
+                    {'featfuse_model_type':'gaussNB',
+                     'smoothing':hp.loguniform('featfuse.gnb.smoothing',np.log(1e-9),np.log(1e0)),
                      },
                     ]),
                 })

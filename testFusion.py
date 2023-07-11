@@ -20,7 +20,7 @@ import params
 from tkinter import Tk
 from tkinter.filedialog import askopenfilename, askopenfilenames, askdirectory, asksaveasfilename
 from sklearn.metrics import accuracy_score, f1_score, cohen_kappa_score, log_loss, confusion_matrix, ConfusionMatrixDisplay #plot_confusion_matrix
-from sklearn.model_selection import train_test_split
+from sklearn.model_selection import train_test_split, StratifiedKFold
 import random
 import matplotlib.pyplot as plt
 from hyperopt import fmin, tpe, hp, space_eval, STATUS_OK, Trials
@@ -687,7 +687,7 @@ def feature_fusion(emg_others,eeg_others,emg_ppt,eeg_ppt,args):
     return targets, predlist_fusion, predlist_fusion, predlist_fusion, classlabels
     #return targets, predlist_fusion, predlist_fusion, predlist_fusion, classlabels, sel_cols_emgeeg, emgeeg_others.columns.values
 
-def fusion_hierarchical(emg_others,eeg_others,emg_ppt,eeg_ppt,args):
+def fusion_hierarchical_noCV(emg_others,eeg_others,emg_ppt,eeg_ppt,args):
     '''TRAINING ON NON-PPT DATA'''
     emg_others.sort_values(['ID_pptID','ID_run','Label','ID_gestrep','ID_tend'],ascending=[True,True,True,True,True],inplace=True)
     eeg_others.sort_values(['ID_pptID','ID_run','Label','ID_gestrep','ID_tend'],ascending=[True,True,True,True,True],inplace=True)
@@ -809,7 +809,298 @@ def fusion_hierarchical(emg_others,eeg_others,emg_ppt,eeg_ppt,args):
     return targets, predlist_emg, predlist_eeg, predlist_hierarch, classlabels
 
 
+
+
+def fusion_hierarchical(emg_others,eeg_others,emg_ppt,eeg_ppt,args):
+    '''TRAINING ON NON-PPT DATA'''
+    emg_others.sort_values(['ID_pptID','ID_run','Label','ID_gestrep','ID_tend'],ascending=[True,True,True,True,True],inplace=True)
+    eeg_others.sort_values(['ID_pptID','ID_run','Label','ID_gestrep','ID_tend'],ascending=[True,True,True,True,True],inplace=True)
+    
+    index_emg=ml.pd.MultiIndex.from_arrays([emg_others[col] for col in ['ID_pptID','ID_run','Label','ID_gestrep','ID_tend']])
+    index_eeg=ml.pd.MultiIndex.from_arrays([eeg_others[col] for col in ['ID_pptID','ID_run','Label','ID_gestrep','ID_tend']])
+    emg_others=emg_others.loc[index_emg.isin(index_eeg)].reset_index(drop=True)
+    eeg_others=eeg_others.loc[index_eeg.isin(index_emg)].reset_index(drop=True)
+            
+    emg_others['ID_splitIndex']=emg_others['Label'].astype(str)+emg_others['ID_pptID'].astype(str)
+    eeg_others['ID_splitIndex']=eeg_others['Label'].astype(str)+eeg_others['ID_pptID'].astype(str)
+    #https://stackoverflow.com/questions/45516424/sklearn-train-test-split-on-pandas-stratify-by-multiple-columns
+    
+    sel_cols_eeg=feats.sel_feats_l1_df(ml.drop_ID_cols(eeg_others),sparsityC=args['l1_sparsity'],maxfeats=args['l1_maxfeats'])
+    sel_cols_eeg=np.append(sel_cols_eeg,ml.drop_ID_cols(eeg_others).columns.get_loc('Label'))
+    
+    random_split=random.randint(0,100)
+    folds=StratifiedKFold(random_state=random_split,n_splits=3,shuffle=False)
+    eeg_preds_hierarch= []
+    for i, (index_ML, index_Fus) in enumerate(folds.split(eeg_others,eeg_others['ID_splitIndex'])):
+        eeg_train_split_ML=eeg_others.iloc[index_ML]
+        eeg_train_split_fusion=eeg_others.iloc[index_Fus]
+        
+        '''Train EEG model'''
+        eeg_train_split_ML=ml.drop_ID_cols(eeg_train_split_ML)
+        #sel_cols_eeg=feats.sel_percent_feats_df(eeg_train_split_ML,percent=3)
+        eeg_train_split_ML=eeg_train_split_ML.iloc[:,sel_cols_eeg]
+        
+        eeg_model = ml.train_optimise(eeg_train_split_ML, args['eeg']['eeg_model_type'], args['eeg'])
+        classlabels=eeg_model.classes_
+        
+        '''Get values from instances'''  
+        IDs=list(eeg_train_split_fusion.filter(regex='^ID_').keys())
+        eeg_train_split_fusion=eeg_train_split_fusion.drop(IDs,axis='columns')
+        eeg_train_split_fusion=eeg_train_split_fusion.iloc[:,sel_cols_eeg]
+        eegvals=eeg_train_split_fusion.drop(['Label'],axis='columns').values
+    
+        '''Get EEG preds for EMG training'''
+        
+        distros_eeg=ml.prob_dist(eeg_model,eegvals)
+        if not args['stack_distros']:
+            predlist=[]
+            for distro in distros_eeg:
+                predlist.append(ml.pred_from_distro(classlabels,distro))
+            onehot=fusion.setup_onehot(classlabels)
+            onehot_pred_eeg=fusion.encode_preds_onehot(eeg_preds_hierarch,onehot)
+            preds=ml.pd.DataFrame(onehot_pred_eeg,index=index_Fus,columns=[('EEGOnehotClass'+str(col)) for col in classlabels])
+        else:
+            preds=ml.pd.DataFrame(distros_eeg,index=index_Fus,columns=[('EEGProbClass'+str(col)) for col in classlabels])
+        if len(eeg_preds_hierarch)==0:
+            eeg_preds_hierarch=preds
+        else:
+            eeg_preds_hierarch=ml.pd.concat([eeg_preds_hierarch,preds],axis=0)
+    
+    eeg_others=ml.drop_ID_cols(eeg_others)
+    eeg_others=eeg_others.iloc[:,sel_cols_eeg]
+    eeg_model=ml.train_optimise(eeg_others, args['eeg']['eeg_model_type'], args['eeg'])
+    classlabels=eeg_model.classes_
+    
+    emg_train=emg_others
+    emg_train=ml.drop_ID_cols(emg_train)
+    sel_cols_emg=feats.sel_percent_feats_df(emg_train,percent=15)
+    sel_cols_emg=np.append(sel_cols_emg,emg_train.columns.get_loc('Label'))
+    emg_train=emg_train.iloc[:,sel_cols_emg]
+    
+    lab=emg_train.pop('Label')
+    emg_train=ml.pd.concat([emg_train,eeg_preds_hierarch],axis=1)
+    emg_train['Label']=lab  
+      
+    '''Train EMG model'''
+    emg_model=ml.train_optimise(emg_train,args['emg']['emg_model_type'],args['emg'])
+ 
+    '''-----------------'''
+ 
+    '''TESTING ON PPT DATA'''
+    emg_ppt.sort_values(['ID_pptID','ID_run','Label','ID_gestrep','ID_tend'],ascending=[True,True,True,True,True],inplace=True)
+    eeg_ppt.sort_values(['ID_pptID','ID_run','Label','ID_gestrep','ID_tend'],ascending=[True,True,True,True,True],inplace=True)
+ 
+    predlist_hierarch=[]
+    predlist_eeg=[]
+    targets=[]
+     
+    index_emg=ml.pd.MultiIndex.from_arrays([emg_ppt[col] for col in ['ID_pptID','ID_run','Label','ID_gestrep','ID_tend']])
+    index_eeg=ml.pd.MultiIndex.from_arrays([eeg_ppt[col] for col in ['ID_pptID','ID_run','Label','ID_gestrep','ID_tend']])
+    emg=emg_ppt.loc[index_emg.isin(index_eeg)].reset_index(drop=True)
+    eeg=eeg_ppt.loc[index_eeg.isin(index_emg)].reset_index(drop=True)
+    
+    if emg['Label'].equals(eeg['Label']):
+        targets=emg['Label'].values.tolist()
+    else:
+        raise Exception('Sense check failed, target label should agree between modes')
+
+    '''Get values from instances'''
+    IDs=list(emg.filter(regex='^ID_').keys())
+    eeg=eeg.drop(IDs,axis='columns')
+    eeg=eeg.iloc[:,sel_cols_eeg]
+    eegvals=eeg.drop(['Label'],axis='columns').values    
+    
+    '''Get EEG Predictions'''
+    distros_eeg=ml.prob_dist(eeg_model,eegvals)
+    for distro in distros_eeg:
+        pred_eeg=ml.pred_from_distro(classlabels,distro)
+        predlist_eeg.append(pred_eeg)    
+    
+    emg=emg.drop(IDs,axis='columns') #drop BEFORE inserting EEGOnehot
+    emg=emg.iloc[:,sel_cols_emg]
+    if not args['stack_distros']:
+        '''Add EEG Preds to EMG set'''
+        onehot_pred_eeg=fusion.encode_preds_onehot(predlist_eeg,onehot)
+        for idx,lab in enumerate(classlabels):
+            labelcol=len(emg.columns)
+            emg.insert(labelcol-1,('EEGOnehotClass'+str(lab)),onehot_pred_eeg[:,idx])
+            #emg[('EMG1hotClass'+str(lab))]=onehot_pred_eeg[:,idx]
+    else:
+        '''Add EEG distros to EMG set'''
+        for idx,lab in enumerate(classlabels):
+            labelcol=len(emg.columns)
+            emg.insert(labelcol-1,('EEGProbClass'+str(lab)),distros_eeg[:,idx])
+        
+    emg=emg.drop(['Label'],axis='columns')
+ 
+    distros_emg=ml.prob_dist(emg_model,emg.values)
+    for distro in distros_emg:
+        pred_emg=ml.pred_from_distro(classlabels,distro)
+        predlist_hierarch.append(pred_emg)
+    predlist_emg=predlist_hierarch
+    
+    return targets, predlist_emg, predlist_eeg, predlist_hierarch, classlabels
+
+
 def fusion_hierarchical_inv(emg_others,eeg_others,emg_ppt,eeg_ppt,args):
+    '''TRAINING ON NON-PPT DATA'''
+    emg_others.sort_values(['ID_pptID','ID_run','Label','ID_gestrep','ID_tend'],ascending=[True,True,True,True,True],inplace=True)
+    eeg_others.sort_values(['ID_pptID','ID_run','Label','ID_gestrep','ID_tend'],ascending=[True,True,True,True,True],inplace=True)
+    
+    index_emg=ml.pd.MultiIndex.from_arrays([emg_others[col] for col in ['ID_pptID','ID_run','Label','ID_gestrep','ID_tend']])
+    index_eeg=ml.pd.MultiIndex.from_arrays([eeg_others[col] for col in ['ID_pptID','ID_run','Label','ID_gestrep','ID_tend']])
+    emg_others=emg_others.loc[index_emg.isin(index_eeg)].reset_index(drop=True)
+    eeg_others=eeg_others.loc[index_eeg.isin(index_emg)].reset_index(drop=True)
+            
+    emg_others['ID_splitIndex']=emg_others['Label'].astype(str)+emg_others['ID_pptID'].astype(str)
+    eeg_others['ID_splitIndex']=eeg_others['Label'].astype(str)+eeg_others['ID_pptID'].astype(str)
+    #https://stackoverflow.com/questions/45516424/sklearn-train-test-split-on-pandas-stratify-by-multiple-columns
+    
+    sel_cols_emg=feats.sel_percent_feats_df(ml.drop_ID_cols(emg_others),percent=15)
+    sel_cols_emg=np.append(sel_cols_emg,ml.drop_ID_cols(emg_others).columns.get_loc('Label'))
+	
+    random_split=random.randint(0,100)
+    folds=StratifiedKFold(random_state=random_split,n_splits=3,shuffle=False)
+    emg_preds_hierarch= []
+    for i, (index_ML, index_Fus) in enumerate(folds.split(emg_others,emg_others['ID_splitIndex'])):
+	
+        emg_train_split_ML=emg_others.iloc[index_ML]
+        emg_train_split_fusion=emg_others.iloc[index_Fus]
+		
+        '''Train EMG model'''
+        emg_train_split_ML=ml.drop_ID_cols(emg_train_split_ML)
+        emg_train_split_ML=emg_train_split_ML.iloc[:,sel_cols_emg]
+    
+        emg_model = ml.train_optimise(emg_train_split_ML, args['emg']['emg_model_type'], args['emg'])
+        classlabels=emg_model.classes_
+    
+        '''Get values from instances'''
+        IDs=list(emg_train_split_fusion.filter(regex='^ID_').keys())
+        emg_train_split_fusion=emg_train_split_fusion.drop(IDs,axis='columns')
+        emg_train_split_fusion=emg_train_split_fusion.iloc[:,sel_cols_emg]
+        emgvals=emg_train_split_fusion.drop(['Label'],axis='columns').values
+
+    
+        '''Get EMG preds for EEG training'''
+        distros_emg=ml.prob_dist(emg_model,emgvals)
+        if not args['stack_distros']:    
+            '''Add EMG preds to EEG training set'''
+            predlist=[]
+            for distro in distros_emg:
+                predlist.append(ml.pred_from_distro(classlabels,distro))
+            onehot=fusion.setup_onehot(classlabels)
+            onehot_pred_emg=fusion.encode_preds_onehot(emg_preds_hierarch,onehot)
+            preds=ml.pd.DataFrame(onehot_pred_emg,index=index_Fus,columns=[('EMGOnehotClass'+str(col)) for col in classlabels])
+        else:
+            '''Add EMG distros to EEG training set'''
+            preds=ml.pd.DataFrame(distros_emg,index=index_Fus,columns=[('EMGProbClass'+str(col)) for col in classlabels])
+        if len(emg_preds_hierarch)==0:
+            emg_preds_hierarch=preds
+        else:
+            emg_preds_hierarch=ml.pd.concat([emg_preds_hierarch,preds],axis=0)
+	
+    emg_others=ml.drop_ID_cols(emg_others)
+    emg_others=emg_others.iloc[:,sel_cols_emg]
+    emg_model=ml.train_optimise(emg_others,args['emg']['emg_model_type'],args['emg'])
+    classlabels=emg_model.classes_
+	
+    eeg_train=eeg_others
+    eeg_train=ml.drop_ID_cols(eeg_train)
+    sel_cols_eeg=feats.sel_feats_l1_df(eeg_train,sparsityC=args['l1_sparsity'],maxfeats=args['l1_maxfeats'])
+    sel_cols_eeg=np.append(sel_cols_eeg,eeg_train.columns.get_loc('Label'))
+    eeg_train=eeg_train.iloc[:,sel_cols_eeg]
+	
+    lab=eeg_train.pop('Label')
+    eeg_train=ml.pd.concat([eeg_train,emg_preds_hierarch],axis=1)
+    eeg_train['Label']=lab  
+	
+    '''Train EEG model'''
+    eeg_model=ml.train_optimise(eeg_train,args['eeg']['eeg_model_type'],args['eeg'])
+ 
+    '''-----------------'''
+ 
+    '''TESTING ON PPT DATA'''
+    emg_ppt.sort_values(['ID_pptID','ID_run','Label','ID_gestrep','ID_tend'],ascending=[True,True,True,True,True],inplace=True)
+    eeg_ppt.sort_values(['ID_pptID','ID_run','Label','ID_gestrep','ID_tend'],ascending=[True,True,True,True,True],inplace=True)
+ 
+    predlist_hierarch=[]
+    predlist_emg=[]
+    targets=[]
+     
+    index_emg=ml.pd.MultiIndex.from_arrays([emg_ppt[col] for col in ['ID_pptID','ID_run','Label','ID_gestrep','ID_tend']])
+    index_eeg=ml.pd.MultiIndex.from_arrays([eeg_ppt[col] for col in ['ID_pptID','ID_run','Label','ID_gestrep','ID_tend']])
+    emg=emg_ppt.loc[index_emg.isin(index_eeg)].reset_index(drop=True)
+    eeg=eeg_ppt.loc[index_eeg.isin(index_emg)].reset_index(drop=True)
+    
+    if emg['Label'].equals(eeg['Label']):
+        targets=emg['Label'].values.tolist()
+    else:
+        raise Exception('Sense check failed, target label should agree between modes')
+     
+    '''Get values from instances'''
+    IDs=list(eeg.filter(regex='^ID_').keys())
+    emg=emg.drop(IDs,axis='columns')
+    emg=emg.iloc[:,sel_cols_emg]
+    emgvals=emg.drop(['Label'],axis='columns').values    
+    
+   
+    '''Get EMG Predictions'''
+    distros_emg=ml.prob_dist(emg_model,emgvals)
+    for distro in distros_emg:
+        pred_emg=ml.pred_from_distro(classlabels,distro)
+        predlist_emg.append(pred_emg)
+    
+    eeg=eeg.drop(IDs,axis='columns') #drop BEFORE inserting EMGOnehot
+    eeg=eeg.iloc[:,sel_cols_eeg]
+    if not args['stack_distros']:     
+        '''Add EMG Preds to EEG set'''
+        onehot_pred_emg=fusion.encode_preds_onehot(predlist_emg,onehot)
+        for idx,lab in enumerate(classlabels):
+            labelcol=len(eeg.columns)
+            eeg.insert(labelcol-1,('EMGOnehotClass'+str(lab)),onehot_pred_emg[:,idx])
+    else:
+        '''Add EMG distros to EEG set'''
+        for idx,lab in enumerate(classlabels):
+            labelcol=len(eeg.columns)
+            eeg.insert(labelcol-1,('EMGProbClass'+str(lab)),distros_emg[:,idx])
+    
+    eeg=eeg.drop(['Label'],axis='columns')
+ 
+    distros_eeg=ml.prob_dist(eeg_model,eeg.values)
+    for distro in distros_eeg:
+        pred_eeg=ml.pred_from_distro(classlabels,distro)
+        predlist_hierarch.append(pred_eeg)
+    predlist_eeg=predlist_hierarch
+    
+    if args['get_train_acc']:
+        predlist_emgtrain=[]  
+        predlist_fustrain=[]        
+        eeg_train=eeg_others.drop(IDs,axis='columns')
+        eeg_train=eeg_train.iloc[:,sel_cols_eeg]
+        emg_train=emg_others.drop(IDs,axis='columns')
+        emg_train=emg_train.iloc[:,sel_cols_emg]
+        traintargs=eeg_train['Label'].values.tolist()
+        emgtrainvals=emg_train.drop('Label',axis='columns')#does this need to be .values?
+        distros_emgtrain=ml.prob_dist(emg_model,emgtrainvals)
+        for distro in distros_emgtrain:
+            pred_emgtrain=ml.pred_from_distro(classlabels,distro)
+            predlist_emgtrain.append(pred_emgtrain)
+        onehot_pred_emgtrain=fusion.encode_preds_onehot(predlist_emgtrain,onehot)
+        for idx,lab in enumerate(classlabels):
+            labelcol=len(eeg_train.columns)
+            eeg_train.insert(labelcol-1,('EMGOnehotClass'+str(lab)),onehot_pred_emgtrain[:,idx])
+        eeg_train=eeg_train.drop(['Label'],axis='columns')
+        distros_eegtrain=ml.prob_dist(eeg_model,eeg_train.values)
+        for distro in distros_eegtrain:
+            pred_eegtrain=ml.pred_from_distro(classlabels,distro)
+            predlist_fustrain.append(pred_eegtrain)
+        return targets, predlist_emg, predlist_eeg, predlist_hierarch, classlabels, traintargs, predlist_fustrain
+   
+    else:    
+        return targets, predlist_emg, predlist_eeg, predlist_hierarch, classlabels
+
+
+def fusion_hierarchical_inv_noCV(emg_others,eeg_others,emg_ppt,eeg_ppt,args):
     '''TRAINING ON NON-PPT DATA'''
     emg_others.sort_values(['ID_pptID','ID_run','Label','ID_gestrep','ID_tend'],ascending=[True,True,True,True,True],inplace=True)
     eeg_others.sort_values(['ID_pptID','ID_run','Label','ID_gestrep','ID_tend'],ascending=[True,True,True,True,True],inplace=True)
@@ -1109,6 +1400,93 @@ def fusion_SVM(emg_train, eeg_train, emg_test, eeg_test, args):
     emg_train['ID_splitIndex']=emg_train['Label'].astype(str)+emg_train['ID_pptID'].astype(str)
     eeg_train['ID_splitIndex']=eeg_train['Label'].astype(str)+eeg_train['ID_pptID'].astype(str)
     #https://stackoverflow.com/questions/45516424/sklearn-train-test-split-on-pandas-stratify-by-multiple-columns
+    
+    sel_cols_emg=feats.sel_percent_feats_df(ml.drop_ID_cols(emg_train),percent=15)
+    sel_cols_emg=np.append(sel_cols_emg,ml.drop_ID_cols(emg_train).columns.get_loc('Label'))
+    sel_cols_eeg=feats.sel_feats_l1_df(ml.drop_ID_cols(eeg_train),sparsityC=args['l1_sparsity'],maxfeats=args['l1_maxfeats'])
+    sel_cols_eeg=np.append(sel_cols_eeg,ml.drop_ID_cols(eeg_train).columns.get_loc('Label'))
+    
+    random_split=random.randint(0,100)
+    folds=StratifiedKFold(random_state=random_split,n_splits=3,shuffle=False)
+    fustargets=[]
+    fusdistros_emg=[]
+    fusdistros_eeg=[]
+    for i, (index_ML, index_Fus) in enumerate(folds.split(emg_train,emg_train['ID_splitIndex'])):
+        emg_train_split_ML=emg_train.iloc[index_ML]
+        emg_train_split_fusion=emg_train.iloc[index_Fus]
+        eeg_train_split_ML=eeg_train.iloc[index_ML]
+        eeg_train_split_fusion=eeg_train.iloc[index_Fus]
+        
+        emg_train_split_ML=ml.drop_ID_cols(emg_train_split_ML)
+        eeg_train_split_ML=ml.drop_ID_cols(eeg_train_split_ML)
+        
+        emg_train_split_ML=emg_train_split_ML.iloc[:,sel_cols_emg]
+        eeg_train_split_ML=eeg_train_split_ML.iloc[:,sel_cols_eeg]
+        
+        emg_model,eeg_model=train_models_opt(emg_train_split_ML,eeg_train_split_ML,args)    
+        classlabels = emg_model.classes_
+        
+        targets,predlist_emg,predlist_eeg,_,distros_emg,distros_eeg,_=refactor_synced_predict(emg_train_split_fusion, eeg_train_split_fusion, emg_model, eeg_model, classlabels, args,sel_cols_eeg,sel_cols_emg,get_distros=args['stack_distros'])
+        if len(fustargets)==0:
+            fustargets=targets
+            fusdistros_emg=distros_emg
+            fusdistros_eeg=distros_eeg
+        else:
+            fustargets=fustargets+targets
+            fusdistros_emg=np.concatenate((fusdistros_emg,distros_emg),axis=0)
+            fusdistros_eeg=np.concatenate((fusdistros_eeg,distros_eeg),axis=0)
+            
+    emg_train=ml.drop_ID_cols(emg_train)
+    emg_train=emg_train.iloc[:,sel_cols_emg]
+    eeg_train=ml.drop_ID_cols(eeg_train)
+    eeg_train=eeg_train.iloc[:,sel_cols_eeg]
+    emg_model,eeg_model=train_models_opt(emg_train,eeg_train,args)
+    
+    if not args['stack_distros']:
+        onehotEncoder=fusion.setup_onehot(classlabels)
+        onehot_pred_emg=fusion.encode_preds_onehot(fusdistros_emg,onehotEncoder)
+        onehot_pred_eeg=fusion.encode_preds_onehot(fusdistros_eeg,onehotEncoder)
+        fuser=fusion.train_svm_fuser(onehot_pred_emg, onehot_pred_eeg, fustargets, args['svmfuse'])
+    else:
+        onehotEncoder=None
+        fuser=fusion.train_svm_fuser(fusdistros_emg, fusdistros_eeg, fustargets, args['svmfuse'])
+    
+    '---------------'
+    emg_test.sort_values(['ID_pptID','ID_run','Label','ID_gestrep','ID_tend'],ascending=[True,True,True,True,True],inplace=True)
+    eeg_test.sort_values(['ID_pptID','ID_run','Label','ID_gestrep','ID_tend'],ascending=[True,True,True,True,True],inplace=True)                
+    targets, predlist_emg, predlist_eeg, _, distros_emg, distros_eeg, _  = refactor_synced_predict(emg_test, eeg_test, emg_model, eeg_model, classlabels,args,sel_cols_eeg,sel_cols_emg,get_distros=args['stack_distros'])
+    
+    if args['stack_distros']:
+        predlist_fusion=fusion.svm_fusion(fuser,onehotEncoder,distros_emg,distros_eeg,classlabels)
+    else:
+        predlist_fusion=fusion.svm_fusion(fuser,onehotEncoder,predlist_emg,predlist_eeg,classlabels)
+    
+    if args['get_train_acc']:
+        emg_train.sort_values(['ID_pptID','ID_run','Label','ID_gestrep','ID_tend'],ascending=[True,True,True,True,True],inplace=True)
+        eeg_train.sort_values(['ID_pptID','ID_run','Label','ID_gestrep','ID_tend'],ascending=[True,True,True,True,True],inplace=True)                
+        traintargs, predlist_emgtrain, predlist_eegtrain, _, distros_emgtrain, distros_eegtrain, _ = refactor_synced_predict(emg_train, eeg_train, emg_model, eeg_model, classlabels,args,sel_cols_eeg,sel_cols_emg,get_distros=args['stack_distros'])
+        if args['stack_distros']:
+            predlist_train=fusion.svm_fusion(fuser,onehotEncoder,distros_emgtrain,distros_eegtrain,classlabels)
+        else:
+            predlist_train=fusion.svm_fusion(fuser,onehotEncoder,predlist_emgtrain,predlist_eegtrain,classlabels)
+        return targets, predlist_emg, predlist_eeg, predlist_fusion, classlabels, traintargs, predlist_train  
+    else:
+        return targets, predlist_emg, predlist_eeg, predlist_fusion, classlabels
+
+
+
+def fusion_SVM_noCV(emg_train, eeg_train, emg_test, eeg_test, args):
+    emg_train.sort_values(['ID_pptID','ID_run','Label','ID_gestrep','ID_tend'],ascending=[True,True,True,True,True],inplace=True)
+    eeg_train.sort_values(['ID_pptID','ID_run','Label','ID_gestrep','ID_tend'],ascending=[True,True,True,True,True],inplace=True)
+    
+    index_emg=ml.pd.MultiIndex.from_arrays([emg_train[col] for col in ['ID_pptID','ID_run','Label','ID_gestrep','ID_tend']])
+    index_eeg=ml.pd.MultiIndex.from_arrays([eeg_train[col] for col in ['ID_pptID','ID_run','Label','ID_gestrep','ID_tend']])
+    emg_train=emg_train.loc[index_emg.isin(index_eeg)].reset_index(drop=True)
+    eeg_train=eeg_train.loc[index_eeg.isin(index_emg)].reset_index(drop=True)
+            
+    emg_train['ID_splitIndex']=emg_train['Label'].astype(str)+emg_train['ID_pptID'].astype(str)
+    eeg_train['ID_splitIndex']=eeg_train['Label'].astype(str)+eeg_train['ID_pptID'].astype(str)
+    #https://stackoverflow.com/questions/45516424/sklearn-train-test-split-on-pandas-stratify-by-multiple-columns
     random_split=random.randint(0,100)
     emg_train_split_ML,emg_train_split_fusion=train_test_split(emg_train,test_size=0.33,random_state=random_split,stratify=emg_train[['ID_splitIndex']])
     eeg_train_split_ML,eeg_train_split_fusion=train_test_split(eeg_train,test_size=0.33,random_state=random_split,stratify=eeg_train[['ID_splitIndex']])
@@ -1167,7 +1545,95 @@ def fusion_SVM(emg_train, eeg_train, emg_test, eeg_test, args):
         return targets, predlist_emg, predlist_eeg, predlist_fusion, classlabels
 
 
+
 def fusion_LDA(emg_train, eeg_train, emg_test, eeg_test, args):
+    emg_train.sort_values(['ID_pptID','ID_run','Label','ID_gestrep','ID_tend'],ascending=[True,True,True,True,True],inplace=True)
+    eeg_train.sort_values(['ID_pptID','ID_run','Label','ID_gestrep','ID_tend'],ascending=[True,True,True,True,True],inplace=True)
+    
+    index_emg=ml.pd.MultiIndex.from_arrays([emg_train[col] for col in ['ID_pptID','ID_run','Label','ID_gestrep','ID_tend']])
+    index_eeg=ml.pd.MultiIndex.from_arrays([eeg_train[col] for col in ['ID_pptID','ID_run','Label','ID_gestrep','ID_tend']])
+    emg_train=emg_train.loc[index_emg.isin(index_eeg)].reset_index(drop=True)
+    eeg_train=eeg_train.loc[index_eeg.isin(index_emg)].reset_index(drop=True)
+            
+    emg_train['ID_splitIndex']=emg_train['Label'].astype(str)+emg_train['ID_pptID'].astype(str)
+    eeg_train['ID_splitIndex']=eeg_train['Label'].astype(str)+eeg_train['ID_pptID'].astype(str)
+    #https://stackoverflow.com/questions/45516424/sklearn-train-test-split-on-pandas-stratify-by-multiple-columns
+    
+    sel_cols_emg=feats.sel_percent_feats_df(ml.drop_ID_cols(emg_train),percent=15)
+    sel_cols_emg=np.append(sel_cols_emg,ml.drop_ID_cols(emg_train).columns.get_loc('Label'))
+    sel_cols_eeg=feats.sel_feats_l1_df(ml.drop_ID_cols(eeg_train),sparsityC=args['l1_sparsity'],maxfeats=args['l1_maxfeats'])
+    sel_cols_eeg=np.append(sel_cols_eeg,ml.drop_ID_cols(eeg_train).columns.get_loc('Label'))
+    
+    random_split=random.randint(0,100)
+    folds=StratifiedKFold(random_state=random_split,n_splits=3,shuffle=False)
+    fustargets=[]
+    fusdistros_emg=[]
+    fusdistros_eeg=[]
+    for i, (index_ML, index_Fus) in enumerate(folds.split(emg_train,emg_train['ID_splitIndex'])):
+        emg_train_split_ML=emg_train.iloc[index_ML]
+        emg_train_split_fusion=emg_train.iloc[index_Fus]
+        eeg_train_split_ML=eeg_train.iloc[index_ML]
+        eeg_train_split_fusion=eeg_train.iloc[index_Fus]
+        
+        emg_train_split_ML=ml.drop_ID_cols(emg_train_split_ML)
+        eeg_train_split_ML=ml.drop_ID_cols(eeg_train_split_ML)
+        
+        emg_train_split_ML=emg_train_split_ML.iloc[:,sel_cols_emg]
+        eeg_train_split_ML=eeg_train_split_ML.iloc[:,sel_cols_eeg]
+        
+        emg_model,eeg_model=train_models_opt(emg_train_split_ML,eeg_train_split_ML,args)    
+        classlabels = emg_model.classes_
+        
+        targets,predlist_emg,predlist_eeg,_,distros_emg,distros_eeg,_=refactor_synced_predict(emg_train_split_fusion, eeg_train_split_fusion, emg_model, eeg_model, classlabels, args,sel_cols_eeg,sel_cols_emg,get_distros=args['stack_distros'])
+        if len(fustargets)==0:
+            fustargets=targets
+            fusdistros_emg=distros_emg
+            fusdistros_eeg=distros_eeg
+        else:
+            fustargets=fustargets+targets
+            fusdistros_emg=np.concatenate((fusdistros_emg,distros_emg),axis=0)
+            fusdistros_eeg=np.concatenate((fusdistros_eeg,distros_eeg),axis=0)
+            
+    emg_train=ml.drop_ID_cols(emg_train)
+    emg_train=emg_train.iloc[:,sel_cols_emg]
+    eeg_train=ml.drop_ID_cols(eeg_train)
+    eeg_train=eeg_train.iloc[:,sel_cols_eeg]
+    emg_model,eeg_model=train_models_opt(emg_train,eeg_train,args)
+    
+    if not args['stack_distros']:
+        onehotEncoder=fusion.setup_onehot(classlabels)
+        onehot_pred_emg=fusion.encode_preds_onehot(fusdistros_emg,onehotEncoder)
+        onehot_pred_eeg=fusion.encode_preds_onehot(fusdistros_eeg,onehotEncoder)
+        fuser=fusion.train_lda_fuser(onehot_pred_emg, onehot_pred_eeg, fustargets, args['ldafuse'])
+    else:
+        onehotEncoder=None
+        fuser=fusion.train_lda_fuser(fusdistros_emg, fusdistros_eeg, fustargets, args['ldafuse'])
+    
+    '---------------'
+    emg_test.sort_values(['ID_pptID','ID_run','Label','ID_gestrep','ID_tend'],ascending=[True,True,True,True,True],inplace=True)
+    eeg_test.sort_values(['ID_pptID','ID_run','Label','ID_gestrep','ID_tend'],ascending=[True,True,True,True,True],inplace=True)                
+    targets, predlist_emg, predlist_eeg, _, distros_emg, distros_eeg, _  = refactor_synced_predict(emg_test, eeg_test, emg_model, eeg_model, classlabels,args,sel_cols_eeg,sel_cols_emg,get_distros=args['stack_distros'])
+    
+    if args['stack_distros']:
+        predlist_fusion=fusion.lda_fusion(fuser,onehotEncoder,distros_emg,distros_eeg,classlabels)
+    else:
+        predlist_fusion=fusion.lda_fusion(fuser,onehotEncoder,predlist_emg,predlist_eeg,classlabels)
+    
+    if args['get_train_acc']:
+        emg_train.sort_values(['ID_pptID','ID_run','Label','ID_gestrep','ID_tend'],ascending=[True,True,True,True,True],inplace=True)
+        eeg_train.sort_values(['ID_pptID','ID_run','Label','ID_gestrep','ID_tend'],ascending=[True,True,True,True,True],inplace=True)                
+        traintargs, predlist_emgtrain, predlist_eegtrain, _, distros_emgtrain, distros_eegtrain, _ = refactor_synced_predict(emg_train, eeg_train, emg_model, eeg_model, classlabels,args,sel_cols_eeg,sel_cols_emg,get_distros=args['stack_distros'])
+        if args['stack_distros']:
+            predlist_train=fusion.lda_fusion(fuser,onehotEncoder,distros_emgtrain,distros_eegtrain,classlabels)
+        else:
+            predlist_train=fusion.lda_fusion(fuser,onehotEncoder,predlist_emgtrain,predlist_eegtrain,classlabels)
+        return targets, predlist_emg, predlist_eeg, predlist_fusion, classlabels, traintargs, predlist_train  
+    else:
+        return targets, predlist_emg, predlist_eeg, predlist_fusion, classlabels
+
+
+
+def fusion_LDA_noCV(emg_train, eeg_train, emg_test, eeg_test, args):
     emg_train.sort_values(['ID_pptID','ID_run','Label','ID_gestrep','ID_tend'],ascending=[True,True,True,True,True],inplace=True)
     eeg_train.sort_values(['ID_pptID','ID_run','Label','ID_gestrep','ID_tend'],ascending=[True,True,True,True,True],inplace=True)
     
@@ -1234,7 +1700,95 @@ def fusion_LDA(emg_train, eeg_train, emg_test, eeg_test, args):
         return targets, predlist_emg, predlist_eeg, predlist_fusion, classlabels
 
 
+
 def fusion_RF(emg_train, eeg_train, emg_test, eeg_test, args):
+    emg_train.sort_values(['ID_pptID','ID_run','Label','ID_gestrep','ID_tend'],ascending=[True,True,True,True,True],inplace=True)
+    eeg_train.sort_values(['ID_pptID','ID_run','Label','ID_gestrep','ID_tend'],ascending=[True,True,True,True,True],inplace=True)
+    
+    index_emg=ml.pd.MultiIndex.from_arrays([emg_train[col] for col in ['ID_pptID','ID_run','Label','ID_gestrep','ID_tend']])
+    index_eeg=ml.pd.MultiIndex.from_arrays([eeg_train[col] for col in ['ID_pptID','ID_run','Label','ID_gestrep','ID_tend']])
+    emg_train=emg_train.loc[index_emg.isin(index_eeg)].reset_index(drop=True)
+    eeg_train=eeg_train.loc[index_eeg.isin(index_emg)].reset_index(drop=True)
+            
+    emg_train['ID_splitIndex']=emg_train['Label'].astype(str)+emg_train['ID_pptID'].astype(str)
+    eeg_train['ID_splitIndex']=eeg_train['Label'].astype(str)+eeg_train['ID_pptID'].astype(str)
+    #https://stackoverflow.com/questions/45516424/sklearn-train-test-split-on-pandas-stratify-by-multiple-columns
+    
+    sel_cols_emg=feats.sel_percent_feats_df(ml.drop_ID_cols(emg_train),percent=15)
+    sel_cols_emg=np.append(sel_cols_emg,ml.drop_ID_cols(emg_train).columns.get_loc('Label'))
+    sel_cols_eeg=feats.sel_feats_l1_df(ml.drop_ID_cols(eeg_train),sparsityC=args['l1_sparsity'],maxfeats=args['l1_maxfeats'])
+    sel_cols_eeg=np.append(sel_cols_eeg,ml.drop_ID_cols(eeg_train).columns.get_loc('Label'))
+    
+    random_split=random.randint(0,100)
+    folds=StratifiedKFold(random_state=random_split,n_splits=3,shuffle=False)
+    fustargets=[]
+    fusdistros_emg=[]
+    fusdistros_eeg=[]
+    for i, (index_ML, index_Fus) in enumerate(folds.split(emg_train,emg_train['ID_splitIndex'])):
+        emg_train_split_ML=emg_train.iloc[index_ML]
+        emg_train_split_fusion=emg_train.iloc[index_Fus]
+        eeg_train_split_ML=eeg_train.iloc[index_ML]
+        eeg_train_split_fusion=eeg_train.iloc[index_Fus]
+        
+        emg_train_split_ML=ml.drop_ID_cols(emg_train_split_ML)
+        eeg_train_split_ML=ml.drop_ID_cols(eeg_train_split_ML)
+        
+        emg_train_split_ML=emg_train_split_ML.iloc[:,sel_cols_emg]
+        eeg_train_split_ML=eeg_train_split_ML.iloc[:,sel_cols_eeg]
+        
+        emg_model,eeg_model=train_models_opt(emg_train_split_ML,eeg_train_split_ML,args)    
+        classlabels = emg_model.classes_
+        
+        targets,predlist_emg,predlist_eeg,_,distros_emg,distros_eeg,_=refactor_synced_predict(emg_train_split_fusion, eeg_train_split_fusion, emg_model, eeg_model, classlabels, args,sel_cols_eeg,sel_cols_emg,get_distros=args['stack_distros'])
+        if len(fustargets)==0:
+            fustargets=targets
+            fusdistros_emg=distros_emg
+            fusdistros_eeg=distros_eeg
+        else:
+            fustargets=fustargets+targets
+            fusdistros_emg=np.concatenate((fusdistros_emg,distros_emg),axis=0)
+            fusdistros_eeg=np.concatenate((fusdistros_eeg,distros_eeg),axis=0)
+            
+    emg_train=ml.drop_ID_cols(emg_train)
+    emg_train=emg_train.iloc[:,sel_cols_emg]
+    eeg_train=ml.drop_ID_cols(eeg_train)
+    eeg_train=eeg_train.iloc[:,sel_cols_eeg]
+    emg_model,eeg_model=train_models_opt(emg_train,eeg_train,args)
+    
+    if not args['stack_distros']:
+        onehotEncoder=fusion.setup_onehot(classlabels)
+        onehot_pred_emg=fusion.encode_preds_onehot(fusdistros_emg,onehotEncoder)
+        onehot_pred_eeg=fusion.encode_preds_onehot(fusdistros_eeg,onehotEncoder)
+        fuser=fusion.train_rf_fuser(onehot_pred_emg, onehot_pred_eeg, fustargets, args['RFfuse'])
+    else:
+        onehotEncoder=None
+        fuser=fusion.train_rf_fuser(fusdistros_emg, fusdistros_eeg, fustargets, args['RFfuse'])
+    
+    '---------------'
+    emg_test.sort_values(['ID_pptID','ID_run','Label','ID_gestrep','ID_tend'],ascending=[True,True,True,True,True],inplace=True)
+    eeg_test.sort_values(['ID_pptID','ID_run','Label','ID_gestrep','ID_tend'],ascending=[True,True,True,True,True],inplace=True)                
+    targets, predlist_emg, predlist_eeg, _, distros_emg, distros_eeg, _  = refactor_synced_predict(emg_test, eeg_test, emg_model, eeg_model, classlabels,args,sel_cols_eeg,sel_cols_emg,get_distros=args['stack_distros'])
+    
+    if args['stack_distros']:
+        predlist_fusion=fusion.rf_fusion(fuser,onehotEncoder,distros_emg,distros_eeg,classlabels)
+    else:
+        predlist_fusion=fusion.rf_fusion(fuser,onehotEncoder,predlist_emg,predlist_eeg,classlabels)
+    
+    if args['get_train_acc']:
+        emg_train.sort_values(['ID_pptID','ID_run','Label','ID_gestrep','ID_tend'],ascending=[True,True,True,True,True],inplace=True)
+        eeg_train.sort_values(['ID_pptID','ID_run','Label','ID_gestrep','ID_tend'],ascending=[True,True,True,True,True],inplace=True)                
+        traintargs, predlist_emgtrain, predlist_eegtrain, _, distros_emgtrain, distros_eegtrain, _ = refactor_synced_predict(emg_train, eeg_train, emg_model, eeg_model, classlabels,args,sel_cols_eeg,sel_cols_emg,get_distros=args['stack_distros'])
+        if args['stack_distros']:
+            predlist_train=fusion.rf_fusion(fuser,onehotEncoder,distros_emgtrain,distros_eegtrain,classlabels)
+        else:
+            predlist_train=fusion.rf_fusion(fuser,onehotEncoder,predlist_emgtrain,predlist_eegtrain,classlabels)
+        return targets, predlist_emg, predlist_eeg, predlist_fusion, classlabels, traintargs, predlist_train  
+    else:
+        return targets, predlist_emg, predlist_eeg, predlist_fusion, classlabels
+
+
+
+def fusion_RF_noCV(emg_train, eeg_train, emg_test, eeg_test, args):
     emg_train.sort_values(['ID_pptID','ID_run','Label','ID_gestrep','ID_tend'],ascending=[True,True,True,True,True],inplace=True)
     eeg_train.sort_values(['ID_pptID','ID_run','Label','ID_gestrep','ID_tend'],ascending=[True,True,True,True,True],inplace=True)
     
@@ -1383,12 +1937,30 @@ def function_fuse_LOO(args):
             predlist_fusion=fusion.bayesian_fusion(fuser,onehotEncoder,predlist_emg,predlist_eeg,classlabels)
         
         elif args['fusion_alg']=='svm':
+            if args['scalingtype']:
+                emg_others,emgscaler=feats.scale_feats_train(emg_others,args['scalingtype'])
+                eeg_others,eegscaler=feats.scale_feats_train(eeg_others,args['scalingtype'])
+                emg_ppt=feats.scale_feats_test(emg_ppt,emgscaler)
+                eeg_ppt=feats.scale_feats_test(eeg_ppt,eegscaler)
+                
             targets, predlist_emg, predlist_eeg, predlist_fusion, classlabels=fusion_SVM(emg_others, eeg_others, emg_ppt, eeg_ppt, args)
         
         elif args['fusion_alg']=='lda':
+            if args['scalingtype']:
+                emg_others,emgscaler=feats.scale_feats_train(emg_others,args['scalingtype'])
+                eeg_others,eegscaler=feats.scale_feats_train(eeg_others,args['scalingtype'])
+                emg_ppt=feats.scale_feats_test(emg_ppt,emgscaler)
+                eeg_ppt=feats.scale_feats_test(eeg_ppt,eegscaler)
+                
             targets, predlist_emg, predlist_eeg, predlist_fusion, classlabels=fusion_LDA(emg_others, eeg_others, emg_ppt, eeg_ppt, args)
             
         elif args['fusion_alg']=='rf':
+            if args['scalingtype']:
+                emg_others,emgscaler=feats.scale_feats_train(emg_others,args['scalingtype'])
+                eeg_others,eegscaler=feats.scale_feats_train(eeg_others,args['scalingtype'])
+                emg_ppt=feats.scale_feats_test(emg_ppt,emgscaler)
+                eeg_ppt=feats.scale_feats_test(eeg_ppt,eegscaler)
+                
             targets, predlist_emg, predlist_eeg, predlist_fusion, classlabels=fusion_RF(emg_others, eeg_others, emg_ppt, eeg_ppt, args)
        
         elif args['fusion_alg']=='hierarchical':
@@ -1683,18 +2255,36 @@ def function_fuse_withinppt(args):
             predlist_fusion=fusion.bayesian_fusion(fuser,onehotEncoder,predlist_emg,predlist_eeg,classlabels)
         
         elif args['fusion_alg']=='svm':
+            if args['scalingtype']:
+                emg_train,emgscaler=feats.scale_feats_train(emg_train,args['scalingtype'])
+                eeg_train,eegscaler=feats.scale_feats_train(eeg_train,args['scalingtype'])
+                emg_test=feats.scale_feats_test(emg_test,emgscaler)
+                eeg_test=feats.scale_feats_test(eeg_test,eegscaler)
+            
             if args['get_train_acc']:
                 targets, predlist_emg, predlist_eeg, predlist_fusion, classlabels, traintargs, predlist_train = fusion_SVM(emg_train, eeg_train, emg_test, eeg_test, args)
             else:
                 targets, predlist_emg, predlist_eeg, predlist_fusion, classlabels=fusion_SVM(emg_train, eeg_train, emg_test, eeg_test, args)
         
         elif args['fusion_alg']=='lda':
+            if args['scalingtype']:
+                emg_train,emgscaler=feats.scale_feats_train(emg_train,args['scalingtype'])
+                eeg_train,eegscaler=feats.scale_feats_train(eeg_train,args['scalingtype'])
+                emg_test=feats.scale_feats_test(emg_test,emgscaler)
+                eeg_test=feats.scale_feats_test(eeg_test,eegscaler)
+                
             if args['get_train_acc']:
                 targets, predlist_emg, predlist_eeg, predlist_fusion, classlabels, traintargs, predlist_train = fusion_LDA(emg_train, eeg_train, emg_test, eeg_test, args)
             else:
                 targets, predlist_emg, predlist_eeg, predlist_fusion, classlabels=fusion_LDA(emg_train, eeg_train, emg_test, eeg_test, args)
         
         elif args['fusion_alg']=='rf':
+            if args['scalingtype']:
+                emg_train,emgscaler=feats.scale_feats_train(emg_train,args['scalingtype'])
+                eeg_train,eegscaler=feats.scale_feats_train(eeg_train,args['scalingtype'])
+                emg_test=feats.scale_feats_test(emg_test,emgscaler)
+                eeg_test=feats.scale_feats_test(eeg_test,eegscaler)
+                
             if args['get_train_acc']:
                 targets, predlist_emg, predlist_eeg, predlist_fusion, classlabels, traintargs, predlist_train = fusion_RF(emg_train, eeg_train, emg_test, eeg_test, args)
             else:

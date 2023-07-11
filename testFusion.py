@@ -2810,10 +2810,12 @@ def optimise_fusion(trialmode,prebalance=True,architecture='decision',platform='
     space.update({'trialmode':trialmode})
     
     if platform=='server':
-        space.update({'emg_set_path':params.jeong_EMGfeats_server,
+        space.update({#'emg_set_path':params.jeong_EMGfeats_server,
+                      'emg_set_path':params.jeong_EMGnoHO_server,
                       #'eeg_set_path':params.jeong_EEGfeats_server})
                       #'eeg_set_path':params.jeong_RawEEGfeats_server})
-                      'eeg_set_path':params.jeong_noCSP_WidebandFeats_server})
+                      #'eeg_set_path':params.jeong_noCSP_WidebandFeats_server})
+                      'eeg_set_path':params.jeong_EEGnoHO_server})
     
     if prebalance:
         emg_set=ml.pd.read_csv(space['emg_set_path'],delimiter=',')
@@ -2830,7 +2832,9 @@ def optimise_fusion(trialmode,prebalance=True,architecture='decision',platform='
         '''DONT necessarily need to do for generalist as not overfitting, switch out in algo funcs'''
         emg_cols=pd.read_csv(params.emgLOOfeatpath,delimiter=',',header=None)
         eeg_cols=pd.read_csv(params.eegLOOfeatpath,delimiter=',',header=None)
-        emgeegcols=pd.read_csv(params.jointemgeegLOOfeatpath,delimiter=',',header=None)
+        #emgeegcols=pd.read_csv(params.jointemgeegLOOfeatpath,delimiter=',',header=None)
+        #BELOW IS TEMP, UNTIL JOINT FEATS PROCESSED
+        emgeegcols=pd.read_csv(params.emgLOOfeatpath,delimiter=',',header=None)
         space.update({'emg_feats_LOO':emg_cols,
                       'eeg_feats_LOO':eeg_cols,
                       'jointemgeeg_feats_LOO':emgeegcols,})

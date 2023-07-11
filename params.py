@@ -64,6 +64,9 @@ if platform =='win32':
     
     jeong_noCSP_WidebandDir='H:/Jeong11tasks_data/EEGnoCSP_wideband/'
     jeong_noCSP_WidebandFeats='H:/Jeong11tasks_data/EEGnoCSP_WidebandFeats.csv'
+    
+    jeong_eeg_noholdout=r"H:\Jeong11tasks_data\final_dataset\jeongEEG_noholdout.csv"
+    jeong_emg_noholdout=r"H:\Jeong11tasks_data\final_dataset\jeongEMG_noholdout.csv"
 
     jeong_EMGfeats_server=os.path.join(currentpath,'lit_data_expts/jeong/datasets/jeong_EMGfeats.csv')
 
@@ -73,12 +76,14 @@ if platform =='win32':
     
     jeong_noCSP_WidebandFeats_server=os.path.join(currentpath,'lit_data_expts/jeong/datasets/jeongEEGnoCSP_WBFeats.csv')
     
+    jeong_EMGnoHO_server=os.path.join(currentpath,'lit_data_expts/jeong/datasets/jeongEMG_noholdout.csv')
+    jeong_EEGnoHO_server=os.path.join(currentpath,'lit_data_expts/jeong/datasets/jeongEEG_noholdout.csv')
+    
     jeong_results_dir='lit_data_expts/jeong/results/'
     
     emgLOOfeatpath=os.path.join(currentpath, 'lit_data_expts/jeong/datasets/emg_LOO_feats_15pct.csv')
     eegLOOfeatpath=os.path.join(currentpath, 'lit_data_expts/jeong/datasets/eeg_LOO_feats_L1_88.csv')
-    #REPLACE BELOW WHEN FOUND
-    jointemgeegLOOfeatpath=os.path.join(currentpath, 'lit_data_expts/jeong/datasets/eeg_LOO_feats_L1_88.csv')
+    jointemgeegLOOfeatpath=os.path.join(currentpath, 'lit_data_expts/jeong/datasets/joint_LOO_feats_L1_176.csv')
 elif platform == 'darwin':
     #mac
     path='macpath'
@@ -120,6 +125,9 @@ elif platform == 'linux' or 'linux32':
     jeong_noCSP_WidebandDir='H:/Jeong11tasks_data/EEGnoCSP_wideband/'
     jeong_noCSP_WidebandFeats='H:/Jeong11tasks_data/EEGnoCSP_WidebandFeats.csv'
     
+    jeong_eeg_noholdout=r"H:\Jeong11tasks_data\final_dataset\jeongEEG_noholdout.csv"
+    jeong_emg_noholdout=r"H:\Jeong11tasks_data\final_dataset\jeongEMG_noholdout.csv"
+    
     jeong_EMGfeats_server=os.path.join(currentpath,'lit_data_expts/jeong/datasets/jeong_EMGfeats.csv')
 
     jeong_EEGfeats_server=os.path.join(currentpath,'lit_data_expts/jeong/datasets/jeong_EEGfeatsCSPSync.csv')
@@ -128,9 +136,11 @@ elif platform == 'linux' or 'linux32':
     
     jeong_noCSP_WidebandFeats_server=os.path.join(currentpath,'lit_data_expts/jeong/datasets/jeongEEGnoCSP_WBFeats.csv')
     
+    jeong_EMGnoHO_server=os.path.join(currentpath,'lit_data_expts/jeong/datasets/jeongEMG_noholdout.csv')
+    jeong_EEGnoHO_server=os.path.join(currentpath,'lit_data_expts/jeong/datasets/jeongEEG_noholdout.csv')
+    
     jeong_results_dir='lit_data_expts/jeong/results/'
     
     emgLOOfeatpath=os.path.join(currentpath, 'lit_data_expts/jeong/datasets/emg_LOO_feats_15pct.csv')
     eegLOOfeatpath=os.path.join(currentpath, 'lit_data_expts/jeong/datasets/eeg_LOO_feats_L1_88.csv')
-    #REPLACE BELOW WHEN FOUND
-    jointemgeegLOOfeatpath=os.path.join(currentpath, 'lit_data_expts/jeong/datasets/eeg_LOO_feats_L1_88.csv')
+    jointemgeegLOOfeatpath=os.path.join(currentpath, 'lit_data_expts/jeong/datasets/joint_LOO_feats_L1_176.csv')

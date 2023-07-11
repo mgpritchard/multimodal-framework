@@ -233,6 +233,27 @@ def get_ppt_split_flexi(featset):
     masks=[featset['ID_pptID']== n_ppt for n_ppt in np.sort(featset['ID_pptID'].unique())] 
     return masks
 
+def isolate_holdout_ppts(ppts):
+    emg_set=ml.pd.read_csv(params.jeong_EMGfeats,delimiter=',')
+    eeg_set=ml.pd.read_csv(params.jeong_noCSP_WidebandFeats,delimiter=',')
+    emg_set,eeg_set=balance_set(emg_set,eeg_set)
+    emg_masks = get_ppt_split(emg_set)
+    eeg_masks = get_ppt_split(eeg_set)
+    for idx, emg_mask in enumerate(emg_masks):
+        if idx not in ppts:
+            continue
+        else:
+            eeg_mask=eeg_masks[idx]
+            emg=emg_set[emg_mask]
+            eeg=eeg_set[eeg_mask]
+            emg_set.drop(emg_set[emg_mask].index,inplace=True)
+            eeg_set.drop(eeg_set[eeg_mask].index,inplace=True)
+            emg.to_csv((r"H:\Jeong11tasks_data\final_dataset\holdout\emg_holdout_ppt"+str(idx+1)+'.csv'),index=False)
+            eeg.to_csv((r"H:\Jeong11tasks_data\final_dataset\holdout\eeg_holdout_ppt"+str(idx+1)+'.csv'),index=False)
+    inspect_set_balance(emg_set=emg_set,eeg_set=eeg_set)
+    emg_set.to_csv((r"H:\Jeong11tasks_data\final_dataset\emg_set_noholdout.csv"),index=False)
+    eeg_set.to_csv((r"H:\Jeong11tasks_data\final_dataset\eeg_set_noholdout.csv"),index=False)
+
 def synchronously_classify(test_set_emg,test_set_eeg,model_emg,model_eeg,classlabels,args):
     distrolist_emg=[]
     predlist_emg=[]

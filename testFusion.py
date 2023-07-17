@@ -2710,9 +2710,7 @@ def setup_search_space(architecture,include_svm):
         if include_svm:
             space.update({
                 'fusion_alg':hp.choice('fusion algorithm',['featlevel',]),
-                'featfuse_sel_feats_together':False,#hp.choice('selfeatstogether',[True,False]),
-                #somehow when this is true theres an issue with the Label col. think we end up with
-                #either two label cols or none depending on whether we add it to selcols_emgeeg twice
+                'featfuse_sel_feats_together':True,#hp.choice('selfeatstogether',[True,False]),
                 'featfuse':hp.choice('featfuse model',[
                     {'featfuse_model_type':'RF',
                      'n_trees':scope.int(hp.quniform('featfuse.RF.ntrees',10,100,q=5)),
@@ -2741,9 +2739,7 @@ def setup_search_space(architecture,include_svm):
         else:
             space.update({
                 'fusion_alg':hp.choice('fusion algorithm',['featlevel',]),
-                'featfuse_sel_feats_together':False,#hp.choice('selfeatstogether',[True,False]),
-                #somehow when this is true theres an issue with the Label col. think we end up with
-                #either two label cols or none depending on whether we add it to selcols_emgeeg twice
+                'featfuse_sel_feats_together':True,#hp.choice('selfeatstogether',[True,False]),
                 'featfuse':hp.choice('featfuse model',[
                     {'featfuse_model_type':'RF',
                      'n_trees':scope.int(hp.quniform('featfuse.RF.ntrees',10,100,q=5)),
@@ -2832,9 +2828,7 @@ def optimise_fusion(trialmode,prebalance=True,architecture='decision',platform='
         '''DONT necessarily need to do for generalist as not overfitting, switch out in algo funcs'''
         emg_cols=pd.read_csv(params.emgLOOfeatpath,delimiter=',',header=None)
         eeg_cols=pd.read_csv(params.eegLOOfeatpath,delimiter=',',header=None)
-        #emgeegcols=pd.read_csv(params.jointemgeegLOOfeatpath,delimiter=',',header=None)
-        #BELOW IS TEMP, UNTIL JOINT FEATS PROCESSED
-        emgeegcols=pd.read_csv(params.emgLOOfeatpath,delimiter=',',header=None)
+        emgeegcols=pd.read_csv(params.jointemgeegLOOfeatpath,delimiter=',',header=None)
         space.update({'emg_feats_LOO':emg_cols,
                       'eeg_feats_LOO':eeg_cols,
                       'jointemgeeg_feats_LOO':emgeegcols,})

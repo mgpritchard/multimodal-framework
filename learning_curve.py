@@ -273,7 +273,12 @@ if __name__ == '__main__':
     
     #train_sizes=np.linspace(0.1,0.67,10)
     '''try a log scale too'''
-    train_sizes=0.77-np.geomspace(0.1,0.67,10)[::-1]
+    train_sizes1=0.77-np.geomspace(0.1,0.2,5)[::-1]
+    train_sizes_mid=np.linspace(0.2,0.57,5)
+    train_sizes2=np.geomspace(0.01,0.2,10)
+    train_sizes=np.unique(np.concatenate((train_sizes1,train_sizes_mid,train_sizes2)))
+    #fuse.plt.plot(train_sizes,marker='o');fuse.plt.show()
+    #fuse.plt.plot(train_sizes,np.zeros(len(train_sizes))+1,marker='o');fuse.plt.show()
     
     '''
     results_test=[]

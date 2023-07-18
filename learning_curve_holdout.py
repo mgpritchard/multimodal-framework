@@ -296,7 +296,10 @@ def fuse_bespoke_kfold(args,train_wholeset_size,nfolds=5):
         'eeg_acc':ppt_eeg,
         'train_acc':ppt_train_acc,
         'train_size':train_wholeset_size,
-        'elapsed_time':ppt_duration,}
+        'elapsed_time':ppt_duration,
+        #'fusion_alg':args['fusion_alg'],
+        #'ppt':('ppt'+str(int(emg_ppt['ID_pptID'].iloc[0])-1)),
+        }
 
 
 if __name__ == '__main__':
@@ -326,19 +329,23 @@ if __name__ == '__main__':
     train_sizes=np.unique(np.concatenate((train_sizes1,train_sizes_mid,train_sizes2)))
     #fuse.plt.plot(train_sizes,np.zeros(len(train_sizes))+1,marker='o');fuse.plt.show()
     
+    gen_accs=pd.read_csv(r"C:\Users\pritcham\Documents\mm-framework\multimodal-framework\lit_data_expts\jeong\results\GeneralistOnHoldout\accuracies_withEEG.csv",index_col=0,header=0)
+    gen_accs.loc[gen_accs['arch']=='hierarch','arch']='hierarchical'
+    gen_accs.loc[gen_accs['arch']=='inv_hierarch','arch']='hierarchical_inv'
     
+    archs=['just_emg','just_eeg','decision','feat_sep','feat_join','hierarchical','hierarchical_inv']
+    #archs=['just_emg','feat_join']
     
-    #archs=['just_emg','just_eeg','decision','feat_sep','feat_join','hierarchical','hierarchical_inv']
-    archs=['feat_sep']
-    for arch in archs:
-        space=fuse.setup_search_space(arch,include_svm=True)
-        
-        space=update_chosen_params(space,arch)
-
-        for ppt in holdout_ppts:
-            emg=pd.read_csv(ppt['emg_path'],delimiter=',')
-            eeg=pd.read_csv(ppt['eeg_path'],delimiter=',')
-            emg,eeg=fuse.balance_set(emg,eeg)
+    all_results=[]
+    for ppt in holdout_ppts:
+        emg=pd.read_csv(ppt['emg_path'],delimiter=',')
+        eeg=pd.read_csv(ppt['eeg_path'],delimiter=',')
+        emg,eeg=fuse.balance_set(emg,eeg)
+       
+        for arch in archs:
+            space=fuse.setup_search_space(arch,include_svm=True)
+            
+            space=update_chosen_params(space,arch)
             
             space.update({'emg_set':emg,'eeg_set':eeg,'data_in_memory':True,'prebalanced':True,'trialmode':'WithinPpt','l1_sparsity':0.005,'l1_maxfeats':40})
             
@@ -346,14 +353,26 @@ if __name__ == '__main__':
             for train_wholeset_size in train_sizes:
                 results.append(fuse_bespoke_kfold(space,train_wholeset_size))
             result_df=ml.pd.DataFrame(results)
-            #result_df.plot(x='train_size',y='fusion_mean_acc',style='o',title='emg')
-            if 0:
-                _,ax=plt.subplots()
-                result_df.plot(x='train_size',y='acc',style='o',title=(arch+' ppt '+ppt['ppt ID']),ylim=(0,1),ax=ax)
-                # load scores1 from test_holdout_generalist
-                scores1=[]
-                ax.axhline(y=scores1['fusion_acc']['feat_sep'])
-            result_df.plot(x='train_size',y='acc',style='o',title=(arch+' ppt '+ppt['ppt ID']),ylim=(0,1))
+            
+            all_results.append({'arch':arch,
+                                 'ppt':'ppt'+ppt['ppt ID'],
+                                 'results':result_df})
+    
+    all_results_df=ml.pd.DataFrame(all_results)
+    colours=['tab:blue','tab:orange','tab:green','tab:red','tab:purple']
+    for arch in archs:
+        _,ax=plt.subplots()
+        for idx, res in all_results_df[all_results_df['arch']==arch].iterrows():
+            res['results'].plot(x='train_size',y='acc',ylim=(0,1),ax=ax,color=colours[idx],label=res['ppt'])
+            genscore=gen_accs[(gen_accs['arch']==arch)&(gen_accs['ppt']==res['ppt'])]['fusion_acc'].values[0]
+            ax.axhline(y=genscore,linestyle='--',color=colours[idx])
+     #   ax.legend([res['ppt'] for _,res in all_results_df[all_results_df['arch']==arch].iterrows()])
+        ax.set_title(arch)
+        
+   # result_df.plot(x='train_size',y='acc',title=(arch+' ppt '+ppt['ppt ID']),ylim=(0,1),ax=ax)
+   # genscore=gen_accs[(gen_accs['arch']==arch)&(gen_accs['ppt']==('ppt'+ppt['ppt ID']))]['fusion_acc'].values[0]
+   # ax.axhline(y=genscore,linestyle='--')
+            
         
     raise ValueError('end')
     

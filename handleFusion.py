@@ -166,6 +166,8 @@ def fuse_linweight(mode1,mode2,weight1,weight2):
 
 def fuse_select(emg,eeg,args):
     alg=args['fusion_alg']
+    if type(alg) is dict:
+        alg=alg['fusion_alg_type']
     if alg=='mean':
         fusion = fuse_mean(emg,eeg)
     elif alg=='3_1_emg':

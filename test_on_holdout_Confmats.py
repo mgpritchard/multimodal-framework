@@ -79,6 +79,183 @@ def update_chosen_params(space,arch):
     space.update(paramdict[arch])
     return space
 
+
+def function_fuse_singleppt(args):
+    start=fuse.time.time()
+    if not args['data_in_memory']:
+        emg_set_path=args['emg_set_path']
+        eeg_set_path=args['eeg_set_path']
+    
+        emg_set=ml.pd.read_csv(emg_set_path,delimiter=',')
+        eeg_set=ml.pd.read_csv(eeg_set_path,delimiter=',')
+    else:
+        emg_set=args['emg_set']
+        eeg_set=args['eeg_set']
+    if not args['prebalanced']: 
+        emg_set,eeg_set=fuse.balance_set(emg_set,eeg_set)
+    
+    eeg_masks=fuse.get_ppt_split(eeg_set,args)
+    emg_masks=fuse.get_ppt_split(emg_set,args)
+    
+    accs=[]
+    emg_accs=[] #https://stackoverflow.com/questions/13520876/how-can-i-make-multiple-empty-lists-in-python
+    eeg_accs=[]
+    
+    train_accs=[]
+    
+    for idx,emg_mask in enumerate(emg_masks):
+        eeg_mask=eeg_masks[idx]
+        
+        emg_ppt = emg_set[emg_mask]
+        #emg_others = emg_set[~emg_mask]
+        eeg_ppt = eeg_set[eeg_mask]
+        #eeg_others = eeg_set[~eeg_mask]
+        
+        emg_ppt.sort_values(['ID_pptID','ID_run','Label','ID_gestrep','ID_tend'],ascending=[True,True,True,True,True],inplace=True)
+        eeg_ppt.sort_values(['ID_pptID','ID_run','Label','ID_gestrep','ID_tend'],ascending=[True,True,True,True,True],inplace=True)
+        
+        index_emg=ml.pd.MultiIndex.from_arrays([emg_ppt[col] for col in ['ID_pptID','ID_run','Label','ID_gestrep','ID_tend']])
+        index_eeg=ml.pd.MultiIndex.from_arrays([eeg_ppt[col] for col in ['ID_pptID','ID_run','Label','ID_gestrep','ID_tend']])
+        emg_ppt=emg_ppt.loc[index_emg.isin(index_eeg)].reset_index(drop=True)
+        eeg_ppt=eeg_ppt.loc[index_eeg.isin(index_emg)].reset_index(drop=True)
+        
+        eeg_ppt['ID_stratID']=eeg_ppt['ID_run'].astype(str)+eeg_ppt['Label'].astype(str)+eeg_ppt['ID_gestrep'].astype(str)
+        emg_ppt['ID_stratID']=emg_ppt['ID_run'].astype(str)+eeg_ppt['Label'].astype(str)+eeg_ppt['ID_gestrep'].astype(str)
+        random_split=fuse.random.randint(0,100)
+
+        if not emg_ppt['ID_stratID'].equals(eeg_ppt['ID_stratID']):
+            raise ValueError('EMG & EEG performances misaligned')
+        gest_perfs=emg_ppt['ID_stratID'].unique()
+        gest_strat=pd.DataFrame([gest_perfs,[perf.split('.')[1][-1] for perf in gest_perfs]]).transpose()
+        train_split,test_split=fuse.train_test_split(gest_strat,test_size=0.33,random_state=random_split,stratify=gest_strat[1])
+
+        eeg_train=eeg_ppt[eeg_ppt['ID_stratID'].isin(train_split[0])]
+        eeg_test=eeg_ppt[eeg_ppt['ID_stratID'].isin(test_split[0])]
+        emg_train=emg_ppt[emg_ppt['ID_stratID'].isin(train_split[0])]
+        emg_test=emg_ppt[emg_ppt['ID_stratID'].isin(test_split[0])]
+
+        
+        if args['scalingtype']:
+            emg_train,emgscaler=fuse.feats.scale_feats_train(emg_train,args['scalingtype'])
+            eeg_train,eegscaler=fuse.feats.scale_feats_train(eeg_train,args['scalingtype'])
+            emg_test=fuse.feats.scale_feats_test(emg_test,emgscaler)
+            eeg_test=fuse.feats.scale_feats_test(eeg_test,eegscaler)
+        
+        if args['fusion_alg']=='svm':
+            targets, predlist_emg, predlist_eeg, predlist_fusion, classlabels=fuse.fusion_SVM(emg_train, eeg_train, emg_test, eeg_test, args)
+        
+        elif args['fusion_alg']=='lda':
+                
+            if args['get_train_acc']:
+                targets, predlist_emg, predlist_eeg, predlist_fusion, classlabels, traintargs, predlist_train = fuse.fusion_LDA(emg_train, eeg_train, emg_test, eeg_test, args)
+            else:
+                targets, predlist_emg, predlist_eeg, predlist_fusion, classlabels=fuse.fusion_LDA(emg_train, eeg_train, emg_test, eeg_test, args)
+        
+        elif args['fusion_alg']=='rf':
+            targets, predlist_emg, predlist_eeg, predlist_fusion, classlabels=fuse.fusion_RF(emg_train, eeg_train, emg_test, eeg_test, args)
+        
+        elif args['fusion_alg']=='hierarchical':                                           
+            targets, predlist_emg, predlist_eeg, predlist_fusion, classlabels=fuse.fusion_hierarchical(emg_train, eeg_train, emg_test, eeg_test, args)
+
+        elif args['fusion_alg']=='hierarchical_inv':
+            targets, predlist_emg, predlist_eeg, predlist_fusion, classlabels, traintargs, predlist_train = fuse.fusion_hierarchical_inv(emg_train, eeg_train, emg_test, eeg_test, args)
+                 
+        elif args['fusion_alg']=='featlevel':                            
+            targets, predlist_emg, predlist_eeg, predlist_fusion, classlabels=fuse.feature_fusion(emg_train, eeg_train, emg_test, eeg_test, args)
+        
+        elif args['fusion_alg']=='just_emg':
+            targets, predlist_emg, predlist_eeg, predlist_fusion, classlabels, traintargs, predlist_train=fuse.only_EMG(emg_train, eeg_train, emg_test, eeg_test, args)
+        
+        elif args['fusion_alg']=='just_eeg':
+            if not args['get_train_acc']:    
+                targets, predlist_emg, predlist_eeg, predlist_fusion, classlabels=fuse.only_EEG(emg_train, eeg_train, emg_test, eeg_test, args)
+            else:
+                targets, predlist_emg, predlist_eeg, predlist_fusion, classlabels, traintargs, predlist_train=fuse.only_EEG(emg_train, eeg_train, emg_test, eeg_test, args)
+        else:
+            
+            if args['get_train_acc']:
+                emg_trainacc=emg_train.copy()
+                eeg_trainacc=eeg_train.copy()
+                emg_trainacc.sort_values(['ID_pptID','ID_run','Label','ID_gestrep','ID_tend'],ascending=[True,True,True,True,True],inplace=True)
+                eeg_trainacc.sort_values(['ID_pptID','ID_run','Label','ID_gestrep','ID_tend'],ascending=[True,True,True,True,True],inplace=True)        
+            
+            emg_train=ml.drop_ID_cols(emg_train)
+            eeg_train=ml.drop_ID_cols(eeg_train)
+            
+            #sel_cols_eeg=feats.sel_percent_feats_df(eeg_train,percent=3)
+            sel_cols_eeg=fuse.feats.sel_feats_l1_df(eeg_train,sparsityC=args['l1_sparsity'],maxfeats=args['l1_maxfeats'])
+            sel_cols_eeg=fuse.np.append(sel_cols_eeg,eeg_train.columns.get_loc('Label'))
+            eeg_train=eeg_train.iloc[:,sel_cols_eeg]
+            
+            sel_cols_emg=fuse.feats.sel_percent_feats_df(emg_train,percent=15)
+            sel_cols_emg=fuse.np.append(sel_cols_emg,emg_train.columns.get_loc('Label'))
+            emg_train=emg_train.iloc[:,sel_cols_emg]
+            
+            emg_model,eeg_model=fuse.train_models_opt(emg_train,eeg_train,args)
+        
+            classlabels = emg_model.classes_
+            
+            emg_test.sort_values(['ID_pptID','ID_run','Label','ID_gestrep','ID_tend'],ascending=[True,True,True,True,True],inplace=True)
+            eeg_test.sort_values(['ID_pptID','ID_run','Label','ID_gestrep','ID_tend'],ascending=[True,True,True,True,True],inplace=True)
+                
+            targets, predlist_emg, predlist_eeg, predlist_fusion,_,_,_ = fuse.refactor_synced_predict(emg_test, eeg_test, emg_model, eeg_model, classlabels,args, sel_cols_eeg,sel_cols_emg)
+
+            if args['get_train_acc']:
+                traintargs, predlist_emgtrain, predlist_eegtrain, predlist_train,_,_,_ = fuse.refactor_synced_predict(emg_trainacc, eeg_trainacc, emg_model, eeg_model, classlabels, args, sel_cols_eeg,sel_cols_emg)
+
+        #acc_emg,acc_eeg,acc_fusion=evaluate_results(targets, predlist_emg, correctness_emg, predlist_eeg, correctness_eeg, predlist_fusion, correctness_fusion, classlabels)
+        
+        gest_truth,gest_pred_emg,gest_pred_eeg,gest_pred_fusion,gesturelabels=fuse.classes_from_preds(targets,predlist_emg,predlist_eeg,predlist_fusion,classlabels)
+        '''could calculate log loss if got the probabilities back''' #https://towardsdatascience.com/comprehensive-guide-on-multiclass-classification-metrics-af94cfb83fbd
+        
+        #plot_confmats(gest_truth,gest_pred_emg,gest_pred_eeg,gest_pred_fusion,gesturelabels)
+        
+        if args['plot_confmats']:
+            gesturelabels=[params.idx_to_gestures[label] for label in classlabels]
+            fuse.tt.confmat(gest_truth,gest_pred_eeg,gesturelabels,title='EEG')
+            fuse.tt.confmat(gest_truth,gest_pred_emg,gesturelabels,title='EMG')
+            fuse.tt.confmat(gest_truth,gest_pred_fusion,gesturelabels,title='Fusion')
+            
+        emg_accs.append(fuse.accuracy_score(gest_truth,gest_pred_emg))
+        eeg_accs.append(fuse.accuracy_score(gest_truth,gest_pred_eeg))
+        accs.append(fuse.accuracy_score(gest_truth,gest_pred_fusion))
+
+        if args['get_train_acc']:
+            train_truth=[params.idx_to_gestures[gest] for gest in traintargs]
+            train_preds=[params.idx_to_gestures[pred] for pred in predlist_train]
+            train_accs.append(fuse.accuracy_score(train_truth,train_preds))
+        else:
+            train_accs.append(0)
+        
+    mean_acc=fuse.stats.mean(accs)
+    median_acc=fuse.stats.median(accs)
+    mean_emg=fuse.stats.mean(emg_accs)
+    median_emg=fuse.stats.median(emg_accs)
+    mean_eeg=fuse.stats.mean(eeg_accs)
+    median_eeg=fuse.stats.median(eeg_accs)
+    mean_train_acc=fuse.stats.mean(train_accs)
+    end=fuse.time.time()
+    #return 1-mean_acc
+    return {
+        'loss': 1-mean_acc,
+        'status': fuse.STATUS_OK,
+        'fusion_mean_acc':mean_acc,
+        'fusion_median_acc':median_acc,
+        'emg_mean_acc':mean_emg,
+        'emg_median_acc':median_emg,
+        'eeg_mean_acc':mean_eeg,
+        'eeg_median_acc':median_eeg,
+        'emg_accs':emg_accs,
+        'eeg_accs':eeg_accs,
+        'fusion_accs':accs,
+        'mean_train_acc':mean_train_acc,
+        'elapsed_time':end-start,
+        'ground_truth':gest_truth,
+        'eeg_preds':gest_pred_eeg,
+        'classlabels':classlabels}
+
+
+
 def test_system(arch,emg,eeg):
     if arch in ['just_emg','just_eeg','decision','hierarchical','hierarchical_inv']:
         space=fuse.setup_search_space(arch,include_svm=True)
@@ -110,6 +287,31 @@ def test_chosen_bespokes(emg,eeg):
     #the commented out bits work with ploitting
     return results
 
+
+def test_besp_eeg(emg,eeg,pptid):
+    arch='just_eeg'
+    space=fuse.setup_search_space(arch,include_svm=True)
+    space.update({'emg_set':emg,'eeg_set':eeg,'data_in_memory':True,'prebalanced':True,'trialmode':'WithinPpt','l1_sparsity':0.005,'l1_maxfeats':40})
+    space = update_chosen_params(space,arch)
+    
+    results=[]
+    groundtruths=[]
+    preds=[]
+    for n in range(100):
+        '''this doesnt work for some reason, issue with multindex'''
+        #res=test_system(arch,emg,eeg)
+        res=function_fuse_singleppt(space)
+        res.update({'arch':arch})        
+        groundtruths.extend(res.pop('ground_truth'))
+        preds.extend(res.pop('eeg_preds'))
+        classlabels=res.pop('classlabels')
+        results.append(pd.DataFrame(res))
+        
+    gesturelabels=[params.idx_to_gestures[label] for label in classlabels]
+    fuse.tt.confmat(groundtruths,preds,gesturelabels,title=(pptid+' Bespoke EEG'))
+    return results
+
+
 ppt1={'emg_path':r"H:\Jeong11tasks_data\final_dataset\holdout\emg_holdout_ppt1.csv",
       'eeg_path':r"H:\Jeong11tasks_data\final_dataset\holdout\eeg_holdout_ppt1.csv"}
 ppt6={'emg_path':r"H:\Jeong11tasks_data\final_dataset\holdout\emg_holdout_ppt6.csv",
@@ -122,6 +324,25 @@ ppt21={'emg_path':r"H:\Jeong11tasks_data\final_dataset\holdout\emg_holdout_ppt21
       'eeg_path':r"H:\Jeong11tasks_data\final_dataset\holdout\eeg_holdout_ppt21.csv"}
 
 holdout_ppts=[ppt1,ppt6,ppt11,ppt16,ppt21]
+
+eeg_confmats=True
+if eeg_confmats:
+    ppt_scores_list=[]
+    for ppt in holdout_ppts:
+        emg=pd.read_csv(ppt['emg_path'],delimiter=',')
+        eeg=pd.read_csv(ppt['eeg_path'],delimiter=',')
+        emg,eeg=fuse.balance_set(emg,eeg)
+        pptid = ppt['emg_path'].split('_')[-1][:-4]
+        results=test_besp_eeg(emg,eeg,pptid)
+        ppt_scores_list.append(results)
+    ppt_scores=pd.concat(ppt_scores_list, axis=0, keys=['ppt1','ppt6','ppt11','ppt16','ppt21'])
+    ppt_scores=ppt_scores.swaplevel(-2,-1)
+    ppt_scores.index.names=['arch','ppt']
+
+raise
+
+
+
 
 ppt_scores_list=[]
 for ppt in holdout_ppts:

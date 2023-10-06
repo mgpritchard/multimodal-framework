@@ -1,0 +1,24 @@
+digraph emg {
+	edge [arrowhead=none]
+	emgtop [label=Model]
+	emgrf [label=RF]
+	emgrfntrees [label=n_trees shape=box]
+	"emgrfntrees.vals" [label="1 - 100" shape=box]
+	emgknn [label=KNN]
+	"emg.knn.k" [label=k shape=box]
+	"emg.knn.k.vals" [label="1 - 25" shape=box]
+	emglda [label=LDA]
+	emgqda [label=QDA]
+	emggnb [label=GNB]
+	emgsvm [label=SVM]
+	emgtop -> emgrf
+	emgrf -> emgrfntrees
+	emgrfntrees -> "emgrfntrees.vals"
+	emgtop -> emgknn
+	emgknn -> "emg.knn.k"
+	"emg.knn.k" -> "emg.knn.k.vals"
+	emgtop -> emglda
+	emgtop -> emgqda
+	emgtop -> emggnb
+	emgtop -> emgsvm [style=dashed]
+}

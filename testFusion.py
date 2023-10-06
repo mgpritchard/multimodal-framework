@@ -379,6 +379,74 @@ def synced_predict(test_set_emg,test_set_eeg,model_emg,model_eeg,classlabels,arg
         targets.append(TargetLabel)
     return targets, predlist_emg, predlist_eeg, predlist_fusion
 
+def make_featsel_all20(joint=True):
+    '''feat array for generalist trained on all 20 dev ppts'''
+    args=setup_search_space('featlevel',False)
+    emg_others=ml.pd.read_csv(args['emg_set_path'],delimiter=',')
+    eeg_others=ml.pd.read_csv(args['eeg_set_path'],delimiter=',')
+    emg_others,eeg_others=balance_set(emg_others,eeg_others)
+#      
+    emg_others,_=feats.scale_feats_train(emg_others,args['scalingtype'])
+    eeg_others,_=feats.scale_feats_train(eeg_others,args['scalingtype'])
+#  
+    args.update({'emg_set':emg_others,'eeg_set':eeg_others,'data_in_memory':True,'prebalanced':True})
+    args.update({'l1_sparsity':0.005})
+    args.update({'l1_maxfeats':88}) 
+    
+  #  emg_others = emg_set
+  #  eeg_others = eeg_set
+   
+    emg_others.sort_values(['ID_pptID','ID_run','Label','ID_gestrep','ID_tend'],ascending=[True,True,True,True,True],inplace=True)
+    eeg_others.sort_values(['ID_pptID','ID_run','Label','ID_gestrep','ID_tend'],ascending=[True,True,True,True,True],inplace=True)
+    
+    index_emg=ml.pd.MultiIndex.from_arrays([emg_others[col] for col in ['ID_pptID','ID_run','Label','ID_gestrep','ID_tend']])
+    index_eeg=ml.pd.MultiIndex.from_arrays([eeg_others[col] for col in ['ID_pptID','ID_run','Label','ID_gestrep','ID_tend']])
+    emg_others=emg_others.loc[index_emg.isin(index_eeg)].reset_index(drop=True)
+    eeg_others=eeg_others.loc[index_eeg.isin(index_emg)].reset_index(drop=True)
+    
+    if emg_others['Label'].equals(eeg_others['Label']):
+        #print('Target classes match, ok to merge sets')
+        pass
+    else:
+        raise RuntimeError('Target classes should match, training sets are misaligned')
+        
+    eeg_others=ml.drop_ID_cols(eeg_others)
+    emg_others=ml.drop_ID_cols(emg_others)
+    
+    if joint:    
+        eeg_others.drop('Label',axis='columns',inplace=True)
+        eeg_others.rename(columns=lambda x: 'EEG_'+x, inplace=True)
+        labelcol=emg_others.pop('Label')
+        emgeeg_others=pd.concat([emg_others,eeg_others],axis=1)
+        emgeeg_others['Label']=labelcol
+        
+        sel_cols_emgeeg=feats.sel_feats_l1_df(emgeeg_others,sparsityC=args['l1_sparsity'],maxfeats=args['l1_maxfeats']+88)
+        '''here we are taking total features = N(EEG feats) + N(EMG feats) = N(EEG) + 88'''
+        sel_cols_emgeeg=np.append(sel_cols_emgeeg,emgeeg_others.columns.get_loc('Label'))
+    
+        emgeeg_others = emgeeg_others.iloc[:,sel_cols_emgeeg] 
+        
+        joincols=emgeeg_others.columns.values
+        join_feats_df=pd.DataFrame(joincols)
+        
+        join_feats_df.to_csv(r"C:\Users\pritcham\Desktop\join_feat20.csv",index=False,header=False)
+    else:
+        sel_cols_emg=feats.sel_percent_feats_df(emg_others,percent=15)
+        sel_cols_emg=np.append(sel_cols_emg,emg_others.columns.get_loc('Label'))
+        
+        sel_cols_eeg=feats.sel_feats_l1_df(eeg_others,sparsityC=args['l1_sparsity'],maxfeats=args['l1_maxfeats'])
+        sel_cols_eeg=np.append(sel_cols_eeg,eeg_others.columns.get_loc('Label'))
+        
+        emg_others = emg_others.iloc[:,sel_cols_emg] 
+        eeg_others = eeg_others.iloc[:,sel_cols_eeg]
+        
+        emgcols=emg_others.columns.values
+        eegcols=eeg_others.columns.values
+        eeg_feats_df=pd.DataFrame(eegcols)
+        emg_feats_df=pd.DataFrame(emgcols)
+        eeg_feats_df.to_csv(r"C:\Users\pritcham\Desktop\eeg_feat20.csv",index=False,header=False)
+        emg_feats_df.to_csv(r"C:\Users\pritcham\Desktop\emg_feat20.csv",index=False,header=False)
+
 def refactor_synced_predict(test_set_emg,test_set_eeg,model_emg,model_eeg,classlabels,args, chosencolseeg=None, chosencolsemg=None, get_distros=False):
 
     predlist_emg=[]
@@ -2907,7 +2975,7 @@ def load_results_obj(path):
     return load_trials,load_table,load_table_readable
 
 if __name__ == '__main__':
-    
+
     if len(sys.argv)>1:
         architecture=sys.argv[1]
         trialmode=sys.argv[2]
@@ -2921,8 +2989,8 @@ if __name__ == '__main__':
         else:
             showplots=None
     else:
-        architecture='decision'    
-        trialmode='WithinPpt'
+        architecture='featlevel'    
+        trialmode='LOO'
         platform='not server'
         num_iters=1
         showplots=None

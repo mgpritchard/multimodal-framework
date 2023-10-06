@@ -9,7 +9,10 @@ import numpy as np
 
  
 csvpath=r'C:/Users/pritcham/Desktop/L1_top10.csv'
-csvpath=r'C:/Users/pritcham/Desktop/L1_GENERALIST_top20.csv'
+#csvpath=r'C:/Users/pritcham/Desktop/L1_GENERALIST_top20.csv'
+#csvpath=r"C:\Users\pritcham\Desktop\joint_feat.csv"
+#csvpath=r"C:\Users\pritcham\Desktop\eeg_feat.csv"
+#csvpath=r"C:\Users\pritcham\Desktop\emg_feat.csv"
 top10=pd.read_csv(open(csvpath,'rb'),index_col=False,header=None).T
 top10_unique=top10.copy()
 top10_unique.drop(0,axis=0,inplace=True)
@@ -33,3 +36,13 @@ overlap_del13del16=np.intersect1d(delta13ppts,delta16ppts)
 total_del13ordel16=np.unique(np.concatenate((delta13ppts,delta16ppts)))
 total_deltaLeftAndRight=np.intersect1d(total_del0ordel3,total_del13ordel16)
 overlap_all=np.intersect1d(overlap_del0del3,overlap_del13del16)
+
+
+path=r"SOME PATH FOR BESPOKE FEATS OF THE 20"
+feats_bespoke=pd.read_csv(open(path,'rb'),index_col=False,header=None).T
+
+path=r"C:\Users\pritcham\Desktop\eeg_feat20.csv"
+feats_generalist_20=pd.read_csv(open(path,'rb'),index_col=False,header=None)
+'''The same feats being found in the generalist case as they were for each ppt'''
+'''suggests the feats are not only consistently informative but consistently'''
+'''informative in similar ways'''

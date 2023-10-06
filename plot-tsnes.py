@@ -45,17 +45,20 @@ def plot_mass_tsne_per_ppt():
     for idx,eeg_mask in enumerate(eeg_masks):
         tsne_eeg_ppt = tsne_result_eeg[eeg_mask]
         targs_ppt=y_eeg[eeg_mask]
-        plot_tsne(tsne_eeg_ppt,targs_ppt,('eeg 3% ppt'+str(idx)))
+        plot_tsne(tsne_eeg_ppt,targs_ppt,('eeg L1 40 ppt'+str(idx)))
 
 emg_set_path=params.jeong_EMGfeats,
 eeg_set_path=params.jeong_noCSP_WidebandFeats,
 #eeg_set_path=params.eeg_jeongSyncCSP_feats,
 #eeg_set_path=params.eeg_jeong_feats,
+
+emg_set_path=params.jeong_emg_noholdout,
+eeg_set_path=params.jeong_eeg_noholdout,
             
 emg_set=ml.pd.read_csv(emg_set_path[0],delimiter=',')
 eeg_set=ml.pd.read_csv(eeg_set_path[0],delimiter=',')
 
-per_ppt = False
+per_ppt = True
 plotemg=False
 ploteeg=True
 n_components = 2
@@ -94,7 +97,8 @@ if per_ppt:
                 X_eeg,eegscaler=feats.scale_feats_train(X_eeg,'standardise')
             
                 X_eeg['Label']=y_eeg
-                sel_cols_eeg=feats.sel_percent_feats_df(X_eeg,percent=3)
+                #sel_cols_eeg=feats.sel_percent_feats_df(X_eeg,percent=3)
+                sel_cols_eeg=feats.sel_feats_l1_df(X_eeg,sparsityC=0.005,maxfeats=40)
                 X_eeg.pop('Label')
                 X_eeg=X_eeg.iloc[:,sel_cols_eeg]
             
@@ -103,7 +107,8 @@ if per_ppt:
                 print('starting eeg tsne')
                 tsne_result_eeg = tsne_eeg.fit_transform(X_eeg)
                 print(tsne_result_eeg.shape)            
-                plot_tsne(tsne_result_eeg,y_eeg,('3% 2-30Hz eeg ppt '+str(idx)))
+                plot_tsne(tsne_result_eeg,y_eeg,('L1 40 2-30Hz eeg ppt '+str(idx)))
+                print('Dont have 2-30Hz CSP to compare tho...')
             else:
                 eeg_sessions_masks=get_session_masks(eeg_ppt)
                 for idx2,eeg_session_mask in enumerate(eeg_sessions_masks):
@@ -114,7 +119,8 @@ if per_ppt:
                     X_eeg,eegscaler=feats.scale_feats_train(X_eeg,'standardise')
                 
                     X_eeg['Label']=y_eeg
-                    sel_cols_eeg=feats.sel_percent_feats_df(X_eeg,percent=15)
+                    #sel_cols_eeg=feats.sel_percent_feats_df(X_eeg,percent=15)
+                    sel_cols_eeg=feats.sel_feats_l1_df(X_eeg,sparsityC=0.005,maxfeats=40)
                     X_eeg.pop('Label')
                     X_eeg=X_eeg.iloc[:,sel_cols_eeg]
                 
@@ -173,8 +179,9 @@ else:
             X_eeg,eegscaler=feats.scale_feats_train(X_eeg,'standardise')
         
             X_eeg['Label']=y_eeg
-            sel_cols_eeg_old=feats.sel_percent_feats_df(X_eeg,percent=3)
-            sel_cols_eeg=feats.sel_feats_l1_df(X_eeg,sparsityC=0.01)
+            #sel_cols_eeg_old=feats.sel_percent_feats_df(X_eeg,percent=3)
+            #sel_cols_eeg=feats.sel_feats_l1_df(X_eeg,sparsityC=0.01)
+            sel_cols_eeg=feats.sel_feats_l1_df(X_eeg,sparsityC=0.005,maxfeats=40)
             #sel_cols_eeg=np.append(sel_cols_eeg,X_eeg.columns.get_loc('Label'))
             X_eeg.pop('Label') #may not be needed?
             X_eeg=X_eeg.iloc[:,sel_cols_eeg]
@@ -183,5 +190,5 @@ else:
             tsne_result_eeg = tsne_eeg.fit_transform(X_eeg)
             print(tsne_result_eeg.shape)
             
-            plot_tsne(tsne_result_eeg,y_eeg,'eeg 3%')
+            plot_tsne(tsne_result_eeg,y_eeg,'eeg L1 40')
             plot_mass_tsne_per_ppt()

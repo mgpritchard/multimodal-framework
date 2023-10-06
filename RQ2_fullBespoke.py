@@ -305,11 +305,28 @@ def fusion_test(emg_train,eeg_train,emg_test,eeg_test,args):
 
 if __name__ == '__main__':
 
+    systemUnderTest = 'B1_FullBespoke_NonSubjFeatSel'
+    
     testset_size = 0.33
-    featsel_size = 0.25 #intuitively 0.1, but we divide evenly
-    train_size = 0.25 #intuitively 0.33
-    opt_size = 0.5 #intuitively 0.24. its 2/N, for model sel AND hyperp tune
-    #these splits are all OF THE NON-TEST DATA. *0.67 for ratio of the WHOLE data
+    
+    if systemUnderTest == 'A1_FullBespoke':
+        
+        featsel_size = 0.25 #intuitively 0.1, but we divide evenly
+        train_size = 0.25 #intuitively 0.33
+        opt_size = 0.5 #intuitively 0.24. its 2/N, for model sel AND hyperp tune
+        #these splits are all OF THE NON-TEST DATA. *0.67 for ratio of the WHOLE data
+        
+        feats_method='subject'
+    elif systemUnderTest == 'B1_FullBespoke_NonSubjFeatSel':
+        
+        feats_method='non-subject'
+        
+        featsel_size = 0.0 #intuitively 0.1, but we divide evenly
+        train_size = 0.5 #intuitively 0.33
+        opt_size = 0.5
+    
+        eeg_feats_nonsubj=pd.read_csv(params.eegLOOfeatpath,delimiter=',',header=None)
+        emg_feats_nonsubj=pd.read_csv(params.emgLOOfeatpath,delimiter=',',header=None)
     
     iters = 100
     
@@ -372,15 +389,21 @@ if __name__ == '__main__':
         emg_remainder=emg_ppt[emg_ppt['ID_stratID'].isin(remainder[0])]
 
 
-        remainder,featsel_split=train_test_split(remainder,test_size=featsel_size,
-                                                 random_state=random_split,stratify=remainder[1])
+        if feats_method=='subject':
+            
+            remainder,featsel_split=train_test_split(remainder,test_size=featsel_size,
+                                                     random_state=random_split,stratify=remainder[1])
+            
+            eeg_featsel=eeg_ppt[eeg_ppt['ID_stratID'].isin(featsel_split[0])]
+            emg_featsel=emg_ppt[emg_ppt['ID_stratID'].isin(featsel_split[0])]
+            eeg_remainder=eeg_ppt[eeg_ppt['ID_stratID'].isin(remainder[0])]
+            emg_remainder=emg_ppt[emg_ppt['ID_stratID'].isin(remainder[0])]
         
-        eeg_featsel=eeg_ppt[eeg_ppt['ID_stratID'].isin(featsel_split[0])]
-        emg_featsel=emg_ppt[emg_ppt['ID_stratID'].isin(featsel_split[0])]
-        eeg_remainder=eeg_ppt[eeg_ppt['ID_stratID'].isin(remainder[0])]
-        emg_remainder=emg_ppt[emg_ppt['ID_stratID'].isin(remainder[0])]
+        elif feats_method=='non-subject':
+            space.update({'eeg_feats_nonsubj':eeg_feats_nonsubj,
+                          'emg_feats_nonsubj':emg_feats_nonsubj})
 
- 
+
         train_split,opt_split=train_test_split(remainder,test_size=opt_size/(1-featsel_size),
                                                  random_state=random_split,stratify=remainder[1])
         
@@ -393,7 +416,7 @@ if __name__ == '__main__':
         
         space.update({'emg_set':emg_opt,'eeg_set':eeg_opt,'data_in_memory':True,'prebalanced':True})
         
-        space.update({'featsel_method':'subject'})
+        space.update({'featsel_method':feats_method})
         
         best = fmin(fuse_fullbespoke,
                 space=space,
@@ -445,8 +468,28 @@ if __name__ == '__main__':
                                       'scalingtype','plot_confmats','l1_maxfeats','get_train_acc',],axis=1)    
     #winners_final=pd.concat([winners_final.eeg.apply(pd.Series), winners_final.drop('eeg', axis=1)], axis=1)
     #winners_final=pd.concat([winners_final.emg.apply(pd.Series), winners_final.drop('emg', axis=1)], axis=1)
-    winners_final=pd.concat([winners_final.fusion_alg.apply(pd.Series), winners_final.drop('fusion_alg', axis=1)], axis=1)
+    #winners_final=pd.concat([winners_final.fusion_alg.apply(pd.Series), winners_final.drop('fusion_alg', axis=1)], axis=1)
         
+    for col in ['emg','eeg','fusion_alg']:
+        winners_final=pd.concat([winners_final.drop(col,axis=1),
+                                 winners_final[col].apply(lambda x: pd.Series(x)).rename(columns=lambda x: f'{col}_{x}')],axis=1)    
         
-        
-        
+    results=results_final.join(winners_final)
+    
+    currentpath=os.path.dirname(__file__)
+    result_dir=params.jeong_results_dir
+    resultpath=os.path.join(currentpath,result_dir)    
+    resultpath=os.path.join(resultpath,'RQ2')
+    picklepath=os.path.join(resultpath,(systemUnderTest+'_resDF.pkl'))
+    pickle.dump(results,open(picklepath,'wb'))
+    
+    scores_minimal=results[['subject id','fusion_acc','emg_acc','eeg_acc','elapsed_time',
+                   'fusion_alg_fusion_alg_type','eeg_eeg_model_type','emg_emg_model_type',
+                   'featsel_method','featsel_size','opt_size','train_size']]
+    csvpath=os.path.join(resultpath,(systemUnderTest+'_resMinimal.csv'))
+    scores_minimal.to_csv(csvpath)
+
+
+
+
+    

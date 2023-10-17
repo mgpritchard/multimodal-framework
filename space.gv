@@ -1,0 +1,65 @@
+digraph space {
+	node [shape=box style=rounded]
+	edge [arrowhead=none]
+	"sys.emg" [label="EMG model"]
+	"sys.eeg" [label="EEG model"]
+	"sys.feat" [label="Feature-level fused model"]
+	subgraph ML {
+		node [shape=box style=rounded]
+		edge [arrowhead=none]
+		MLtop [label=Classifier]
+		MLrf [label=RF]
+		MLrfntrees [label=trees style=solid]
+		"MLrfntrees.vals" [label="1 - 100
+(steps of 5)" style=solid]
+		MLknn [label=KNN]
+		"ML.knn.k" [label=k style=solid]
+		"ML.knn.k.vals" [label="1 - 25" style=solid]
+		MLlda [label=LDA]
+		"ML.lda.solver" [label=solver style=solid]
+		"ML.lda.solver.vals" [label="SVD
+LSQR
+Eigen" style=solid]
+		"ML.lda.shrinkage" [label=shrinkage style=solid]
+		"ML.lda.shrinkage.vals" [label="0.0 - 1.0" style=solid]
+		MLqda [label=QDA]
+		"ML.qda.regularisation" [label=regularisation style=solid]
+		"ML.qda.regularisation.vals" [label="0.0 - 1.0" style=solid]
+		MLgnb [label=GNB]
+		"ML.gnb.smoothing" [label=smoothing style=solid]
+		"ML.gnb.smoothing.vals" [label="1e-9 - 1
+(log scaled)" style=solid]
+		MLsvm [label=SVM]
+		"ML.svm.C" [label=C style=solid]
+		"ML.svm.C.vals" [label="0.1 - 100
+(log scaled)" style=solid]
+		"ML.svm.gamma" [label=gamma style=solid]
+		"ML.svm.gamma.vals" [label="0.01 - 1
+(log scaled)" style=solid]
+		MLtop -> MLrf
+		MLrf -> MLrfntrees
+		MLrfntrees -> "MLrfntrees.vals"
+		MLtop -> MLknn
+		MLknn -> "ML.knn.k"
+		"ML.knn.k" -> "ML.knn.k.vals"
+		MLtop -> MLlda
+		MLlda -> "ML.lda.solver"
+		"ML.lda.solver" -> "ML.lda.solver.vals"
+		MLlda -> "ML.lda.shrinkage"
+		"ML.lda.shrinkage" -> "ML.lda.shrinkage.vals"
+		MLtop -> MLqda
+		MLqda -> "ML.qda.regularisation"
+		"ML.qda.regularisation" -> "ML.qda.regularisation.vals"
+		MLtop -> MLgnb
+		MLgnb -> "ML.gnb.smoothing"
+		"ML.gnb.smoothing" -> "ML.gnb.smoothing.vals"
+		MLtop -> MLsvm [label="Bespoke only" style=dashed]
+		MLsvm -> "ML.svm.C"
+		"ML.svm.C" -> "ML.svm.C.vals"
+		MLsvm -> "ML.svm.gamma"
+		"ML.svm.gamma" -> "ML.svm.gamma.vals"
+	}
+	"sys.emg" -> MLtop
+	"sys.eeg" -> MLtop
+	"sys.feat" -> MLtop [label="in Feature-level fusion" style=dotted]
+}

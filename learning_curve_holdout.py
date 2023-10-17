@@ -15,6 +15,7 @@ import statistics as stats
 import random
 import matplotlib.pyplot as plt
 from sklearn.model_selection import StratifiedKFold
+import pickle as pickle
 
 def update_chosen_params(space,arch):
     paramdict={
@@ -303,6 +304,7 @@ def fuse_bespoke_kfold(args,train_wholeset_size,nfolds=5):
 
 
 if __name__ == '__main__':
+    quickload=True
 
     ppt1={'emg_path':r"H:\Jeong11tasks_data\final_dataset\holdout\emg_holdout_ppt1.csv",
           'eeg_path':r"H:\Jeong11tasks_data\final_dataset\holdout\eeg_holdout_ppt1.csv",
@@ -335,34 +337,42 @@ if __name__ == '__main__':
     
     archs=['just_emg','just_eeg','decision','feat_sep','feat_join','hierarchical','hierarchical_inv']
     #archs=['just_emg','feat_join']
+    if not quickload:
+        all_results=[]
+        for ppt in holdout_ppts:
+            emg=pd.read_csv(ppt['emg_path'],delimiter=',')
+            eeg=pd.read_csv(ppt['eeg_path'],delimiter=',')
+            emg,eeg=fuse.balance_set(emg,eeg)
+           
+            for arch in archs:
+                space=fuse.setup_search_space(arch,include_svm=True)
+                
+                space=update_chosen_params(space,arch)
+                
+                space.update({'emg_set':emg,'eeg_set':eeg,'data_in_memory':True,'prebalanced':True,'trialmode':'WithinPpt','l1_sparsity':0.005,'l1_maxfeats':40})
+                
+                results=[]
+                for train_wholeset_size in train_sizes:
+                    results.append(fuse_bespoke_kfold(space,train_wholeset_size))
+                result_df=ml.pd.DataFrame(results)
+                
+                all_results.append({'arch':arch,
+                                     'ppt':'ppt'+ppt['ppt ID'],
+                                     'results':result_df})
+        
+        all_results_df=ml.pd.DataFrame(all_results)
+        
+        with open(r"C:\Users\pritcham\Documents\RQ2_results\learning_curve_results.pkl",'wb') as f:
+            pickle.dump(all_results,f)
     
-    all_results=[]
-    for ppt in holdout_ppts:
-        emg=pd.read_csv(ppt['emg_path'],delimiter=',')
-        eeg=pd.read_csv(ppt['eeg_path'],delimiter=',')
-        emg,eeg=fuse.balance_set(emg,eeg)
-       
-        for arch in archs:
-            space=fuse.setup_search_space(arch,include_svm=True)
-            
-            space=update_chosen_params(space,arch)
-            
-            space.update({'emg_set':emg,'eeg_set':eeg,'data_in_memory':True,'prebalanced':True,'trialmode':'WithinPpt','l1_sparsity':0.005,'l1_maxfeats':40})
-            
-            results=[]
-            for train_wholeset_size in train_sizes:
-                results.append(fuse_bespoke_kfold(space,train_wholeset_size))
-            result_df=ml.pd.DataFrame(results)
-            
-            all_results.append({'arch':arch,
-                                 'ppt':'ppt'+ppt['ppt ID'],
-                                 'results':result_df})
-    
-    all_results_df=ml.pd.DataFrame(all_results)
+        #all_results_df.to_csv(r"C:\Users\pritcham\Documents\RQ2_results\learning_curve_results.csv",header=True,index=False)
+    else:
+        with open(r"C:\Users\pritcham\Documents\RQ2_results\learning_curve_results.pkl",'rb') as f:
+            all_results_df=ml.pd.DataFrame(pickle.load(f))
     colours=['tab:blue','tab:orange','tab:green','tab:red','tab:purple']
     for arch in archs:
         _,ax=plt.subplots()
-        for idx, res in all_results_df[all_results_df['arch']==arch].iterrows():
+        for idx, res in all_results_df[all_results_df['arch']==arch].reset_index(drop=True).iterrows():
             res['results'].plot(x='train_size',y='acc',ylim=(0,1),ax=ax,color=colours[idx],label=res['ppt'])
             genscore=gen_accs[(gen_accs['arch']==arch)&(gen_accs['ppt']==res['ppt'])]['fusion_acc'].values[0]
             ax.axhline(y=genscore,linestyle='--',color=colours[idx])
@@ -373,7 +383,6 @@ if __name__ == '__main__':
    # genscore=gen_accs[(gen_accs['arch']==arch)&(gen_accs['ppt']==('ppt'+ppt['ppt ID']))]['fusion_acc'].values[0]
    # ax.axhline(y=genscore,linestyle='--')
             
-        
     raise ValueError('end')
     
     

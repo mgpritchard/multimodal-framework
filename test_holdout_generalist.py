@@ -183,7 +183,7 @@ def fuse_LOO(emg_others,eeg_others,emg_ppt,eeg_ppt,args):
     
     if args['plot_confmats']:
         gesturelabels=[params.idx_to_gestures[label] for label in classlabels]
-        fuse.tt.confmat(gest_truth,gest_pred_eeg,gesturelabels,title='EEG')
+        fuse.tt.confmat(gest_truth,gest_pred_eeg,gesturelabels,title=(args['conftitle']+'EEG'))
         fuse.tt.confmat(gest_truth,gest_pred_emg,gesturelabels,title='EMG')
         fuse.tt.confmat(gest_truth,gest_pred_fusion,gesturelabels,title='Fusion')
         
@@ -210,8 +210,66 @@ def fuse_LOO(emg_others,eeg_others,emg_ppt,eeg_ppt,args):
         'train_acc':train_acc,
         'elapsed_time':end-start,}
 
+def get_confmats_eeg():
+    trainEEGpath=params.jeong_eeg_noholdout
+    trainEMGpath=params.jeong_emg_noholdout
+    
+    trainEEG=pd.read_csv(trainEEGpath)
+    trainEMG=pd.read_csv(trainEMGpath)
+    trainEMG,trainEEG=fuse.balance_set(trainEMG,trainEEG)
+    
+    
+    ppt1={'emg_path':r"H:\Jeong11tasks_data\final_dataset\holdout\emg_holdout_ppt1.csv",
+          'eeg_path':r"H:\Jeong11tasks_data\final_dataset\holdout\eeg_holdout_ppt1.csv"}
+    ppt6={'emg_path':r"H:\Jeong11tasks_data\final_dataset\holdout\emg_holdout_ppt6.csv",
+          'eeg_path':r"H:\Jeong11tasks_data\final_dataset\holdout\eeg_holdout_ppt6.csv"}
+    ppt11={'emg_path':r"H:\Jeong11tasks_data\final_dataset\holdout\emg_holdout_ppt11.csv",
+          'eeg_path':r"H:\Jeong11tasks_data\final_dataset\holdout\eeg_holdout_ppt11.csv"}
+    ppt16={'emg_path':r"H:\Jeong11tasks_data\final_dataset\holdout\emg_holdout_ppt16.csv",
+          'eeg_path':r"H:\Jeong11tasks_data\final_dataset\holdout\eeg_holdout_ppt16.csv"}
+    ppt21={'emg_path':r"H:\Jeong11tasks_data\final_dataset\holdout\emg_holdout_ppt21.csv",
+          'eeg_path':r"H:\Jeong11tasks_data\final_dataset\holdout\eeg_holdout_ppt21.csv"}
+    
+    holdout_ppts=[ppt1,ppt6,ppt11,ppt16,ppt21]
+    
+    
+    space=fuse.setup_search_space('just_eeg',include_svm=False)
+    space=update_chosen_params(space,'just_eeg')
+    space.update({'trialmode':'LOO'})
+    emg_cols=pd.read_csv(params.emgLOOfeatpath,delimiter=',',header=None)
+    eeg_cols=pd.read_csv(params.eegLOOfeatpath,delimiter=',',header=None)
+    space.update({'emg_feats_LOO':emg_cols,
+                  'eeg_feats_LOO':eeg_cols,})
+    
+    space.update({'plot_confmats':True})
+    
+    ppt_scores=[]
+    for ppt in holdout_ppts:
+        emg=pd.read_csv(ppt['emg_path'],delimiter=',')
+        eeg=pd.read_csv(ppt['eeg_path'],delimiter=',')
+        emg,eeg=fuse.balance_set(emg,eeg)
+        pptid = ppt['emg_path'].split('_')[-1][:-4]
+        space.update({'conftitle':(pptid+' Generalist ')})
+        results=fuse_LOO(trainEMG,trainEEG,emg,eeg,space)
+        ppt_scores.append(results)
+        
+    ppt_scores_just_eeg=pd.DataFrame(ppt_scores, index=['ppt1','ppt6','ppt11','ppt16','ppt21'])
+    
+    _,acc_eeg=plt.subplots()
+    ppt_scores_just_eeg.boxplot(column='fusion_acc',ax=acc_eeg)
+    acc_eeg.set(ylim=([0, 1]))
+    
+    scoremean=np.mean(ppt_scores_just_eeg['fusion_acc'])
+    scorestd=np.std(ppt_scores_just_eeg['fusion_acc'])
+    print('Mean eeg acc over 5 heldout: ',str(scoremean))
+    print('Std dev eeg acc over 5 heldout: ',str(scorestd))
 
 if __name__ == '__main__':
+    
+    get_confmats_eeg()
+    '''could do again but getting preds back for merged CM?'''
+    ''' will NEED to do again to get per ppt accs etc'''
+    raise
     
     test_archs=False
     save_overwrite_scores=False
@@ -572,6 +630,61 @@ if __name__ == '__main__':
     accuracies=ppt_scores_all[~ppt_scores_all.index.isin(['just_eeg'],level='arch')]['fusion_acc'].reset_index(drop=False)
     
     accuracies_withEEG=ppt_scores_all['fusion_acc'].reset_index(drop=False)
+    
+    
+    _,acc_groupedBars=plt.subplots()
+    bigDF=ppt_scores_all.reset_index(level="ppt").loc[:,['ppt','fusion_acc']]
+    bigDF=bigDF.reset_index()
+    #bigDF.pivot(index='arch',columns='ppt')['fusion_acc'] #same as below
+    #https://stackoverflow.com/questions/22127569/opposite-of-melt-in-python-pandas
+    bigDF=bigDF.pivot(*bigDF)
+    bigDF.plot(kind='bar',ax=acc_groupedBars,ylim=(0.45,0.85))
+    
+    _,acc_groupedbyPpt=plt.subplots()
+    bigDF=ppt_scores_all.reset_index(level="arch").loc[:,['arch','fusion_acc']]
+    bigDF=bigDF.reset_index()
+    #bigDF.pivot(index='arch',columns='ppt')['fusion_acc'] #same as below
+    #https://stackoverflow.com/questions/22127569/opposite-of-melt-in-python-pandas
+    bigDF=bigDF.pivot(*bigDF)
+    bigDF.plot(kind='bar',ax=acc_groupedbyPpt,ylim=(0.45,0.85))
+    
+    
+    
+    ppt_scores_fus=[ppt_scores_dec,ppt_scores_feat_sep,ppt_scores_feat_join,ppt_scores_hierarch,ppt_scores_inv_hierarch]
+    ppt_scores_fus=pd.concat(ppt_scores_fus,axis=0,keys=['decision','feat_sep','feat_join','hierarch','inv_hierarch'])
+    ppt_scores_fus.index.names=['arch','ppt']
+    
+    ppt_scores_unimodal=[ppt_scores_just_eeg,ppt_scores_just_emg]
+    ppt_scores_unimodal=pd.concat(ppt_scores_unimodal,axis=0,keys=['just_eeg','just_emg'])
+    ppt_scores_unimodal.index.names=['arch','ppt']
+    
+    _,acc_groupedBarsFus=plt.subplots()
+    groupedFus=ppt_scores_fus.reset_index(level="ppt").loc[:,['ppt','fusion_acc']]
+    groupedFus=groupedFus.reset_index()
+    #bigDF.pivot(index='arch',columns='ppt')['fusion_acc'] #same as below
+    #https://stackoverflow.com/questions/22127569/opposite-of-melt-in-python-pandas
+    groupedFus=groupedFus.pivot(*groupedFus)
+    groupedFus.plot(kind='bar',ax=acc_groupedBarsFus,ylim=(0.6,0.85),rot=0)
+    acc_groupedBarsFus.set(xlabel='Architecture')
+    # Shrink current axis's height by 10% on the top
+    #https://stackoverflow.com/questions/4700614/how-to-put-the-legend-outside-the-plot
+  #  box = acc_groupedBarsFus.get_position()
+  #  acc_groupedBarsFus.set_position([box.x0, box.y0 - box.height * 0.1,
+  #                   box.width, box.height * 0.9])
+    # Put a legend above current axis
+    acc_groupedBarsFus.legend(loc='upper center', bbox_to_anchor=(0.5, 1.15),
+          fancybox=False, shadow=False, ncol=5)
+    #acc_groupedBarsFus.legend(loc='best',ncol=5)
+
+    
+    _,acc_groupedBarsUM=plt.subplots()
+    groupedUM=ppt_scores_unimodal.reset_index(level="ppt").loc[:,['ppt','fusion_acc']]
+    groupedUM=groupedUM.reset_index()
+    #bigDF.pivot(index='arch',columns='ppt')['fusion_acc'] #same as below
+    #https://stackoverflow.com/questions/22127569/opposite-of-melt-in-python-pandas
+    groupedUM=groupedUM.pivot(*groupedUM)
+    groupedUM.plot(kind='bar',ax=acc_groupedBarsUM,ylim=(0.45,0.8),rot=0)
+    acc_groupedBarsUM.legend(loc='upper center', bbox_to_anchor=(0.5, 1.15), ncol=5)
     
     # Performing two-way ANOVA
    # model = ols('fusion_acc ~ C(arch) + C(ppt) + C(arch):C(ppt)', data=accuracies).fit()

@@ -71,7 +71,18 @@ def train_svm_fuser(mode1,mode2,targets,args):
 def train_svm_fuser(mode1,mode2,targets,args):
     train=np.column_stack([mode1,mode2])
     C=args['svm_C']
-    model=ml.LinearSVC(C=C,dual=False)
+    if 'fusesvmPlatt' in args:
+        if args['fusesvmPlatt']==True:
+            kernel=args['kernel']
+            gamma=args['gamma']
+            if kernel=='linear':
+                model=ml.SVC(C=C,kernel=kernel,probability=True)
+            else:
+                model=ml.SVC(C=C,kernel=kernel,gamma=gamma,probability=True)
+        else:
+            model=ml.LinearSVC(C=C,dual=False)
+    else:        
+        model=ml.LinearSVC(C=C,dual=False)
     model.fit(train.astype(np.float64),targets)
     return model
 

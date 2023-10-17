@@ -250,7 +250,7 @@ def scale_nonSubj(emg_others,eeg_others,augment_scale):
 
 if __name__ == '__main__':
 
-    systemUnderTest = 'B1_AugFeatSel'
+    systemUnderTest = 'B3_AugTrain'
     rolling_off_subj=True
     
     testset_size = 0.33
@@ -259,6 +259,7 @@ if __name__ == '__main__':
     if systemUnderTest == 'A1_FullBespoke':
 
         feats_method='subject'
+        train_method='subject'
         augment_scales=[0]
         
         if rolling_off_subj==True:
@@ -273,7 +274,7 @@ if __name__ == '__main__':
         else:
             train_sizes=[1]
         
-    elif systemUnderTest == 'B1_AugFeatSel':
+    elif systemUnderTest == 'B3_AugTrain':
        # train_sizes=[0.25]
        # train_sizes=np.geomspace(0.01,1,5)
      #  train_sizes=np.linspace(0.01,1,5)
@@ -281,7 +282,8 @@ if __name__ == '__main__':
         
         train_sizes=np.concatenate(([0.05,0.1],np.linspace(0.01,1,5)[1:]))
         
-        feats_method='non-subject'
+        feats_method='subject'
+        train_method='non-subject aug'
         #augment_scales = np.geomspace(0.02,0.33,4)
         # 0.00666 would be 1 full gesture per person, for a set of 19
         # ie 1/150, because each gesture was done 50 times on 3 days = 150 per gest per ppt
@@ -368,8 +370,7 @@ if __name__ == '__main__':
                 emg_test=emg_ppt[emg_ppt['ID_stratID'].isin(test_split[0])]
                 eeg_train=eeg_ppt[eeg_ppt['ID_stratID'].isin(remainder[0])]
                 emg_train=emg_ppt[emg_ppt['ID_stratID'].isin(remainder[0])]
-                
-                
+                             
                      
                 emg_train,emgscaler=feats.scale_feats_train(emg_train,space['scalingtype'])
                 eeg_train,eegscaler=feats.scale_feats_train(eeg_train,space['scalingtype'])
@@ -377,45 +378,19 @@ if __name__ == '__main__':
                 eeg_test=feats.scale_feats_test(eeg_test,eegscaler)
         
         
-                if feats_method=='subject':
-                    sel_cols_emg=feats.sel_percent_feats_df(ml.drop_ID_cols(emg_train),percent=15)
-                    sel_cols_emg=np.append(sel_cols_emg,ml.drop_ID_cols(emg_train).columns.get_loc('Label'))
-                    sel_cols_eeg=feats.sel_feats_l1_df(ml.drop_ID_cols(eeg_train),sparsityC=space['l1_sparsity'],maxfeats=space['l1_maxfeats'])
-                    sel_cols_eeg=np.append(sel_cols_eeg,ml.drop_ID_cols(eeg_train).columns.get_loc('Label')) 
-        
-                
-                elif feats_method=='non-subject':
-                    emg_others = emg_set[~emg_mask]
-                    eeg_others = eeg_set[~eeg_mask]
-                    
-                    if augment_scale == 0:
-                        emg_joint = emg_train
-                        eeg_joint = eeg_train
-                    else:
-                        emg_aug,eeg_aug = scale_nonSubj(emg_others,eeg_others,augment_scale)
-                        # 0.00666 would be 1 gesture per person per class.
-                        # we could perhaps split up gestures now though, as keeping together was only for leakage
-                        emg_joint = pd.concat([emg_train,emg_aug])
-                        eeg_joint = pd.concat([eeg_train,eeg_aug])
-                    
-                    '''should we actually scale based on the join? probably not'''
-                    emg_joint=feats.scale_feats_test(emg_joint,emgscaler)
-                    eeg_joint=feats.scale_feats_test(eeg_joint,eegscaler)
-                    
-                    sel_cols_emg=feats.sel_percent_feats_df(ml.drop_ID_cols(emg_joint),percent=15)
-                    sel_cols_emg=np.append(sel_cols_emg,ml.drop_ID_cols(emg_joint).columns.get_loc('Label'))
-                    sel_cols_eeg=feats.sel_feats_l1_df(ml.drop_ID_cols(eeg_joint),sparsityC=space['l1_sparsity'],maxfeats=space['l1_maxfeats'])
-                    sel_cols_eeg=np.append(sel_cols_eeg,ml.drop_ID_cols(eeg_joint).columns.get_loc('Label')) 
-                    
-        
-        
+                sel_cols_emg=feats.sel_percent_feats_df(ml.drop_ID_cols(emg_train),percent=15)
+                sel_cols_emg=np.append(sel_cols_emg,ml.drop_ID_cols(emg_train).columns.get_loc('Label'))
+                sel_cols_eeg=feats.sel_feats_l1_df(ml.drop_ID_cols(eeg_train),sparsityC=space['l1_sparsity'],maxfeats=space['l1_maxfeats'])
+                sel_cols_eeg=np.append(sel_cols_eeg,ml.drop_ID_cols(eeg_train).columns.get_loc('Label')) 
+          
                 space['sel_cols_emg']=sel_cols_emg
-                space['sel_cols_eeg']=sel_cols_eeg 
-                       
-                
+                space['sel_cols_eeg']=sel_cols_eeg                     
+
+               
                 space.update({'emg_set':emg_train,'eeg_set':eeg_train,'data_in_memory':True,'prebalanced':True})
                 
                 space.update({'featsel_method':feats_method})
+                space.update({'train_method':train_method})
                 
                 best = fmin(fuse_fullbespoke,
                         space=space,
@@ -433,12 +408,31 @@ if __name__ == '__main__':
                 winner_args['plot_confmats']=True
                 winner_args['subject id']=str(int(eeg_ppt['ID_pptID'][0]))
                 
-                subject_results=fusion_test(emg_train,eeg_train,emg_test,eeg_test,winner_args)
+                        
+                
+                emg_others = emg_set[~emg_mask]
+                eeg_others = eeg_set[~eeg_mask]
+                
+                if augment_scale == 0:
+                    emg_joint = emg_train
+                    eeg_joint = eeg_train
+                else:
+                    emg_aug,eeg_aug = scale_nonSubj(emg_others,eeg_others,augment_scale)
+                    
+                    emg_aug=feats.scale_feats_test(emg_aug,emgscaler)
+                    eeg_aug=feats.scale_feats_test(eeg_aug,eegscaler)
+                    
+                    emg_joint = pd.concat([emg_train,emg_aug])
+                    eeg_joint = pd.concat([eeg_train,eeg_aug])
+                    
+                
+                
+                subject_results=fusion_test(emg_joint,eeg_joint,emg_test,eeg_test,winner_args)
                 subject_results['best_loss']=best_loss
                 
                 ppt_winners.append(winner_args)
                 ppt_results.append(subject_results)
-                
+
             if skipRolloff:
                 skipRolloff=False
                 continue
@@ -461,7 +455,7 @@ if __name__ == '__main__':
             results['opt_acc']=1-results['best_loss']
             scores_minimal=results[['subject id','fusion_acc','emg_acc','eeg_acc','elapsed_time',
                            'fusion_alg_fusion_alg_type','eeg_eeg_model_type','emg_emg_model_type',
-                           'featsel_method','rolloff_factor','augment_scale','best_loss','opt_acc']]
+                           'featsel_method','train_method','rolloff_factor','augment_scale','best_loss','opt_acc']]
             
             currentpath=os.path.dirname(__file__)
             result_dir=params.jeong_results_dir
@@ -520,7 +514,7 @@ if __name__ == '__main__':
         plt.scatter(subj['rolloff_factor'],subj['augment_scale'],c=subj['fusion_acc'],norm=PowerNorm(np.e))
         plt.xlabel('Proportion of subject\'s 67% non-test data')
         #plt.yticks(rotation=33)
-        plt.ylabel('Proportion of non-subj augmenting Feat Sel')
+        plt.ylabel('Proportion of non-subj augmenting Training')
         plt.colorbar()
         plt.title('Subject '+str(ppt)+'. No rolloff, no aug = '+str(round(fullbesp,5)))
         wincoords=tuple(subj.loc[subj['fusion_acc'].idxmax()][['rolloff_factor','augment_scale']].tolist())
@@ -528,7 +522,6 @@ if __name__ == '__main__':
         
         tolerance=0.0001 # 0.01% is close enough
         meetsOrBeats=subj.loc[subj['fusion_acc']>fullbesp-tolerance][['rolloff_factor','augment_scale']]
-        # np.isclose ??
         for _,row in meetsOrBeats.iterrows():
             #ax.add_patch(plt.Circle((row['rolloff_factor'],row['augment_scale']),0.07,color='r',fill=False))
             ax.add_patch(Ellipse((row['rolloff_factor'],row['augment_scale']),width=0.05,height=0.01,color='r',fill=False))

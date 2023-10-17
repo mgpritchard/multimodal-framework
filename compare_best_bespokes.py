@@ -9,6 +9,8 @@ import testFusion as fuse
 import handleML as ml
 import params as params
 
+'''LOOKING AT WHOLE 25 NOT THE HOLDOUT PROPERLY'''
+
 num_trials=100
 
 emg_set=ml.pd.read_csv(params.jeong_EMGfeats,delimiter=',')

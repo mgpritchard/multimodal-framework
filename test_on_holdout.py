@@ -75,6 +75,22 @@ def update_chosen_params(space,arch):
                                   'regularisation':0.3324563281128364,},
                            'stack_distros':True,
                            },
+            'lit_default_bespoke':{'fusion_alg':'svm',
+                                'svmfuse':{'fusesvmPlatt':True,
+                                    'svm_C':1.0, #default in sklearn 0.24.2
+                                    'kernel':'rbf', #default in sklearn 0.24.2
+                                    'gamma':'scale',}, #default in sklearn 0.24.2
+                                'eeg':{'eeg_model_type':'LDA',
+                                       'LDA_solver':'svd',
+                                       'shrinkage':None,
+                                       },
+                                'emg':{'emg_model_type':'SVM_PlattScale',
+                                       'kernel':'rbf',
+                                       'svm_C':1.0,
+                                       'gamma':'scale',
+                                       },
+                                'stack_distros':True,
+                                },
         }
     space.update(paramdict[arch])
     return space
@@ -88,6 +104,8 @@ def test_system(arch,emg,eeg):
             space.update({'featfuse_sel_feats_together':False})
         elif arch=='feat_join':
             space.update({'featfuse_sel_feats_together':True})
+    elif arch== 'lit_default_bespoke':
+        space=fuse.setup_search_space('decision',include_svm=True)
     else: raise(ValueError(('Unknown architecture: '+arch)))
     
     space.update({'emg_set':emg,'eeg_set':eeg,'data_in_memory':True,'prebalanced':True,'trialmode':'WithinPpt','l1_sparsity':0.005,'l1_maxfeats':40})

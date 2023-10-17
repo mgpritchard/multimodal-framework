@@ -79,6 +79,22 @@ def update_chosen_params(space,arch):
                              },
                         'featfuse_sel_feats_together':True,
                         },
+            'lit_default_generalist':{'fusion_alg':'mean',
+                                'eeg':{'eeg_model_type':'LDA',
+                                       'LDA_solver':'svd', #default in sklearn 0.24.2
+                                       'shrinkage':None, #default in sklearn 0.24.2
+                                       },
+                    #            'emg':{'emg_model_type':'RF',  #trying LINEAR kernel svm as per Tryon2019 generalist
+                    #                   'n_trees':100, #default in sklearn 0.24.2
+                    #                   'max_depth':None, #default in sklearn 0.24.2
+                    #                   },
+                                'emg':{'emg_model_type':'SVM_PlattScale',
+                                       'kernel':'linear',
+                                       'svm_C':1.0,
+                                       'gamma':None,
+                                       },
+                                'stack_distros':True,
+                                },
         }
     space.update(paramdict[arch])
     return space
@@ -199,7 +215,64 @@ if __name__ == '__main__':
     
     test_archs=False
     save_overwrite_scores=False
-    load_scores=True
+    load_scores=False
+    
+    test_litDefault=True
+    
+    if test_litDefault:
+        trainEEGpath=params.jeong_eeg_noholdout
+        trainEMGpath=params.jeong_emg_noholdout
+        
+        trainEEG=pd.read_csv(trainEEGpath)
+        trainEMG=pd.read_csv(trainEMGpath)
+        trainEMG,trainEEG=fuse.balance_set(trainEMG,trainEEG)
+              
+        ppt1={'emg_path':r"H:\Jeong11tasks_data\final_dataset\holdout\emg_holdout_ppt1.csv",
+              'eeg_path':r"H:\Jeong11tasks_data\final_dataset\holdout\eeg_holdout_ppt1.csv"}
+        ppt6={'emg_path':r"H:\Jeong11tasks_data\final_dataset\holdout\emg_holdout_ppt6.csv",
+              'eeg_path':r"H:\Jeong11tasks_data\final_dataset\holdout\eeg_holdout_ppt6.csv"}
+        ppt11={'emg_path':r"H:\Jeong11tasks_data\final_dataset\holdout\emg_holdout_ppt11.csv",
+              'eeg_path':r"H:\Jeong11tasks_data\final_dataset\holdout\eeg_holdout_ppt11.csv"}
+        ppt16={'emg_path':r"H:\Jeong11tasks_data\final_dataset\holdout\emg_holdout_ppt16.csv",
+              'eeg_path':r"H:\Jeong11tasks_data\final_dataset\holdout\eeg_holdout_ppt16.csv"}
+        ppt21={'emg_path':r"H:\Jeong11tasks_data\final_dataset\holdout\emg_holdout_ppt21.csv",
+              'eeg_path':r"H:\Jeong11tasks_data\final_dataset\holdout\eeg_holdout_ppt21.csv"}
+        holdout_ppts=[ppt1,ppt6,ppt11,ppt16,ppt21]
+        
+        
+        space=fuse.setup_search_space('decision',include_svm=True)
+        space=update_chosen_params(space, 'lit_default_generalist')
+        
+        space.update({'trialmode':'LOO'})
+        emg_cols=pd.read_csv(params.emgLOOfeatpath,delimiter=',',header=None)
+        eeg_cols=pd.read_csv(params.eegLOOfeatpath,delimiter=',',header=None)
+        space.update({'emg_feats_LOO':emg_cols,
+                      'eeg_feats_LOO':eeg_cols,})
+        
+        ppt_scores=[]
+        for ppt in holdout_ppts:
+            emg=pd.read_csv(ppt['emg_path'],delimiter=',')
+            eeg=pd.read_csv(ppt['eeg_path'],delimiter=',')
+            emg,eeg=fuse.balance_set(emg,eeg)
+            results=fuse_LOO(trainEMG,trainEEG,emg,eeg,space)
+            ppt_scores.append(results)
+            
+        ppt_scores_lit_def=pd.DataFrame(ppt_scores, index=['ppt1','ppt6','ppt11','ppt16','ppt21'])
+        
+        _,acc_lit_def=plt.subplots()
+        ppt_scores_lit_def.boxplot(column='fusion_acc',ax=acc_lit_def)
+        acc_lit_def.set(ylim=([0, 1]))
+        
+        scoremean=np.mean(ppt_scores_lit_def['fusion_acc'])
+        scorestd=np.std(ppt_scores_lit_def['fusion_acc'])
+        print('Mean feat join acc over 5 heldout: ',str(scoremean))
+        print('Std dev feat join acc over 5 heldout: ',str(scorestd))
+        
+        rootpath=r"C:\Users\pritcham\Documents\mm-framework\multimodal-framework\lit_data_expts\jeong\results\GeneralistOnHoldout" 
+        with open(os.path.join(rootpath,"lit_def_scores.pkl"),'wb') as f:
+            pickle.dump(ppt_scores_lit_def,f)
+            
+        raise
     
     if test_archs:
         trainEEGpath=params.jeong_eeg_noholdout

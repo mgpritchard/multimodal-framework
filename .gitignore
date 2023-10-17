@@ -12,6 +12,9 @@ testbench/emg/emg_test_feats_Labelled.csv
 #Ignore any dependency graphs made with pyan
 pyan*
 
+#Ignore any parameter graphs made with graphviz
+*.gv
+
 #Ignore scripts to learn onehot encoding, hyperopt, and call graphs
 attemptOnehot.py
 callGraph_attempt.py

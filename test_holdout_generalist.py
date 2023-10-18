@@ -266,10 +266,10 @@ def get_confmats_eeg():
 
 if __name__ == '__main__':
     
-    get_confmats_eeg()
-    '''could do again but getting preds back for merged CM?'''
+  #  get_confmats_eeg()
+    '''could do again but getting preds back for merged ConfMat?'''
     ''' will NEED to do again to get per ppt accs etc'''
-    raise
+  #  raise
     
     test_archs=False
     save_overwrite_scores=False

@@ -175,7 +175,7 @@ if __name__ == '__main__':
            # bigDF.to_csv(r"C:\Users\pritcham\Documents\RQ1_plots_stats\RQ1_R_stats\bespoke_litDef_Meansof100reps.csv")
             raise
     
-    
+    raise
     ppt_scores_list=[]
     for ppt in holdout_ppts:
         emg=pd.read_csv(ppt['emg_path'],delimiter=',')

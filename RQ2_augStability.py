@@ -256,12 +256,12 @@ def scale_nonSubj(emg_others,eeg_others,augment_scale):
 
 if __name__ == '__main__':
     
-    run_test=False
+    run_test=True
     plot_results=True
     load_res_path=None
-    load_res_path=r"C:\Users\pritcham\Documents\mm-framework\multimodal-framework\lit_data_expts\jeong\results\RQ2\D1_AugAllfinal_resMinimal.csv"
+ #   load_res_path=r"C:\Users\pritcham\Documents\mm-framework\multimodal-framework\lit_data_expts\jeong\results\RQ2\D1_AugAllfinal_resMinimal.csv"
 
-    systemUnderTest = 'D1_AugAll'
+    systemUnderTest = 'D1a_AugStable'
     rolling_off_subj=True
     
     testset_size = 0.33
@@ -285,7 +285,7 @@ if __name__ == '__main__':
         else:
             train_sizes=[1]
         
-    elif systemUnderTest == 'D1_AugAll':
+    elif systemUnderTest == 'D1a_AugStable':
        # train_sizes=[0.25]
        # train_sizes=np.geomspace(0.01,1,5)
      #  train_sizes=np.linspace(0.01,1,5)
@@ -300,7 +300,7 @@ if __name__ == '__main__':
         # 0.00666 would be 1 full gesture per person, for a set of 19
         # ie 1/150, because each gesture was done 50 times on 3 days = 150 per gest per ppt
         # below coerces them to be multiples of 0.00666 ie to ensure equal # per ppt per class
-        augment_scales=[0,0.00666,0.02,0.05263,0.166]#,0.33,0.67]
+        augment_scales=[0.00666,0.02]#,0.33,0.67]
         # the scales above are 0, 1, 3, not 6, 7.89, not 12 (0.08), 25, 50, 100 per ppt per class
         # 0.05263 is 1/19, 7.89 per gest per ppt, i.e. result in aug_size = train_size
             #(actually ends up as 0.05333 = 8 per class per ppt = 152 in the aug)
@@ -329,6 +329,11 @@ if __name__ == '__main__':
         for rolloff in train_sizes:
             for augment_scale in augment_scales:
                 for idx,emg_mask in enumerate(emg_masks):
+                    if rolloff==0.05 and np.isclose(augment_scale,0.006666666666):
+                        skipRolloff=True
+                        break
+                    print('Rolloff: ',str(rolloff),' Augment: ',str(augment_scale))
+                    
                     space=setup_search_space(architecture='decision',include_svm=True)
                     
                     space.update({'l1_sparsity':0.05})
@@ -337,7 +342,7 @@ if __name__ == '__main__':
                     space.update({'rolloff_factor':rolloff})
                     space.update({'augment_scale':augment_scale})
                     
-                    trials=Trials()
+                    
                     
                     space.update({'testset_size':testset_size,})
                     
@@ -390,64 +395,68 @@ if __name__ == '__main__':
                     emg_others = emg_set[~emg_mask]
                     eeg_others = eeg_set[~eeg_mask]
                     
-                    if augment_scale == 0:
-                        emg_joint = emg_train
-                        eeg_joint = eeg_train
-                    else:
-                        emg_aug,eeg_aug = scale_nonSubj(emg_others,eeg_others,augment_scale)
-
-                        emg_aug=feats.scale_feats_test(emg_aug,emgscaler)
-                        eeg_aug=feats.scale_feats_test(eeg_aug,eegscaler)
+                    for repeat in range(10):
+                        trials=Trials()
+                        if augment_scale == 0:
+                            emg_joint = emg_train
+                            eeg_joint = eeg_train
+                        else:
+                            emg_aug,eeg_aug = scale_nonSubj(emg_others,eeg_others,augment_scale)
+    
+                            emg_aug=feats.scale_feats_test(emg_aug,emgscaler)
+                            eeg_aug=feats.scale_feats_test(eeg_aug,eegscaler)
+                            
+                            emg_joint = pd.concat([emg_train,emg_aug])
+                            eeg_joint = pd.concat([eeg_train,eeg_aug])
+    
+    
+                        if feats_method=='subject':
+                            sel_cols_emg=feats.sel_percent_feats_df(ml.drop_ID_cols(emg_train),percent=15)
+                            sel_cols_emg=np.append(sel_cols_emg,ml.drop_ID_cols(emg_train).columns.get_loc('Label'))
+                            sel_cols_eeg=feats.sel_feats_l1_df(ml.drop_ID_cols(eeg_train),sparsityC=space['l1_sparsity'],maxfeats=space['l1_maxfeats'])
+                            sel_cols_eeg=np.append(sel_cols_eeg,ml.drop_ID_cols(eeg_train).columns.get_loc('Label')) 
                         
-                        emg_joint = pd.concat([emg_train,emg_aug])
-                        eeg_joint = pd.concat([eeg_train,eeg_aug])
-
-
-                    if feats_method=='subject':
-                        sel_cols_emg=feats.sel_percent_feats_df(ml.drop_ID_cols(emg_train),percent=15)
-                        sel_cols_emg=np.append(sel_cols_emg,ml.drop_ID_cols(emg_train).columns.get_loc('Label'))
-                        sel_cols_eeg=feats.sel_feats_l1_df(ml.drop_ID_cols(eeg_train),sparsityC=space['l1_sparsity'],maxfeats=space['l1_maxfeats'])
-                        sel_cols_eeg=np.append(sel_cols_eeg,ml.drop_ID_cols(eeg_train).columns.get_loc('Label')) 
-                    
-                    elif feats_method=='non-subject aug':                     
-                        sel_cols_emg=feats.sel_percent_feats_df(ml.drop_ID_cols(emg_joint),percent=15)
-                        sel_cols_emg=np.append(sel_cols_emg,ml.drop_ID_cols(emg_joint).columns.get_loc('Label'))
-                        sel_cols_eeg=feats.sel_feats_l1_df(ml.drop_ID_cols(eeg_joint),sparsityC=space['l1_sparsity'],maxfeats=space['l1_maxfeats'])
-                        sel_cols_eeg=np.append(sel_cols_eeg,ml.drop_ID_cols(eeg_joint).columns.get_loc('Label')) 
-                    
- 
-                    space['sel_cols_emg']=sel_cols_emg
-                    space['sel_cols_eeg']=sel_cols_eeg
-                    space['subject-id']=eeg_ppt['ID_pptID'][0]                    
-                    
-                    if opt_method=='subject':
-                        space.update({'emg_set':emg_train,'eeg_set':eeg_train,'data_in_memory':True,'prebalanced':True})
-                    elif opt_method=='non-subject aug':
-                        space.update({'emg_set':emg_joint,'eeg_set':eeg_joint,'data_in_memory':True,'prebalanced':True})
-                    
-                    space.update({'featsel_method':feats_method})
-                    space.update({'train_method':train_method})
-                    space.update({'opt_method':opt_method})
-                    
-                    best = fmin(fuse_fullbespoke,
-                            space=space,
-                            algo=tpe.suggest,
-                            max_evals=iters,
-                            trials=trials)
-                    
-                    winner_args=space_eval(space,best)
-                    best_loss=trials.best_trial['result']['loss']
-            
-                    winner_args['sel_cols_emg']=sel_cols_emg
-                    winner_args['sel_cols_eeg']=sel_cols_eeg 
-                    winner_args['plot_confmats']=True
-                    winner_args['subject id']=str(int(eeg_ppt['ID_pptID'][0]))
-                    
-                    subject_results=fusion_test(emg_joint,eeg_joint,emg_test,eeg_test,winner_args)
-                    subject_results['best_loss']=best_loss
-                    
-                    ppt_winners.append(winner_args)
-                    ppt_results.append(subject_results)
+                        elif feats_method=='non-subject aug':                     
+                            sel_cols_emg=feats.sel_percent_feats_df(ml.drop_ID_cols(emg_joint),percent=15)
+                            sel_cols_emg=np.append(sel_cols_emg,ml.drop_ID_cols(emg_joint).columns.get_loc('Label'))
+                            sel_cols_eeg=feats.sel_feats_l1_df(ml.drop_ID_cols(eeg_joint),sparsityC=space['l1_sparsity'],maxfeats=space['l1_maxfeats'])
+                            sel_cols_eeg=np.append(sel_cols_eeg,ml.drop_ID_cols(eeg_joint).columns.get_loc('Label')) 
+                        
+     
+                        space['sel_cols_emg']=sel_cols_emg
+                        space['sel_cols_eeg']=sel_cols_eeg
+                        space['subject-id']=eeg_ppt['ID_pptID'][0]                    
+                        
+                        if opt_method=='subject':
+                            space.update({'emg_set':emg_train,'eeg_set':eeg_train,'data_in_memory':True,'prebalanced':True})
+                        elif opt_method=='non-subject aug':
+                            space.update({'emg_set':emg_joint,'eeg_set':eeg_joint,'data_in_memory':True,'prebalanced':True})
+                        
+                        space.update({'featsel_method':feats_method})
+                        space.update({'train_method':train_method})
+                        space.update({'opt_method':opt_method})
+                        
+                        best = fmin(fuse_fullbespoke,
+                                space=space,
+                                algo=tpe.suggest,
+                                max_evals=iters,
+                                trials=trials)
+                        
+                        winner_args=space_eval(space,best)
+                        best_loss=trials.best_trial['result']['loss']
+                
+                        winner_args['sel_cols_emg']=sel_cols_emg
+                        winner_args['sel_cols_eeg']=sel_cols_eeg 
+                        #winner_args['plot_confmats']=True
+                        winner_args['subject id']=str(int(eeg_ppt['ID_pptID'][0]))
+                        winner_args['repeat']=repeat
+                        
+                        subject_results=fusion_test(emg_joint,eeg_joint,emg_test,eeg_test,winner_args)
+                        subject_results['best_loss']=best_loss
+                        subject_results['repeat']=repeat
+                        
+                        ppt_winners.append(winner_args)
+                        ppt_results.append(subject_results)
     
                 if skipRolloff:
                     skipRolloff=False
@@ -467,11 +476,12 @@ if __name__ == '__main__':
                     winners_final=pd.concat([winners_final.drop(col,axis=1),
                                              winners_final[col].apply(lambda x: pd.Series(x)).rename(columns=lambda x: f'{col}_{x}')],axis=1)    
                     
-                results=results_final.join(winners_final)
+                results=results_final.join(winners_final.drop('repeat',axis=1))
                 results['opt_acc']=1-results['best_loss']
-                scores_minimal=results[['subject id','fusion_acc','emg_acc','eeg_acc','elapsed_time',
-                               'fusion_alg_fusion_alg_type','eeg_eeg_model_type','emg_emg_model_type',
-                               'featsel_method','train_method','rolloff_factor','augment_scale','best_loss','opt_acc']]
+                scores_minimal=results[['subject id','rolloff_factor','augment_scale','repeat','fusion_acc',
+                               'emg_acc','eeg_acc','elapsed_time','fusion_alg_fusion_alg_type',
+                               'eeg_eeg_model_type','emg_emg_model_type','featsel_method','train_method',
+                               'best_loss','opt_acc']]
                 
                 currentpath=os.path.dirname(__file__)
                 result_dir=params.jeong_results_dir
@@ -505,7 +515,21 @@ if __name__ == '__main__':
     else:
         scores_minimal=pd.read_csv(load_res_path,index_col=0)        
     
-    if plot_results:    
+    if plot_results:
+        
+        for ppt in scores_minimal['subject id'].unique():
+            fig,ax=plt.subplots();
+
+            plt.rcParams['figure.dpi'] = 150 # DEFAULT IS 100
+            subj= scores_minimal[scores_minimal['subject id']==ppt]
+            
+            for rolloff in np.sort(subj['rolloff_factor'].unique()):
+                    subj[subj['rolloff_factor']==rolloff].boxplot(column='fusion_acc',by='augment_scale',ax=ax)
+            ax.set_ylim((0,1))
+        
+        
+        
+        
         fig,ax=plt.subplots();
         for ppt in scores_minimal['subject id'].unique():
             scores_minimal[scores_minimal['subject id']==ppt].plot(y='fusion_acc',x='rolloff_factor',ax=ax,color='tab:blue',legend=None)

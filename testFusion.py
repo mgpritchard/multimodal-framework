@@ -2906,6 +2906,8 @@ def optimise_fusion(trialmode,prebalance=True,architecture='decision',platform='
                     max_evals=iters,
                     trials=trials)
         
+        #https://stackoverflow.com/questions/49370879/python-and-hyperopt-how-to-make-multi-process-grid-searching/49660963#49660963
+        
     elif trialmode=='WithinPpt':
         space.update({'l1_sparsity':0.005}) #0.002
         space.update({'l1_maxfeats':40}) # sqrt(2400*0.66)=sqrt(1584), ie size of train set

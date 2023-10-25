@@ -260,6 +260,8 @@ if __name__ == '__main__':
     plot_results=True
     load_res_path=None
  #   load_res_path=r"C:\Users\pritcham\Documents\mm-framework\multimodal-framework\lit_data_expts\jeong\results\RQ2\D1_AugAllfinal_resMinimal.csv"
+   # load_res_path=r"C:\Users\pritcham\Documents\mm-framework\multimodal-framework\lit_data_expts\jeong\results\RQ2\D1a_AugStable_rolloff0.505_augment0.007_resMinimal.csv"
+    load_res_path=r"C:\Users\pritcham\Documents\mm-framework\multimodal-framework\lit_data_expts\jeong\results\RQ2\D1a_AugStable_mergedTemp.csv"
 
     systemUnderTest = 'D1a_AugStable'
     rolling_off_subj=True
@@ -300,7 +302,7 @@ if __name__ == '__main__':
         # 0.00666 would be 1 full gesture per person, for a set of 19
         # ie 1/150, because each gesture was done 50 times on 3 days = 150 per gest per ppt
         # below coerces them to be multiples of 0.00666 ie to ensure equal # per ppt per class
-        augment_scales=[0.00666,0.02]#,0.33,0.67]
+        augment_scales=[0,0.00666,0.02]#,0.33,0.67]
         # the scales above are 0, 1, 3, not 6, 7.89, not 12 (0.08), 25, 50, 100 per ppt per class
         # 0.05263 is 1/19, 7.89 per gest per ppt, i.e. result in aug_size = train_size
             #(actually ends up as 0.05333 = 8 per class per ppt = 152 in the aug)
@@ -332,6 +334,16 @@ if __name__ == '__main__':
                     if rolloff==0.05 and np.isclose(augment_scale,0.006666666666):
                         skipRolloff=True
                         break
+                    
+                    if ((rolloff in [0.05,0.1,0.2575] and not np.isclose(augment_scale,0)) or
+                        (rolloff == 0.505 and np.isclose(augment_scale,0.006666666666))):
+                        skipRolloff=True
+                        break
+                    
+                    if not np.isclose(augment_scale,0) or not rolloff in [0.05,0.1,0.2575]:
+                        skipRolloff=True
+                        break
+                    
                     print('Rolloff: ',str(rolloff),' Augment: ',str(augment_scale))
                     
                     space=setup_search_space(architecture='decision',include_svm=True)
@@ -518,18 +530,40 @@ if __name__ == '__main__':
     if plot_results:
         
         for ppt in scores_minimal['subject id'].unique():
-            fig,ax=plt.subplots();
-
-            plt.rcParams['figure.dpi'] = 150 # DEFAULT IS 100
             subj= scores_minimal[scores_minimal['subject id']==ppt]
+            subjScore=subj.groupby(['augment_scale','rolloff_factor'])['fusion_acc'].agg(['mean','std']).reset_index()
+            if 0:
+                fig,ax=plt.subplots();
+                plt.rcParams['figure.dpi'] = 150 # DEFAULT IS 100
+           #     for rolloff in np.sort(subj['rolloff_factor'].unique()):
+           #             subj[subj['rolloff_factor']==rolloff].boxplot(column='fusion_acc',by='augment_scale',ax=ax)
+           #     ax.set_ylim((0,1))
+                
+          #      for key,group in subj.groupby('rolloff_factor'):
+          #          grouped=group.groupby(['augment_scale'])['fusion_acc'].agg(['mean','std']).reset_index()
+          #          plt.errorbar(x=grouped['augment_scale'],y=grouped['mean'],yerr=grouped['std'],
+          #                       marker='.',capsize=5,label=key)
+                subjScore.pivot(index='augment_scale',columns='rolloff_factor',values='mean').plot(kind='bar',ax=ax,rot=0,capsize=5,
+                                                                                                    yerr=subjScore.pivot(index='augment_scale',columns='rolloff_factor',values='std'))
+                ax.set_ylim(np.floor(subj['fusion_acc'].min()/0.05)*0.05,np.ceil(subj['fusion_acc'].max()/0.05)*0.05)
+                plt.title('Subject '+str(ppt))
+                ax.set_xlabel('Proportion of non-subject data augmenting')
+                ax.legend(title='Proportion of subject data')
+                plt.show()
+            if 1:
+                fig,ax=plt.subplots();
+                plt.rcParams['figure.dpi'] = 150 # DEFAULT IS 100
+                subjScore.pivot(index='rolloff_factor',columns='augment_scale',values='mean').plot(kind='bar',ax=ax,rot=0,capsize=5,
+                                                                                                    yerr=subjScore.pivot(index='rolloff_factor',columns='augment_scale',values='std'))
+                ax.set_ylim(np.floor(subj['fusion_acc'].min()/0.05)*0.05,np.ceil(subj['fusion_acc'].max()/0.05)*0.05)
+                plt.title('Subject '+str(ppt))
+                ax.set_xlabel('Proportion of subject data')
+                ax.legend(title='Proportion of non-subject data augmenting')
+                plt.show()
             
-            for rolloff in np.sort(subj['rolloff_factor'].unique()):
-                    subj[subj['rolloff_factor']==rolloff].boxplot(column='fusion_acc',by='augment_scale',ax=ax)
-            ax.set_ylim((0,1))
         
         
-        
-        
+        '''
         fig,ax=plt.subplots();
         for ppt in scores_minimal['subject id'].unique():
             scores_minimal[scores_minimal['subject id']==ppt].plot(y='fusion_acc',x='rolloff_factor',ax=ax,color='tab:blue',legend=None)
@@ -553,7 +587,7 @@ if __name__ == '__main__':
          #   scores_minimal[scores_minimal['subject id']==ppt].plot.scatter(y='augment_scale',x='rolloff_factor',c='fusion_acc',
          #                                                                  ax=ax,cmap='copper')
             
-           # '''
+
             plt.rcParams['figure.dpi'] = 150 # DEFAULT IS 100
             subj= scores_minimal[scores_minimal['subject id']==ppt]
             fullbesp=subj[subj['rolloff_factor']==1][subj['augment_scale']==0]['fusion_acc'].item()
@@ -575,7 +609,7 @@ if __name__ == '__main__':
                 ax.add_patch(Ellipse((row['rolloff_factor'],row['augment_scale']),width=0.05,height=0.01,color='r',fill=False))
             
             plt.show()
-         #   '''
+
             
         plot_all_rollofs=True    
         for ppt in scores_minimal['subject id'].unique():
@@ -621,8 +655,7 @@ if __name__ == '__main__':
     
     #chance we confuse it eg that by adding non subject within opt, all its doing is learning to firstly
         #ignore the bits of training data that are non-subject, then learn helpful things from the subject data
-
     
-    
+        '''
     
         

@@ -260,6 +260,8 @@ if __name__ == '__main__':
     plot_results=True
     load_res_path=None
     load_res_path=r"C:\Users\pritcham\Documents\mm-framework\multimodal-framework\lit_data_expts\jeong\results\RQ2\D1_AugAllfinal_resMinimal.csv"
+  #  load_res_path=r"C:\Users\pritcham\Documents\mm-framework\multimodal-framework\lit_data_expts\jeong\results\RQ2\B3_AugTrain_rolloff1.0_augment0.167_resMinimal.csv"
+    load_res_path=r"/home/michael/Downloads/D1_AugAllfinal_resMinimal.csv"
 
     systemUnderTest = 'D1_AugAll'
     rolling_off_subj=True
@@ -572,7 +574,6 @@ if __name__ == '__main__':
                 
             ax.legend(np.sort(subj['rolloff_factor'].unique()),title='Proportion subject data')
             
-
             plt.title('Subject '+str(ppt)+'. No rolloff, no aug = '+str(round(fullbesp,5)))
             
             wincoords=tuple(subj.loc[subj['fusion_acc'].idxmax()][['augment_scale','fusion_acc']].tolist())
@@ -586,7 +587,9 @@ if __name__ == '__main__':
        #         ax.add_patch(Ellipse((row['rolloff_factor'],row['augment_scale']),width=0.05,height=0.01,color='r',fill=False))
             
             #ax.set_xticks(subj['augment_scale'].unique())
-            ax.set_xlabel('Proportion of non-subj augmenting Everything')
+ #           ax.set_xlabel('Proportion of non-subj augmenting Everything')
+            
+            plt.hlines(y=0.75,label='Generalist',xmin=0,xmax=0.15,linestyles='--')
             plt.show()
             
         print('*****\nHeavily affected by randomness, BUT I think it may be in part the',
@@ -597,8 +600,59 @@ if __name__ == '__main__':
     
     #chance we confuse it eg that by adding non subject within opt, all its doing is learning to firstly
         #ignore the bits of training data that are non-subject, then learn helpful things from the subject data
+    bespokescores={}
+    for ppt in scores_minimal['subject id'].unique():
 
+        subj= scores_minimal[scores_minimal['subject id']==ppt]
+        fullbesp=subj[subj['rolloff_factor']==1][subj['augment_scale']==0]['fusion_acc'].item()
+        bespokescores.update({ppt:fullbesp})
     
+    scores_minimal['bespokescore']=scores_minimal['subject id'].map(bespokescores)
+
+
+    scores_minimal['change']=scores_minimal['fusion_acc']-scores_minimal['bespokescore']
     
+    fig,ax=plt.subplots();
+    for ppt in scores_minimal['subject id'].unique():
+        subj= scores_minimal[scores_minimal['subject id']==ppt]
+        for rolloff in np.sort(subj['rolloff_factor'].unique()):
+            subj[subj['rolloff_factor']==rolloff].plot(x='augment_scale',y='change',marker='.',ax=ax,legend=None)
     
-        
+    fig,ax=plt.subplots();
+    for rolloffLevel in np.sort(scores_minimal['rolloff_factor'].unique()):
+        rolloff=scores_minimal[scores_minimal['rolloff_factor']==rolloffLevel]
+        rolloffscores={}
+        for auglevel in np.sort(rolloff['augment_scale'].unique()):
+            aug_avg=np.average(rolloff[rolloff['augment_scale']==auglevel]['fusion_acc'])
+            rolloffscores.update({auglevel:aug_avg})
+        pd.DataFrame(rolloffscores.items(),columns=['Aug level','Accuracy']).plot(x='Aug level',y='Accuracy',ax=ax,marker='.')
+    ax.legend(np.sort(scores_minimal['rolloff_factor'].unique()),title='Proportion subject data')
+
+    '''
+    fig,ax=plt.subplots();
+    for rolloffLevel in np.sort(scores_minimal['rolloff_factor'].unique()):
+        rolloff=scores_minimal[scores_minimal['rolloff_factor']==rolloffLevel]
+        rolloffscores={}
+        rolloffstds={}
+        for auglevel in np.sort(rolloff['augment_scale'].unique()):
+            aug_avg=np.average(rolloff[rolloff['augment_scale']==auglevel]['fusion_acc'])
+            aug_std=np.std(rolloff[rolloff['augment_scale']==auglevel]['fusion_acc'])
+            rolloffscores.update({auglevel:aug_avg})
+            rolloffstds.update({auglevel:aug_std})
+        pd.DataFrame(rolloffscores.items(),columns=['Aug level','Accuracy']).plot(x='Aug level',y='Accuracy',ax=ax,marker='.')
+    ax.legend(np.sort(scores_minimal['rolloff_factor'].unique()),title='Proportion subject data')
+    '''
+    fig,ax=plt.subplots();
+    for key,group in scores_minimal.groupby('rolloff_factor'):
+        grouped=group.groupby(['augment_scale'])['fusion_acc'].agg(['mean','std']).reset_index()
+        plt.errorbar(x=grouped['augment_scale'],y=grouped['mean'],yerr=grouped['std'],marker='.',capsize=5)
+    ax.set_ylim(0.6,0.95)
+    plt.show()
+    
+    fig,ax=plt.subplots();
+    for key,group in scores_minimal.groupby('rolloff_factor'):
+        grouped=group.groupby(['augment_scale'])['change'].agg(['mean','std']).reset_index()
+        plt.errorbar(x=grouped['augment_scale'],y=grouped['mean'],yerr=grouped['std'],marker='.',capsize=5)
+    plt.show()
+    
+

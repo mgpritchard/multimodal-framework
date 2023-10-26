@@ -251,7 +251,10 @@ def scale_nonSubj(emg_others,eeg_others,augment_scale):
     return emg_aug,eeg_aug
 
 
-
+gen_dev_accs={2: 0.76625, 3: 0.68875, 4: 0.7879166666666667, 5: 0.77875, 7: 0.81, 8: 0.745, 9: 0.6504166666666666,
+              10: 0.6991666666666667, 12: 0.70375, 13: 0.5275, 14: 0.6008333333333333, 15: 0.65875,
+              17: 0.8183333333333334, 18: 0.74875, 19: 0.7379166666666667, 20: 0.7408333333333333,
+              22: 0.7375, 23: 0.6825, 24: 0.8375, 25: 0.7395833333333334}
 
 
 if __name__ == '__main__':
@@ -302,7 +305,8 @@ if __name__ == '__main__':
         # 0.00666 would be 1 full gesture per person, for a set of 19
         # ie 1/150, because each gesture was done 50 times on 3 days = 150 per gest per ppt
         # below coerces them to be multiples of 0.00666 ie to ensure equal # per ppt per class
-        augment_scales=[0,0.00666,0.02]#,0.33,0.67]
+        augment_scales=[0,0.00666,0.02]#,0.1]#,0.67]
+        '''try 0.1 maybe if time but 5mins x 10 trials x 20 subjects = 20h for one trainSize...'''
         # the scales above are 0, 1, 3, not 6, 7.89, not 12 (0.08), 25, 50, 100 per ppt per class
         # 0.05263 is 1/19, 7.89 per gest per ppt, i.e. result in aug_size = train_size
             #(actually ends up as 0.05333 = 8 per class per ppt = 152 in the aug)
@@ -331,16 +335,11 @@ if __name__ == '__main__':
         for rolloff in train_sizes:
             for augment_scale in augment_scales:
                 for idx,emg_mask in enumerate(emg_masks):
-                    if rolloff==0.05 and np.isclose(augment_scale,0.006666666666):
+                    if rolloff==0.505 and np.isclose(augment_scale,0.006666666666):
                         skipRolloff=True
                         break
                     
-                    if ((rolloff in [0.05,0.1,0.2575] and not np.isclose(augment_scale,0)) or
-                        (rolloff == 0.505 and np.isclose(augment_scale,0.006666666666))):
-                        skipRolloff=True
-                        break
-                    
-                    if not np.isclose(augment_scale,0) or not rolloff in [0.05,0.1,0.2575]:
+                    if rolloff in [0.05,0.1,0.2575] and augment_scale < 0.1:
                         skipRolloff=True
                         break
                     
@@ -558,6 +557,8 @@ if __name__ == '__main__':
                 ax.set_ylim(np.floor(subj['fusion_acc'].min()/0.05)*0.05,np.ceil(subj['fusion_acc'].max()/0.05)*0.05)
                 plt.title('Subject '+str(ppt))
                 ax.set_xlabel('Proportion of subject data')
+                
+                plt.axhline(y=gen_dev_accs[ppt],label='Generalist',linestyle='--',color='gray')
                 ax.legend(title='Proportion of non-subject data augmenting')
                 plt.show()
             
@@ -657,5 +658,21 @@ if __name__ == '__main__':
         #ignore the bits of training data that are non-subject, then learn helpful things from the subject data
     
         '''
+if 0:
+    def load_results_obj(path):
+        load_trials=pickle.load(open(path,'rb'))
+        load_table=pd.DataFrame(load_trials.trials)
+        load_table_readable=pd.concat(
+            [pd.DataFrame(load_table['result'].tolist()),
+             pd.DataFrame(pd.DataFrame(load_table['misc'].tolist())['vals'].values.tolist())],
+            axis=1,join='outer')
+        return load_trials,load_table,load_table_readable
     
-        
+    _,_,gen_results=load_results_obj(r"C:\Users\pritcham\Documents\mm-framework\multimodal-framework\lit_data_expts\jeong\results\Generalist_20DevSet\Gen_feat_joint\trials_obj.p")
+    gen_best=gen_results.iloc[76]
+    gen_best_accs=gen_best['fusion_accs']
+    gen_dev_accs=dict(zip(scores_minimal['subject id'].unique(),gen_best_accs))
+    
+    
+
+    

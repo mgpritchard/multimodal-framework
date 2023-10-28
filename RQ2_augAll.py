@@ -308,6 +308,7 @@ if __name__ == '__main__':
             #(actually ends up as 0.05333 = 8 per class per ppt = 152 in the aug)
         # 100 per class per ppt is the same amount as left over in the training set after 0.33 reserved for test
         # 50 and 100 removed for now for practicality as very big! dwarfs the subject
+        augment_scales=[0.1, 0.075, 0.33, 0.45, 0.25, 0.67]
         augment_scales = np.array([round(scale/(1/150))*(1/150) for scale in augment_scales])
     
     if run_test:

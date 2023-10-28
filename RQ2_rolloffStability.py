@@ -264,9 +264,10 @@ if __name__ == '__main__':
     load_res_path=None
  #   load_res_path=r"C:\Users\pritcham\Documents\mm-framework\multimodal-framework\lit_data_expts\jeong\results\RQ2\D1_AugAllfinal_resMinimal.csv"
    # load_res_path=r"C:\Users\pritcham\Documents\mm-framework\multimodal-framework\lit_data_expts\jeong\results\RQ2\D1a_AugStable_rolloff0.505_augment0.007_resMinimal.csv"
-    load_res_path=r"C:\Users\pritcham\Documents\mm-framework\multimodal-framework\lit_data_expts\jeong\results\RQ2\D1a_AugStable_mergedTemp.csv"
+#    load_res_path=r"C:\Users\pritcham\Documents\mm-framework\multimodal-framework\lit_data_expts\jeong\results\RQ2\D1b_RolloffStable_mergedTemp.csv"
+    load_res_path=r"C:\Users\pritcham\Documents\mm-framework\multimodal-framework\lit_data_expts\jeong\results\RQ2\D1b_RolloffStable_rolloff0.1_augment0.007_resMinimal.csv"
 
-    systemUnderTest = 'D1a_AugStable'
+    systemUnderTest = 'D1b_RolloffStable'
     rolling_off_subj=True
     
     testset_size = 0.33
@@ -279,24 +280,17 @@ if __name__ == '__main__':
         augment_scales=[0]
         
         if rolling_off_subj==True:
-            '''
-            train_sizes1=1.099-np.geomspace(0.1,0.2,5)[::-1]
-            train_sizes_mid=np.linspace(0.2925,0.8,4)
-            train_sizes2=np.geomspace(0.02,0.2,5)
-            train_sizes3=np.geomspace(0.01,0.02,5)
-            train_sizes=np.unique(np.concatenate((train_sizes1,train_sizes_mid,train_sizes2,train_sizes3)))
-            '''
             train_sizes=np.unique(np.concatenate((np.linspace(0.01,0.1,3),np.geomspace(0.1,0.6,6),np.geomspace(0.6,1,4))))
         else:
             train_sizes=[1]
         
-    elif systemUnderTest == 'D1a_AugStable':
+    elif systemUnderTest == 'D1b_RolloffStable':
        # train_sizes=[0.25]
        # train_sizes=np.geomspace(0.01,1,5)
      #  train_sizes=np.linspace(0.01,1,5)
         #manually added 0.05 and 0.1 as 0.01 was too small
         
-        train_sizes=np.concatenate(([0.05,0.1],np.linspace(0.01,1,5)[1:]))
+        train_sizes=np.concatenate(([0.05,0.1],np.linspace(0.01,1,5)[1:-1]))
         
         feats_method='non-subject aug'
         opt_method='non-subject aug'
@@ -305,7 +299,7 @@ if __name__ == '__main__':
         # 0.00666 would be 1 full gesture per person, for a set of 19
         # ie 1/150, because each gesture was done 50 times on 3 days = 150 per gest per ppt
         # below coerces them to be multiples of 0.00666 ie to ensure equal # per ppt per class
-        augment_scales=[0,0.00666,0.02]#,0.1]#,0.67]
+        augment_scales=[0,0.00666]#,0.02]#,0.1]#,0.67]
         '''try 0.1 maybe if time but 5mins x 10 trials x 20 subjects = 20h for one trainSize...'''
         # the scales above are 0, 1, 3, not 6, 7.89, not 12 (0.08), 25, 50, 100 per ppt per class
         # 0.05263 is 1/19, 7.89 per gest per ppt, i.e. result in aug_size = train_size
@@ -332,16 +326,9 @@ if __name__ == '__main__':
         ppt_results=[]
         skipRolloff=False
         
-        for rolloff in train_sizes:
-            for augment_scale in augment_scales:
+        for augment_scale in augment_scales:
+            for rolloff in train_sizes:
                 for idx,emg_mask in enumerate(emg_masks):
-                    if rolloff==0.505 and np.isclose(augment_scale,0.006666666666):
-                        skipRolloff=True
-                        break
-                    
-                    if rolloff in [0.05,0.1,0.2575] and augment_scale < 0.1:
-                        skipRolloff=True
-                        break
                     
                     print('Rolloff: ',str(rolloff),' Augment: ',str(augment_scale))
                     
@@ -362,6 +349,11 @@ if __name__ == '__main__':
                     emg_ppt = emg_set[emg_mask]
                     eeg_ppt = eeg_set[eeg_mask]
                     
+                    if augment_scale != 0:
+                        emg_others = emg_set[~emg_mask]
+                        eeg_others = eeg_set[~eeg_mask]
+                        emg_aug,eeg_aug = scale_nonSubj(emg_others,eeg_others,augment_scale)
+                    
                     
                     emg_ppt.sort_values(['ID_pptID','ID_run','Label','ID_gestrep','ID_tend'],ascending=[True,True,True,True,True],inplace=True)
                     eeg_ppt.sort_values(['ID_pptID','ID_run','Label','ID_gestrep','ID_tend'],ascending=[True,True,True,True,True],inplace=True)
@@ -373,47 +365,44 @@ if __name__ == '__main__':
                     
                     eeg_ppt['ID_stratID']=eeg_ppt['ID_run'].astype(str)+eeg_ppt['Label'].astype(str)+eeg_ppt['ID_gestrep'].astype(str)
                     emg_ppt['ID_stratID']=emg_ppt['ID_run'].astype(str)+eeg_ppt['Label'].astype(str)+eeg_ppt['ID_gestrep'].astype(str)
-                    random_split=random.randint(0,100)
                     
-                    if not emg_ppt['ID_stratID'].equals(eeg_ppt['ID_stratID']):
-                        raise ValueError('EMG & EEG performances misaligned')
-                    gest_perfs=emg_ppt['ID_stratID'].unique()
-                    gest_strat=pd.DataFrame([gest_perfs,[perf.split('.')[1][-1] for perf in gest_perfs]]).transpose()
-                    
-                    remainder,test_split=train_test_split(gest_strat,test_size=testset_size,
-                                                          random_state=random_split,stratify=gest_strat[1])
-                    
-                    if space['rolloff_factor'] < 1:
-                        remainder,_=train_test_split(remainder,train_size=space['rolloff_factor'],random_state=random_split,stratify=remainder[1])
-                        if min(remainder[1].value_counts()) < 2:
-                            print('rolloff of ' +str(space['rolloff_factor'])+' results in < 2 performances per class')
-                            skipRolloff=True
-                            break
-        
-                    
-                    eeg_test=eeg_ppt[eeg_ppt['ID_stratID'].isin(test_split[0])]
-                    emg_test=emg_ppt[emg_ppt['ID_stratID'].isin(test_split[0])]
-                    eeg_train=eeg_ppt[eeg_ppt['ID_stratID'].isin(remainder[0])]
-                    emg_train=emg_ppt[emg_ppt['ID_stratID'].isin(remainder[0])]
-                                 
-                         
-                    emg_train,emgscaler=feats.scale_feats_train(emg_train,space['scalingtype'])
-                    eeg_train,eegscaler=feats.scale_feats_train(eeg_train,space['scalingtype'])
-                    emg_test=feats.scale_feats_test(emg_test,emgscaler)
-                    eeg_test=feats.scale_feats_test(eeg_test,eegscaler)
-                                    
-                    
-                    emg_others = emg_set[~emg_mask]
-                    eeg_others = eeg_set[~eeg_mask]
-                    
-                    for repeat in range(10):
+                    for repeat in range(5):
                         trials=Trials()
+                    
+                        random_split=random.randint(0,100)
+                        
+                        if not emg_ppt['ID_stratID'].equals(eeg_ppt['ID_stratID']):
+                            raise ValueError('EMG & EEG performances misaligned')
+                        gest_perfs=emg_ppt['ID_stratID'].unique()
+                        gest_strat=pd.DataFrame([gest_perfs,[perf.split('.')[1][-1] for perf in gest_perfs]]).transpose()
+                        
+                        remainder,test_split=train_test_split(gest_strat,test_size=testset_size,
+                                                              random_state=random_split,stratify=gest_strat[1])
+                        
+                        if space['rolloff_factor'] < 1:
+                            remainder,_=train_test_split(remainder,train_size=space['rolloff_factor'],random_state=random_split,stratify=remainder[1])
+                            if min(remainder[1].value_counts()) < 2:
+                                print('rolloff of ' +str(space['rolloff_factor'])+' results in < 2 performances per class')
+                                skipRolloff=True
+                                break
+            
+                        
+                        eeg_test=eeg_ppt[eeg_ppt['ID_stratID'].isin(test_split[0])]
+                        emg_test=emg_ppt[emg_ppt['ID_stratID'].isin(test_split[0])]
+                        eeg_train=eeg_ppt[eeg_ppt['ID_stratID'].isin(remainder[0])]
+                        emg_train=emg_ppt[emg_ppt['ID_stratID'].isin(remainder[0])]
+                                     
+                             
+                        emg_train,emgscaler=feats.scale_feats_train(emg_train,space['scalingtype'])
+                        eeg_train,eegscaler=feats.scale_feats_train(eeg_train,space['scalingtype'])
+                        emg_test=feats.scale_feats_test(emg_test,emgscaler)
+                        eeg_test=feats.scale_feats_test(eeg_test,eegscaler)
+                                        
+                    
                         if augment_scale == 0:
                             emg_joint = emg_train
                             eeg_joint = eeg_train
                         else:
-                            emg_aug,eeg_aug = scale_nonSubj(emg_others,eeg_others,augment_scale)
-    
                             emg_aug=feats.scale_feats_test(emg_aug,emgscaler)
                             eeg_aug=feats.scale_feats_test(eeg_aug,eegscaler)
                             
@@ -527,7 +516,8 @@ if __name__ == '__main__':
         scores_minimal=pd.read_csv(load_res_path,index_col=0)        
     
     if plot_results:
-        
+        print('each time, the aug selection is the same, but the ppt downsample is tried 5 times')
+        print('(we HAVE the case of no rolloff, from D1a AugStable, all we see is randomness in the opt etc)')
         for ppt in scores_minimal['subject id'].unique():
             subj= scores_minimal[scores_minimal['subject id']==ppt]
             subjScore=subj.groupby(['augment_scale','rolloff_factor'])['fusion_acc'].agg(['mean','std']).reset_index()

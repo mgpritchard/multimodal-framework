@@ -13,7 +13,7 @@ import matplotlib.pyplot as plt
 import testFusion as fuse
 import scipy.stats as stats
 
-def boxplot_param(df_in,param,target,ylower=0,yupper=1,showplot=True,xlabs=None,title=None):
+def boxplot_param(df_in,param,target,ylower=0,yupper=1,showplot=True,xlabs=None,title=None,titleheight=0.98):
     fig,ax=plt.subplots()
     dataframe=df_in.copy()
     if isinstance(dataframe[param][0],list):
@@ -27,7 +27,7 @@ def boxplot_param(df_in,param,target,ylower=0,yupper=1,showplot=True,xlabs=None,
     ax.set_title('')
     if title is not None:
     #    ax.set_title(title)
-        plt.suptitle(title)
+        plt.suptitle(title,y=titleheight)
     if showplot:
         plt.show()
     return fig
@@ -71,6 +71,40 @@ def model_significance(df,target,param,winner,title='Mean accuracy per classifie
             
     return per_param
 
+def hierarch_topmodel(df,target,param,title='Mean accuracy per classifier in Bespoke Hierarchical optimisation',titleheight=0.98):
+    
+    per_param=boxplot_param(df,param,target,xlabs=models,
+                               title=title,titleheight=titleheight)
+    
+    stat_test=df[[param,target]]
+    stat_test[param]=[x[0] for x in stat_test[param]]
+    stat_test[param]=[model_dict[x] for x in stat_test[param]]
+    groups = [stat_test[stat_test[param] == group][target] for group in models]
+    #sorting the above by bespoke_models instead of #stat_test['eeg model'].unique()] #so that order is preserved
+    fstat, pvalue = stats.f_oneway(*groups)
+    print('anova on all ',fstat, pvalue)
+    #https://saturncloud.io/blog/anova-in-python-using-pandas-dataframe-with-statsmodels-or-scipy/#:~:text=ANOVA%20is%20a%20fundamental%20statistical,popular%20libraries%3A%20Statsmodels%20and%20Scipy.
+    
+    '''COPY DATA FROM STAT_TEST FOR R SCRIPT'''
+
+    return per_param, stat_test
+
+def hierarch_lowmodel(df,target,param,title='Mean accuracy per classifier in Bespoke Hierarchical optimisation',titleheight=0.98):
+    
+    per_param=boxplot_param(df,param,target,xlabs=models,
+                               title=title,titleheight=titleheight)
+    
+    stat_test=df[[param,target]]
+    stat_test[param]=[x[0] for x in stat_test[param]]
+    stat_test[param]=[model_dict[x] for x in stat_test[param]]
+    groups = [stat_test[stat_test[param] == group][target] for group in models]
+    #sorting the above by bespoke_models instead of #stat_test['eeg model'].unique()] #so that order is preserved
+    fstat, pvalue = stats.f_oneway(*groups)
+    print('anova on all ',fstat, pvalue)
+    #https://saturncloud.io/blog/anova-in-python-using-pandas-dataframe-with-statsmodels-or-scipy/#:~:text=ANOVA%20is%20a%20fundamental%20statistical,popular%20libraries%3A%20Statsmodels%20and%20Scipy.
+    
+    '''COPY DATA FROM STAT_TEST FOR R SCRIPT'''
+    return per_param#, stat_test
 
 def fusalg_significance(df,target,param,winner,title='Mean accuracy per fusion alg in Bespoke Decision-fusion optimisation'):
     labels=['Mean','3:1 EMG','3:1 EEG','Opt\nweighted','Max','SVM','LDA','RF']
@@ -177,8 +211,48 @@ def SVM_params_significance(df,modelparam,resultparam,Cparam,Gammaparam):
 
 if __name__=='__main__':
     test_LDAs=False
-    test_decisions=True
+    test_decisions=False
+    test_hierarch = True
+    plt.rcParams['figure.dpi']=150
     
+    if test_hierarch:
+        models=['RF','KNN','LDA','QDA','GNB','SVM']
+        model_dict=dict(zip(range(0,len(models)+1),models))
+        
+        pathBespokeHierarch='/home/michael/Documents/Aston/MultimodalFW/rq1-hierarch-opt-results/hierarchical/trials_obj.p'
+        _,_,BespHierarch=fuse.load_results_obj(pathBespokeHierarch)
+        figBespHier,statsBespHier=hierarch_topmodel(BespHierarch,'fusion_mean_acc','emg model',title='Mean accuracy per EMG+ model in\n Bespoke Hierarchical fusion optimisation',titleheight=0.995)
+        figBespHierLow=hierarch_lowmodel(BespHierarch,'fusion_mean_acc','eeg model',title='Mean accuracy per EEG component model in\n Bespoke Hierarchical fusion optimisation',titleheight=0.995)
+        
+        pathBespokeInvHierarch='/home/michael/Documents/Aston/MultimodalFW/rq1-hierarch-opt-results/hierarchical_inv/trials_obj.p'
+        _,_,BespInvHierarch=fuse.load_results_obj(pathBespokeInvHierarch)
+        figBespInvHier,statsBespInvHier=hierarch_topmodel(BespInvHierarch,'fusion_mean_acc','eeg model',title='Mean accuracy per EEG+ model in\n Bespoke Inverse Hierarchical fusion optimisation',titleheight=0.995)
+        figBespInvHierLow=hierarch_lowmodel(BespInvHierarch,'fusion_mean_acc','emg model',title='Mean accuracy per EMG component model in\n Bespoke Inverse Hierarchical fusion optimisation',titleheight=0.995)
+        
+      #  figBespHier.savefig('/home/michael/Documents/Aston/MultimodalFW/rq1-hierarch-opt-results/hierarch-bespoke-topmodel-box.png')
+      #  figBespInvHier.savefig('/home/michael/Documents/Aston/MultimodalFW/rq1-hierarch-opt-results/invhierarch-bespoke-topmodel-box.png')
+        figBespHierLow.savefig('/home/michael/Documents/Aston/MultimodalFW/rq1-hierarch-opt-results/hierarch-bespoke-lowmodel-box.png')
+        figBespInvHierLow.savefig('/home/michael/Documents/Aston/MultimodalFW/rq1-hierarch-opt-results/invhierarch-bespoke-lowmodel-box.png')
+        
+        models=['RF','KNN','LDA','QDA','GNB']
+        model_dict=dict(zip(range(0,len(models)+1),models))
+        
+        pathGenHierarch='/home/michael/Documents/Aston/MultimodalFW/rq1-hierarch-opt-results/Gen_hierarch_prob/trials_obj.p'
+        _,_,GenHierarch=fuse.load_results_obj(pathGenHierarch)
+        figGenHier,statsGenHier=hierarch_topmodel(GenHierarch,'fusion_mean_acc','emg model',title='Mean accuracy per EMG+ model in\n Generalist Hierarchical fusion optimisation',titleheight=0.995)
+        figGenHierLow=hierarch_lowmodel(GenHierarch,'fusion_mean_acc','eeg model',title='Mean accuracy per EEG component model in\n Generalist Hierarchical fusion optimisation',titleheight=0.995)
+        
+        pathGenInvHierarch='/home/michael/Documents/Aston/MultimodalFW/rq1-hierarch-opt-results/Gen_inv_hierarch_prob/trials_obj.p'
+        _,_,GenInvHierarch=fuse.load_results_obj(pathGenInvHierarch)
+        figGenInvHier,statsGenInvHier=hierarch_topmodel(GenInvHierarch,'fusion_mean_acc','eeg model',title='Mean accuracy per EEG+ model in\n Generalist Inverse Hierarchical fusion optimisation',titleheight=0.995)
+        figGenInvHierLow=hierarch_lowmodel(GenInvHierarch,'fusion_mean_acc','emg model',title='Mean accuracy per EMG component model in\n Generalist Inverse Hierarchical fusion optimisation',titleheight=0.995)
+        
+      #  figGenHier.savefig('/home/michael/Documents/Aston/MultimodalFW/rq1-hierarch-opt-results/hierarch-gen-topmodel-box.png')
+      #  figGenInvHier.savefig('/home/michael/Documents/Aston/MultimodalFW/rq1-hierarch-opt-results/invhierarch-gen-topmodel-box.png')
+        figGenHierLow.savefig('/home/michael/Documents/Aston/MultimodalFW/rq1-hierarch-opt-results/hierarch-gen-lowmodel-box.png')
+        figGenInvHierLow.savefig('/home/michael/Documents/Aston/MultimodalFW/rq1-hierarch-opt-results/invhierarch-gen-lowmodel-box.png')
+        
+    raise
     if test_decisions:
         algs=['mean','3_1_emg','3_1_eeg','opt_weight','highest_conf','svm','lda','rf']
         alg_dict=dict(zip(range(0,len(algs)+1),algs))

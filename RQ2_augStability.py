@@ -265,6 +265,7 @@ if __name__ == '__main__':
  #   load_res_path=r"C:\Users\pritcham\Documents\mm-framework\multimodal-framework\lit_data_expts\jeong\results\RQ2\D1_AugAllfinal_resMinimal.csv"
    # load_res_path=r"C:\Users\pritcham\Documents\mm-framework\multimodal-framework\lit_data_expts\jeong\results\RQ2\D1a_AugStable_rolloff0.505_augment0.007_resMinimal.csv"
     load_res_path=r"C:\Users\pritcham\Documents\mm-framework\multimodal-framework\lit_data_expts\jeong\results\RQ2\D1a_AugStable_mergedTemp.csv"
+    load_res_path=r"/home/michael/Downloads/D1a_AugStable_mergedTemp (1).csv"
 
     systemUnderTest = 'D1a_AugStable'
     rolling_off_subj=True

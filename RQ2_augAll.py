@@ -252,7 +252,10 @@ def scale_nonSubj(emg_others,eeg_others,augment_scale):
 
 
 
-
+gen_dev_accs={2: 0.76625, 3: 0.68875, 4: 0.7879166666666667, 5: 0.77875, 7: 0.81, 8: 0.745, 9: 0.6504166666666666,
+              10: 0.6991666666666667, 12: 0.70375, 13: 0.5275, 14: 0.6008333333333333, 15: 0.65875,
+              17: 0.8183333333333334, 18: 0.74875, 19: 0.7379166666666667, 20: 0.7408333333333333,
+              22: 0.7375, 23: 0.6825, 24: 0.8375, 25: 0.7395833333333334}
 
 if __name__ == '__main__':
     
@@ -589,7 +592,7 @@ if __name__ == '__main__':
             #ax.set_xticks(subj['augment_scale'].unique())
  #           ax.set_xlabel('Proportion of non-subj augmenting Everything')
             
-            plt.hlines(y=0.75,label='Generalist',xmin=0,xmax=0.15,linestyles='--')
+            plt.hlines(y=gen_dev_accs[ppt],label='Generalist',xmin=0,xmax=0.15,linestyles='--',color='gray')
             plt.show()
             
         print('*****\nHeavily affected by randomness, BUT I think it may be in part the',
@@ -653,6 +656,19 @@ if __name__ == '__main__':
     for key,group in scores_minimal.groupby('rolloff_factor'):
         grouped=group.groupby(['augment_scale'])['change'].agg(['mean','std']).reset_index()
         plt.errorbar(x=grouped['augment_scale'],y=grouped['mean'],yerr=grouped['std'],marker='.',capsize=5)
+    plt.show()
+    
+    fig,ax=plt.subplots();
+    scores_agg=scores_minimal.groupby(['augment_scale','rolloff_factor'])['fusion_acc'].agg(['mean','std']).reset_index()
+    scores_agg=scores_agg.round({'augment_scale':5})
+    scores_agg.pivot(index='rolloff_factor',columns='augment_scale',values='mean').plot(kind='bar',ax=ax,rot=0,capsize=5,
+                                                                                               yerr=scores_agg.pivot(index='rolloff_factor',columns='augment_scale',values='std'))
+    ax.set_ylim(np.floor(scores_minimal['fusion_acc'].min()/0.05)*0.05,np.ceil(scores_minimal['fusion_acc'].max()/0.05)*0.05)
+    plt.title('Means across subjects')
+    ax.set_xlabel('Proportion of subject data')
+    
+    plt.axhline(y=0.723,label='Mean Generalist',linestyle='--',color='gray')
+    ax.legend(title='Proportion non-subj augmenting')
     plt.show()
     
 

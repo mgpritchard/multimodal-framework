@@ -259,12 +259,13 @@ gen_dev_accs={2: 0.76625, 3: 0.68875, 4: 0.7879166666666667, 5: 0.77875, 7: 0.81
 
 if __name__ == '__main__':
     
-    run_test=True
+    run_test=False
     plot_results=True
     load_res_path=None
  #   load_res_path=r"C:\Users\pritcham\Documents\mm-framework\multimodal-framework\lit_data_expts\jeong\results\RQ2\D1_AugAllfinal_resMinimal.csv"
    # load_res_path=r"C:\Users\pritcham\Documents\mm-framework\multimodal-framework\lit_data_expts\jeong\results\RQ2\D1a_AugStable_rolloff0.505_augment0.007_resMinimal.csv"
     load_res_path=r"C:\Users\pritcham\Documents\mm-framework\multimodal-framework\lit_data_expts\jeong\results\RQ2\D1a_AugStable_mergedTemp.csv"
+    load_res_path=r"/home/michael/Downloads/D1a_AugStable_mergedTemp (1).csv"
 
     systemUnderTest = 'D1a_AugStable'
     rolling_off_subj=True

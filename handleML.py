@@ -25,6 +25,7 @@ from sklearn.model_selection import RepeatedStratifiedKFold
 from sklearn.metrics import accuracy_score
 from sklearn.preprocessing import minmax_scale, label_binarize
 from sklearn.calibration import CalibratedClassifierCV
+from sklearn.linear_model import LogisticRegression
 import types
 
 #from hyperopt import fmin, tpe, hp, STATUS_OK
@@ -205,12 +206,23 @@ def train_optimise(training_set,modeltype,args,bagging=False):
         model = train_QDA(training_set,args)
     elif modeltype=='SVM_PlattScale':
         model = train_SVC_Platt(training_set,args)
+    elif modeltype=='LR':
+        model=train_LR(training_set,args)
         
     # Deep model??
     #https://scikit-learn.org/stable/modules/neural_networks_supervised.html#mlp-tips
     
     #https://github.com/skorch-dev/skorch
    
+    return model
+
+def train_LR(train_data,args):
+    C=args['C']
+    solver=args['solver']
+    model=LogisticRegression(C=C,solver=solver)
+    train=train_data.values[:,:-1]
+    targets=train_data.values[:,-1]
+    model.fit(train.astype(np.float64),targets)
     return model
 
 def train_gnb(train_data,args):

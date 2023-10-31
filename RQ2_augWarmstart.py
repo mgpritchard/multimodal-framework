@@ -30,26 +30,133 @@ import time
 import pandas as pd
 import pickle as pickle
 
+def setup_warmstart_space(architecture='decision',include_svm=True):
+    emgoptions=[
+                {'emg_model_type':'RF',
+                 'n_trees':scope.int(hp.quniform('emg.RF.ntrees',10,100,q=5)),
+                 'max_depth':5,#scope.int(hp.quniform('emg.RF.maxdepth',2,5,q=1)),
+                 #integerising search space https://github.com/hyperopt/hyperopt/issues/566#issuecomment-549510376
+                 },
+#                {'emg_model_type':'kNN',
+#                 'knn_k':scope.int(hp.quniform('emg.knn.k',1,25,q=1)),
+#                 },
+#                {'emg_model_type':'LDA',
+#                 'LDA_solver':hp.choice('emg.LDA_solver',['svd','lsqr','eigen']), #removed lsqr due to LinAlgError: SVD did not converge in linear least squares but readding as this has not repeated
+#                 'shrinkage':hp.uniform('emg.lda.shrinkage',0.0,0.5),
+#                 },
+#                {'emg_model_type':'QDA', #emg qda reg 0.3979267 actually worked well!! for withinppt
+#                 'regularisation':hp.uniform('emg.qda.regularisation',0.0,1.0), #https://www.kaggle.com/code/code1110/best-parameter-s-for-qda/notebook
+#                 },
+                {'emg_model_type':'LR',
+                 'solver':hp.choice('emg.LR.solver',['sag']),
+                 'C':hp.loguniform('emg.LR.c',np.log(0.01),np.log(10)),
+                 },
+                ]
+    eegoptions=[
+                {'eeg_model_type':'RF',
+                 'n_trees':scope.int(hp.quniform('eeg_ntrees',10,100,q=5)),
+                 'max_depth':5,#scope.int(hp.quniform('eeg.RF.maxdepth',2,5,q=1)),
+                 },
+#                {'eeg_model_type':'LDA',
+#                 'LDA_solver':hp.choice('eeg.LDA_solver',['svd','lsqr','eigen']),
+#                 'shrinkage':hp.uniform('eeg.lda.shrinkage',0.0,0.5),
+#                 },
+#                {'eeg_model_type':'QDA',
+#                 'regularisation':hp.uniform('eeg.qda.regularisation',0.0,1.0),
+#                 },
+                {'eeg_model_type':'LR',
+                 'solver':hp.choice('eeg.LR.solver',['sag']),
+                 'C':hp.loguniform('eeg.LR.c',np.log(0.01),np.log(10)),
+                 },
+                ]
+ #   if include_svm:
+ #       emgoptions.append({'emg_model_type':'SVM_PlattScale',
+ #                'kernel':hp.choice('emg.svm.kernel',['rbf']),#'poly','linear']),
+ #                'svm_C':hp.loguniform('emg.svm.c',np.log(0.1),np.log(100)), #use loguniform? #https://queirozf.com/entries/choosing-c-hyperparameter-for-svm-classifiers-examples-with-scikit-learn
+ #                'gamma':hp.loguniform('emg.svm.gamma',np.log(0.01),np.log(0.2)), #maybe log, from lower? #https://vitalflux.com/svm-rbf-kernel-parameters-code-sample/
+ #                #eg sklearns gridsearch doc uses SVC as an example with C log(1e0,1e3) & gamma log(1e-4,1e-3)
+ #                })
+ #       eegoptions.append({'eeg_model_type':'SVM_PlattScale',
+ #                'kernel':hp.choice('eeg.svm.kernel',['rbf']),#'poly','linear']),
+ #                'svm_C':hp.loguniform('eeg.svm.c',np.log(0.01),np.log(100)),
+ #                'gamma':hp.loguniform('eeg.svm.gamma',np.log(0.01),np.log(0.2)), 
+ #                #https://www.kaggle.com/code/donkeys/exploring-hyperopt-parameter-tuning?scriptVersionId=12655875&cellId=64
+ #                # naming convention https://github.com/hyperopt/hyperopt/issues/380#issuecomment-685173200
+ #                })
+    space = {
+            'emg':hp.choice('emg model',emgoptions),
+            'eeg':hp.choice('eeg model',eegoptions),
+            'fusion_alg':hp.choice('fusion algorithm',[
+                {'fusion_alg_type':'mean'},
+                {'fusion_alg_type':'3_1_emg'},
+                {'fusion_alg_type':'highest_conf'},
+#                {'fusion_alg_type':'svm',
+#                 'svm_C':hp.loguniform('fus.svm.c',np.log(0.01),np.log(100)),
+#                 },
+#                {'fusion_alg_type':'lda',
+#                 'LDA_solver':hp.choice('fus.LDA.solver',['svd','lsqr','eigen']),
+#                 'shrinkage':hp.uniform('fus.lda.shrinkage',0.0,1.0),
+#                 },
+                {'fusion_alg_type':'rf',
+                 'n_trees':scope.int(hp.quniform('fus.RF.ntrees',10,100,q=5)),
+                 'max_depth':5,
+                 },
+                ]),
+            #'emg_set_path':params.jeong_EMGfeats,
+            'emg_set_path':params.jeong_emg_noholdout,
+            #'eeg_set_path':params.jeong_noCSP_WidebandFeats,
+            'eeg_set_path':params.jeong_eeg_noholdout,
+            #'eeg_set_path':'H:/Jeong11tasks_data/DUMMY_EEG.csv',
+            'using_literature_data':True,
+            'data_in_memory':False,
+            'prebalanced':False,
+            'scalingtype':'standardise',
+            #'scalingtype':hp.choice('scaling',['normalise','standardise']),#,None]),
+            'plot_confmats':False,
+            'get_train_acc':False,
+            'bag_eeg':False,
+            'stack_distros':True,#hp.choice('decision.stack_distros',[True,False]),
+            }
+        
+    return space
+
+def warm_model(model,calib_data):
+    train=calib_data.values[:,:-1]
+    targets=calib_data.values[:,-1]
+    model.fit(train.astype(np.float64),targets,warm_start=True)
+    return model
+
 def warm_cal_models(emg_model,eeg_model,emg_calib,eeg_calib,args):
     emg_model=warm_model(emg_model,emg_calib,args)
     eeg_model=warm_model(eeg_model,eeg_calib,args)
-    fuser=warm_fuser(fuser,emg_model,eeg_model,emg_calib,eeg_calib,args)
     return emg_model,eeg_model
 
+def warm_cal_fuser(fuser, mode1, mode2, fustargets, args):
+    train=np.column_stack([mode1,mode2])
+    fuser.fit(train.astype(np.float64),fustargets,warm_start=True)
+    return fuser
 
-def fusion_SVM_warm(emg_train, eeg_train, emg_calib, eeg_calib, emg_test, eeg_test, args):
-    emg_model,eeg_model,fuser,onehotEncoder=fuse_cold_SVM(emg_train, eeg_train, args)
-    emg_model,eeg_model,fuser=warm_cal_models(emg_model,eeg_model,emg_calib,eeg_calib,args):
+def stack_fusion(fuser,onehot,predlist_emg,predlist_eeg,classlabels):
+    if onehot is not None:
+        predlist_emg=fusion.encode_preds_onehot(predlist_emg,onehot)
+        predlist_eeg=fusion.encode_preds_onehot(predlist_eeg,onehot)
+    fusion_preds=fuser.predict(np.column_stack([predlist_emg,predlist_eeg]))
+    return fusion_preds
+
+def fusion_stack_warm(emg_train, eeg_train, emg_calib, eeg_calib, emg_test, eeg_test, args):
+    emg_model,eeg_model,fuser,onehotEncoder=train_fuse_stack(emg_train, eeg_train, args,heat='cold')
+    emg_model,eeg_model,fuser,onehotEncoder=train_fuse_stack(emg_train, eeg_train, args,emg_model,eeg_model,fuser,heat='warm')
+    classlabels=emg_model.classes_
     
     emg_test.sort_values(['ID_pptID','ID_run','Label','ID_gestrep','ID_tend'],ascending=[True,True,True,True,True],inplace=True)
     eeg_test.sort_values(['ID_pptID','ID_run','Label','ID_gestrep','ID_tend'],ascending=[True,True,True,True,True],inplace=True)                
     targets, predlist_emg, predlist_eeg, _, distros_emg, distros_eeg, _  = refactor_synced_predict(emg_test, eeg_test, emg_model, eeg_model, classlabels,args,sel_cols_eeg,sel_cols_emg,get_distros=args['stack_distros'])
     
-    predlist_fusion=fusion.svm_fusion(fuser,onehotEncoder,predlist_emg,predlist_eeg,classlabels)
+    predlist_fusion=stack_fusion(fuser,onehotEncoder,distros_emg,distros_eeg,classlabels)
     
     return targets, predlist_emg, predlist_eeg, predlist_fusion, classlabels
 
-def fuse_cold_SVM(emg_train, eeg_train, args):
+def train_fuse_stack(emg_train, eeg_train, args, heat='cold', emg_model=None,eeg_model=None,fuser=None):
     emg_train.sort_values(['ID_pptID','ID_run','Label','ID_gestrep','ID_tend'],ascending=[True,True,True,True,True],inplace=True)
     eeg_train.sort_values(['ID_pptID','ID_run','Label','ID_gestrep','ID_tend'],ascending=[True,True,True,True,True],inplace=True)
     
@@ -82,10 +189,14 @@ def fuse_cold_SVM(emg_train, eeg_train, args):
         emg_train_split_ML=emg_train_split_ML.iloc[:,sel_cols_emg]
         eeg_train_split_ML=eeg_train_split_ML.iloc[:,sel_cols_eeg]
         
-        emg_model,eeg_model=train_models_opt(emg_train_split_ML,eeg_train_split_ML,args)    
-        classlabels = emg_model.classes_
+        if heat=='cold':
+            emg_model,eeg_model=train_models_opt(emg_train_split_ML,eeg_train_split_ML,args)
+            classlabels = emg_model.classes_
+        elif heat=='warm':
+            emg_modelTemp,eeg_modelTemp=warm_cal_models(emg_model.copy(),eeg_model.copy(),emg_train_split_ML,eeg_train_split_ML,args)
+            classlabels = emg_modelTemp.classes_
         
-        targets,predlist_emg,predlist_eeg,_,distros_emg,distros_eeg,_=refactor_synced_predict(emg_train_split_fusion, eeg_train_split_fusion, emg_model, eeg_model, classlabels, args,sel_cols_eeg,sel_cols_emg,get_distros=args['stack_distros'])
+        targets,predlist_emg,predlist_eeg,_,distros_emg,distros_eeg,_=refactor_synced_predict(emg_train_split_fusion, eeg_train_split_fusion, emg_modelTemp, eeg_modelTemp, classlabels, args,sel_cols_eeg,sel_cols_emg,get_distros=args['stack_distros'])
         if len(fustargets)==0:
             fustargets=targets
             fusdistros_emg=distros_emg
@@ -99,15 +210,22 @@ def fuse_cold_SVM(emg_train, eeg_train, args):
     emg_train=emg_train.iloc[:,sel_cols_emg]
     eeg_train=ml.drop_ID_cols(eeg_train)
     eeg_train=eeg_train.iloc[:,sel_cols_eeg]
-    emg_model,eeg_model=train_models_opt(emg_train,eeg_train,args)
-    
     onehotEncoder=None
-    fuser=fusion.train_svm_fuser(fusdistros_emg, fusdistros_eeg, fustargets, args['fusion_alg'])
+    
+    if heat=='cold':
+        emg_model,eeg_model=train_models_opt(emg_train,eeg_train,args)
+        if args['fusion_alg']['fusion_alg_type']=='svm':
+            fuser=fusion.train_svm_fuser(fusdistros_emg, fusdistros_eeg, fustargets, args['fusion_alg'])
+        elif args['fusion_alg']['fusion_alg_type']=='lda':
+            fuser=fusion.train_lda_fuser(fusdistros_emg, fusdistros_eeg, fustargets, args['fusion_alg'])
+        elif args['fusion_alg']['fusion_alg_type']=='rf':
+            fuser=fusion.train_rf_fuser(fusdistros_emg, fusdistros_eeg, fustargets, args['fusion_alg'])
+    elif heat=='warm':
+        emg_model,eeg_model=warm_cal_models(emg_model,eeg_model,emg_train,eeg_train,args)
+        fuser=warm_cal_fuser(fuser, fusdistros_emg, fusdistros_eeg, fustargets, args)
     
     return emg_model,eeg_model,fuser,onehotEncoder
     
-
-
 
 def fuse_warmstart(args):
     start=time.time()
@@ -118,7 +236,6 @@ def fuse_warmstart(args):
         eeg_ppt=args['eeg_set']
     if not args['prebalanced']: 
         raise ValueError('Data not balanced')
-
     
     if not emg_ppt['ID_stratID'].equals(eeg_ppt['ID_stratID']):
         raise ValueError('EMG & EEG performances misaligned')
@@ -142,18 +259,17 @@ def fuse_warmstart(args):
     emg_train=emg_train[emg_train['ID_pptID']==subj]
 
     
-    
     sel_cols_emg=args['sel_cols_emg']
     sel_cols_eeg=args['sel_cols_eeg'] 
         
     if args['fusion_alg']['fusion_alg_type']=='svm':      
-        targets, predlist_emg, predlist_eeg, predlist_fusion, classlabels=fusion_SVM_warm(emg_train, eeg_train, emg_test, eeg_test, args)
+        targets, predlist_emg, predlist_eeg, predlist_fusion, classlabels=fusion_stack_warm(emg_train, eeg_train, emg_test, eeg_test, args)
     
     elif args['fusion_alg']['fusion_alg_type']=='lda':           
-        targets, predlist_emg, predlist_eeg, predlist_fusion, classlabels=fusion_LDA_warm(emg_train, eeg_train, emg_test, eeg_test, args)
+        targets, predlist_emg, predlist_eeg, predlist_fusion, classlabels=fusion_stack_warm(emg_train, eeg_train, emg_test, eeg_test, args)
     
     elif args['fusion_alg']['fusion_alg_type']=='rf':    
-        targets, predlist_emg, predlist_eeg, predlist_fusion, classlabels=fusion_RF_warm(emg_train, eeg_train, emg_test, eeg_test, args)
+        targets, predlist_emg, predlist_eeg, predlist_fusion, classlabels=fusion_stack_warm(emg_train, eeg_train, emg_test, eeg_test, args)
     
     else:        
 

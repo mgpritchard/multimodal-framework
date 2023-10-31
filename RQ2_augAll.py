@@ -265,6 +265,7 @@ if __name__ == '__main__':
     load_res_path=r"C:\Users\pritcham\Documents\mm-framework\multimodal-framework\lit_data_expts\jeong\results\RQ2\D1_AugAllfinal_resMinimal.csv"
   #  load_res_path=r"C:\Users\pritcham\Documents\mm-framework\multimodal-framework\lit_data_expts\jeong\results\RQ2\B3_AugTrain_rolloff1.0_augment0.167_resMinimal.csv"
     load_res_path=r"/home/michael/Downloads/D1_AugAllfinal_resMinimal.csv"
+    load_res_path=r"/home/michael/Downloads/D1_AugAllfinal_resMinimal - Copy.csv"
 
     systemUnderTest = 'D1_AugAll'
     rolling_off_subj=True
@@ -511,99 +512,101 @@ if __name__ == '__main__':
     else:
         scores_minimal=pd.read_csv(load_res_path,index_col=0)        
     
-    if plot_results:    
-        fig,ax=plt.subplots();
-        for ppt in scores_minimal['subject id'].unique():
-            scores_minimal[scores_minimal['subject id']==ppt].plot(y='fusion_acc',x='rolloff_factor',ax=ax,color='tab:blue',legend=None)
-            scores_minimal[scores_minimal['subject id']==ppt].plot(y='opt_acc',x='rolloff_factor',ax=ax,color='tab:orange',legend=None)
-            
-        #    scores_minimal[scores_minimal['subject id']==ppt].plot(y='emg_acc',x='rolloff_factor',ax=ax,color='tab:green',legend=None)
-        #    scores_minimal[scores_minimal['subject id']==ppt].plot(y='eeg_acc',x='rolloff_factor',ax=ax,color='tab:purple',legend=None)
-        #ax.set_xlim(0.05,0.4)
-            
-        fig,ax=plt.subplots();
-        for ppt in scores_minimal['subject id'].unique():
-            scores_minimal[scores_minimal['subject id']==ppt].plot(y='fusion_acc',x='augment_scale',ax=ax,color='tab:green',legend=None)
-       #     scores_minimal[scores_minimal['subject id']==ppt].plot(y='opt_acc',x='augment_scale',ax=ax,color='tab:purple',legend=None)
-        ax.set_ylim(0.25,1)
-        
-        fig,ax=plt.subplots();
-        ax.scatter(scores_minimal['rolloff_factor'],scores_minimal['augment_scale'],c=scores_minimal['fusion_acc'],cmap='copper')
-        
-        for ppt in scores_minimal['subject id'].unique():
+    if plot_results:
+        per_subject=False
+        if per_subject==True:
             fig,ax=plt.subplots();
-         #   scores_minimal[scores_minimal['subject id']==ppt].plot.scatter(y='augment_scale',x='rolloff_factor',c='fusion_acc',
-         #                                                                  ax=ax,cmap='copper')
-            
-           # '''
-            plt.rcParams['figure.dpi'] = 150 # DEFAULT IS 100
-            subj= scores_minimal[scores_minimal['subject id']==ppt]
-            fullbesp=subj[subj['rolloff_factor']==1][subj['augment_scale']==0]['fusion_acc'].item()
-         #   subj['relative_to_bespoke']=subj['fusion_acc']-fullbesp
-         #   plt.scatter(subj['rolloff_factor'],subj['augment_scale'],c=subj['relative_to_bespoke'])
-            plt.scatter(subj['rolloff_factor'],subj['augment_scale'],c=subj['fusion_acc'],norm=PowerNorm(np.e))
-            plt.xlabel('Proportion of subject\'s 67% non-test data')
-            #plt.yticks(rotation=33)
-            plt.ylabel('Proportion of non-subj augmenting Everything')
-            plt.colorbar()
-            plt.title('Subject '+str(ppt)+'. No rolloff, no aug = '+str(round(fullbesp,5)))
-            wincoords=tuple(subj.loc[subj['fusion_acc'].idxmax()][['rolloff_factor','augment_scale']].tolist())
-            plt.annotate(str(round(subj['fusion_acc'].max(),3)),wincoords)
-            
-            tolerance=0.0001 # 0.01% is close enough
-            meetsOrBeats=subj.loc[subj['fusion_acc']>fullbesp-tolerance][['rolloff_factor','augment_scale']]
-            for _,row in meetsOrBeats.iterrows():
-                #ax.add_patch(plt.Circle((row['rolloff_factor'],row['augment_scale']),0.07,color='r',fill=False))
-                ax.add_patch(Ellipse((row['rolloff_factor'],row['augment_scale']),width=0.05,height=0.01,color='r',fill=False))
-            
-            plt.show()
-         #   '''
-            
-        plot_all_rollofs=True    
-        for ppt in scores_minimal['subject id'].unique():
-            fig,ax=plt.subplots();
-
-            plt.rcParams['figure.dpi'] = 150 # DEFAULT IS 100
-            subj= scores_minimal[scores_minimal['subject id']==ppt]
-            fullbesp=subj[subj['rolloff_factor']==1][subj['augment_scale']==0]['fusion_acc'].item()
-            
-            if plot_all_rollofs:
-                for rolloff in np.sort(subj['rolloff_factor'].unique()):
-                    subj[subj['rolloff_factor']==rolloff].plot(x='augment_scale',y='fusion_acc',marker='.',ax=ax)
-     #           ax.set_ylim((0.65,0.95))
-            else:
-                subj=subj[subj['rolloff_factor']>0.15]
-                for rolloff in np.sort(subj['rolloff_factor'].unique()):
-                    subj[subj['rolloff_factor']==rolloff].plot(x='augment_scale',y='fusion_acc',marker='.',ax=ax)
+            for ppt in scores_minimal['subject id'].unique():
+                scores_minimal[scores_minimal['subject id']==ppt].plot(y='fusion_acc',x='rolloff_factor',ax=ax,color='tab:blue',legend=None)
+                scores_minimal[scores_minimal['subject id']==ppt].plot(y='opt_acc',x='rolloff_factor',ax=ax,color='tab:orange',legend=None)
                 
-            ax.legend(np.sort(subj['rolloff_factor'].unique()),title='Proportion subject data')
+            #    scores_minimal[scores_minimal['subject id']==ppt].plot(y='emg_acc',x='rolloff_factor',ax=ax,color='tab:green',legend=None)
+            #    scores_minimal[scores_minimal['subject id']==ppt].plot(y='eeg_acc',x='rolloff_factor',ax=ax,color='tab:purple',legend=None)
+            #ax.set_xlim(0.05,0.4)
+                
+            fig,ax=plt.subplots();
+            for ppt in scores_minimal['subject id'].unique():
+                scores_minimal[scores_minimal['subject id']==ppt].plot(y='fusion_acc',x='augment_scale',ax=ax,color='tab:green',legend=None)
+           #     scores_minimal[scores_minimal['subject id']==ppt].plot(y='opt_acc',x='augment_scale',ax=ax,color='tab:purple',legend=None)
+            ax.set_ylim(0.25,1)
             
-            plt.title('Subject '+str(ppt)+'. No rolloff, no aug = '+str(round(fullbesp,5)))
+            fig,ax=plt.subplots();
+            ax.scatter(scores_minimal['rolloff_factor'],scores_minimal['augment_scale'],c=scores_minimal['fusion_acc'],cmap='copper')
             
-            wincoords=tuple(subj.loc[subj['fusion_acc'].idxmax()][['augment_scale','fusion_acc']].tolist())
-            plt.annotate(str(round(subj['fusion_acc'].max(),3)),wincoords)
-            
-       #     tolerance=0.0001 # 0.01% is close enough
-       #     meetsOrBeats=subj.loc[subj['fusion_acc']>fullbesp-tolerance][['rolloff_factor','augment_scale']]
-            # np.isclose ??
-       #     for _,row in meetsOrBeats.iterrows():
-                #ax.add_patch(plt.Circle((row['rolloff_factor'],row['augment_scale']),0.07,color='r',fill=False))
-       #         ax.add_patch(Ellipse((row['rolloff_factor'],row['augment_scale']),width=0.05,height=0.01,color='r',fill=False))
-            
-            #ax.set_xticks(subj['augment_scale'].unique())
- #           ax.set_xlabel('Proportion of non-subj augmenting Everything')
-            
-            plt.hlines(y=gen_dev_accs[ppt],label='Generalist',xmin=0,xmax=0.15,linestyles='--',color='gray')
-            plt.show()
-            
-        print('*****\nHeavily affected by randomness, BUT I think it may be in part the',
-              'randomness of which bits of non-subj are chosen to be added. IE not randomness in model etc causing',
-              'effect where there is none, but rather randomness as to how effective it will be dependent on',
-              'the non-subj data that is most helpful (or most helpful to this subj) which one could',
-              'theoretically identify statically or find way to auto identify.\n*****')
+            for ppt in scores_minimal['subject id'].unique():
+                fig,ax=plt.subplots();
+             #   scores_minimal[scores_minimal['subject id']==ppt].plot.scatter(y='augment_scale',x='rolloff_factor',c='fusion_acc',
+             #                                                                  ax=ax,cmap='copper')
+                
+               # '''
+                plt.rcParams['figure.dpi'] = 150 # DEFAULT IS 100
+                subj= scores_minimal[scores_minimal['subject id']==ppt]
+                fullbesp=subj[subj['rolloff_factor']==1][subj['augment_scale']==0]['fusion_acc'].item()
+             #   subj['relative_to_bespoke']=subj['fusion_acc']-fullbesp
+             #   plt.scatter(subj['rolloff_factor'],subj['augment_scale'],c=subj['relative_to_bespoke'])
+                plt.scatter(subj['rolloff_factor'],subj['augment_scale'],c=subj['fusion_acc'],norm=PowerNorm(np.e))
+                plt.xlabel('Proportion of subject\'s 67% non-test data')
+                #plt.yticks(rotation=33)
+                plt.ylabel('Proportion of non-subj augmenting Everything')
+                plt.colorbar()
+                plt.title('Subject '+str(ppt)+'. No rolloff, no aug = '+str(round(fullbesp,5)))
+                wincoords=tuple(subj.loc[subj['fusion_acc'].idxmax()][['rolloff_factor','augment_scale']].tolist())
+                plt.annotate(str(round(subj['fusion_acc'].max(),3)),wincoords)
+                
+                tolerance=0.0001 # 0.01% is close enough
+                meetsOrBeats=subj.loc[subj['fusion_acc']>fullbesp-tolerance][['rolloff_factor','augment_scale']]
+                for _,row in meetsOrBeats.iterrows():
+                    #ax.add_patch(plt.Circle((row['rolloff_factor'],row['augment_scale']),0.07,color='r',fill=False))
+                    ax.add_patch(Ellipse((row['rolloff_factor'],row['augment_scale']),width=0.05,height=0.01,color='r',fill=False))
+                
+                plt.show()
+             #   '''
+                
+            plot_all_rollofs=True    
+            for ppt in scores_minimal['subject id'].unique():
+                fig,ax=plt.subplots();
     
-    #chance we confuse it eg that by adding non subject within opt, all its doing is learning to firstly
-        #ignore the bits of training data that are non-subject, then learn helpful things from the subject data
+                plt.rcParams['figure.dpi'] = 150 # DEFAULT IS 100
+                subj= scores_minimal[scores_minimal['subject id']==ppt]
+                fullbesp=subj[subj['rolloff_factor']==1][subj['augment_scale']==0]['fusion_acc'].item()
+                
+                if plot_all_rollofs:
+                    for rolloff in np.sort(subj['rolloff_factor'].unique()):
+                        subj[subj['rolloff_factor']==rolloff].plot(x='augment_scale',y='fusion_acc',marker='.',ax=ax)
+         #           ax.set_ylim((0.65,0.95))
+                else:
+                    subj=subj[subj['rolloff_factor']>0.15]
+                    for rolloff in np.sort(subj['rolloff_factor'].unique()):
+                        subj[subj['rolloff_factor']==rolloff].plot(x='augment_scale',y='fusion_acc',marker='.',ax=ax)
+                    
+                ax.legend(np.sort(subj['rolloff_factor'].unique()),title='Proportion subject data')
+                
+                plt.title('Subject '+str(ppt)+'. No rolloff, no aug = '+str(round(fullbesp,5)))
+                
+                wincoords=tuple(subj.loc[subj['fusion_acc'].idxmax()][['augment_scale','fusion_acc']].tolist())
+                plt.annotate(str(round(subj['fusion_acc'].max(),3)),wincoords)
+                
+           #     tolerance=0.0001 # 0.01% is close enough
+           #     meetsOrBeats=subj.loc[subj['fusion_acc']>fullbesp-tolerance][['rolloff_factor','augment_scale']]
+                # np.isclose ??
+           #     for _,row in meetsOrBeats.iterrows():
+                    #ax.add_patch(plt.Circle((row['rolloff_factor'],row['augment_scale']),0.07,color='r',fill=False))
+           #         ax.add_patch(Ellipse((row['rolloff_factor'],row['augment_scale']),width=0.05,height=0.01,color='r',fill=False))
+                
+                #ax.set_xticks(subj['augment_scale'].unique())
+     #           ax.set_xlabel('Proportion of non-subj augmenting Everything')
+                
+                plt.hlines(y=gen_dev_accs[ppt],label='Generalist',xmin=0,xmax=0.15,linestyles='--',color='gray')
+                plt.show()
+                
+            print('*****\nHeavily affected by randomness, BUT I think it may be in part the',
+                  'randomness of which bits of non-subj are chosen to be added. IE not randomness in model etc causing',
+                  'effect where there is none, but rather randomness as to how effective it will be dependent on',
+                  'the non-subj data that is most helpful (or most helpful to this subj) which one could',
+                  'theoretically identify statically or find way to auto identify.\n*****')
+        
+        #chance we confuse it eg that by adding non subject within opt, all its doing is learning to firstly
+            #ignore the bits of training data that are non-subject, then learn helpful things from the subject data
     bespokescores={}
     for ppt in scores_minimal['subject id'].unique():
 
@@ -659,6 +662,7 @@ if __name__ == '__main__':
         plt.errorbar(x=grouped['augment_scale'],y=grouped['mean'],yerr=grouped['std'],marker='.',capsize=5)
     plt.show()
     
+    
     fig,ax=plt.subplots();
     scores_agg=scores_minimal.groupby(['augment_scale','rolloff_factor'])['fusion_acc'].agg(['mean','std']).reset_index()
     scores_agg=scores_agg.round({'augment_scale':5})
@@ -672,4 +676,38 @@ if __name__ == '__main__':
     ax.legend(title='Proportion non-subj augmenting')
     plt.show()
     
+    
+    
+    nSubj=19
+    nGest=4
+    nRepsPerGest=150
+    nInstancePerGest=4
+    trainsplitSize=2/3
+    scores_minimal['augscale_instances']=scores_minimal['augment_scale']*nSubj*nGest*nRepsPerGest*nInstancePerGest
+    scores_minimal['augscale_wholegests']=scores_minimal['augment_scale']*nSubj*nGest*nRepsPerGest
+    scores_minimal['augscale_pergest']=scores_minimal['augment_scale']*nSubj*nRepsPerGest
+    scores_minimal['augscale_pergestpersubj']=scores_minimal['augment_scale']*nRepsPerGest
+    
+    scores_minimal['trainAmnt_instances']=scores_minimal['rolloff_factor']*(1-testset_size)*nGest*nRepsPerGest*nInstancePerGest
+    #scores_minimal['trainAmnt_wholegests']=scores_minimal['rolloff_factor']*(1-testset_size)*nGest*nRepsPerGest
+    scores_minimal['trainAmnt_wholegests']=np.around(scores_minimal['rolloff_factor']*trainsplitSize*nGest*nRepsPerGest)
+    scores_minimal['trainAmnt_pergest']=scores_minimal['rolloff_factor']*(1-testset_size)*nRepsPerGest
+    
+    
+    fig,ax=plt.subplots();
+    scores_agg=scores_minimal.groupby(['augscale_wholegests','trainAmnt_wholegests'])['fusion_acc'].agg(['mean','std']).reset_index()
+    scores_agg=scores_agg.round({'augscale_wholegests':5})
+    scores_agg.pivot(index='trainAmnt_wholegests',
+                     columns='augscale_wholegests',
+                     values='mean').plot(kind='bar',ax=ax,rot=0,capsize=2,width=0.8,
+                                         yerr=scores_agg.pivot(index='trainAmnt_wholegests',
+                                                               columns='augscale_wholegests',values='std'))
+    ax.set_ylim(np.floor(scores_minimal['fusion_acc'].min()/0.05)*0.05,np.ceil(scores_minimal['fusion_acc'].max()/0.05)*0.05)
+    plt.title('Means across subjects on reserved 33% (200 gests)')
+    ax.set_xlabel('# Subject gestures present (max 400)')
+    ax.set_ylabel('Classification Accuracy')#' on reserved 33% (200) subject')
+    
+    plt.axhline(y=0.723,label='Mean Generalist',linestyle='--',color='gray')
+    ax.legend(title='# Non-subject gestures\n (max 11400)')
+    plt.show()
 

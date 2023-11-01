@@ -29,6 +29,7 @@ from hyperopt.pyll import scope, stochastic
 import time
 import pandas as pd
 import pickle as pickle
+from copy import deepcopy
 
 def setup_warmstart_space(architecture='decision',include_svm=True):
     emgoptions=[
@@ -51,6 +52,9 @@ def setup_warmstart_space(architecture='decision',include_svm=True):
                  'solver':hp.choice('emg.LR.solver',['sag']),
                  'C':hp.loguniform('emg.LR.c',np.log(0.01),np.log(10)),
                  },
+                {'emg_model_type':'gaussNB',
+                 'smoothing':hp.loguniform('emg.gnb.smoothing',np.log(1e-9),np.log(0.5e0)),
+                 },
                 ]
     eegoptions=[
                 {'eeg_model_type':'RF',
@@ -67,6 +71,9 @@ def setup_warmstart_space(architecture='decision',include_svm=True):
                 {'eeg_model_type':'LR',
                  'solver':hp.choice('eeg.LR.solver',['sag']),
                  'C':hp.loguniform('eeg.LR.c',np.log(0.01),np.log(10)),
+                 },
+                {'eeg_model_type':'gaussNB',
+                 'smoothing':hp.loguniform('eeg.gnb.smoothing',np.log(1e-9),np.log(1e0)),
                  },
                 ]
  #   if include_svm:
@@ -123,17 +130,31 @@ def setup_warmstart_space(architecture='decision',include_svm=True):
 def warm_model(model,calib_data):
     train=calib_data.values[:,:-1]
     targets=calib_data.values[:,-1]
-    model.fit(train.astype(np.float64),targets,warm_start=True)
+    model.set_params(warm_start=True)
+    model.fit(train.astype(np.float64),targets)
+    return model
+
+def partfit_model(model,calib_data):
+    train=calib_data.values[:,:-1]
+    targets=calib_data.values[:,-1]
+    model.partial_fit(train.astype(np.float64),targets)
     return model
 
 def warm_cal_models(emg_model,eeg_model,emg_calib,eeg_calib,args):
-    emg_model=warm_model(emg_model,emg_calib,args)
-    eeg_model=warm_model(eeg_model,eeg_calib,args)
+    if args['emg']['emg_model_type']=='gaussNB':
+        emg_model=partfit_model(emg_model,emg_calib)
+    else:
+        emg_model=warm_model(emg_model,emg_calib)
+    if args['eeg']['eeg_model_type']=='gaussNB':
+        eeg_model=partfit_model(eeg_model,eeg_calib)
+    else:
+        eeg_model=warm_model(eeg_model,eeg_calib)
     return emg_model,eeg_model
 
 def warm_cal_fuser(fuser, mode1, mode2, fustargets, args):
     train=np.column_stack([mode1,mode2])
-    fuser.fit(train.astype(np.float64),fustargets,warm_start=True)
+    fuser.set_params(warm_start=True)
+    fuser.fit(train.astype(np.float64),fustargets)
     return fuser
 
 def stack_fusion(fuser,onehot,predlist_emg,predlist_eeg,classlabels):
@@ -156,7 +177,7 @@ def fusion_stack_warm(emg_train, eeg_train, emg_calib, eeg_calib, emg_test, eeg_
     
     return targets, predlist_emg, predlist_eeg, predlist_fusion, classlabels
 
-def train_fuse_stack(emg_train, eeg_train, args, heat='cold', emg_model=None,eeg_model=None,fuser=None):
+def train_fuse_stack(emg_train, eeg_train, args, emg_model=None,eeg_model=None,fuser=None, heat='cold'):
     emg_train.sort_values(['ID_pptID','ID_run','Label','ID_gestrep','ID_tend'],ascending=[True,True,True,True,True],inplace=True)
     eeg_train.sort_values(['ID_pptID','ID_run','Label','ID_gestrep','ID_tend'],ascending=[True,True,True,True,True],inplace=True)
     
@@ -190,10 +211,10 @@ def train_fuse_stack(emg_train, eeg_train, args, heat='cold', emg_model=None,eeg
         eeg_train_split_ML=eeg_train_split_ML.iloc[:,sel_cols_eeg]
         
         if heat=='cold':
-            emg_model,eeg_model=train_models_opt(emg_train_split_ML,eeg_train_split_ML,args)
-            classlabels = emg_model.classes_
+            emg_modelTemp,eeg_modelTemp=train_models_opt(emg_train_split_ML,eeg_train_split_ML,args)
+            classlabels = emg_modelTemp.classes_
         elif heat=='warm':
-            emg_modelTemp,eeg_modelTemp=warm_cal_models(emg_model.copy(),eeg_model.copy(),emg_train_split_ML,eeg_train_split_ML,args)
+            emg_modelTemp,eeg_modelTemp=warm_cal_models(deepcopy(emg_model),deepcopy(eeg_model),emg_train_split_ML,eeg_train_split_ML,args)
             classlabels = emg_modelTemp.classes_
         
         targets,predlist_emg,predlist_eeg,_,distros_emg,distros_eeg,_=refactor_synced_predict(emg_train_split_fusion, eeg_train_split_fusion, emg_modelTemp, eeg_modelTemp, classlabels, args,sel_cols_eeg,sel_cols_emg,get_distros=args['stack_distros'])
@@ -239,37 +260,37 @@ def fuse_warmstart(args):
     
     if not emg_ppt['ID_stratID'].equals(eeg_ppt['ID_stratID']):
         raise ValueError('EMG & EEG performances misaligned')
-    gest_perfs=emg_ppt['ID_stratID'].unique()
+        
+    subj=args['subject-id']
+    
+    eeg_train=eeg_ppt[eeg_ppt['ID_pptID']!=subj]
+    emg_train=emg_ppt[emg_ppt['ID_pptID']!=subj]
+    
+    
+    gest_perfs=emg_ppt[emg_ppt['ID_pptID']==subj]['ID_stratID'].unique()
     gest_strat=pd.DataFrame([gest_perfs,[perf.split('.')[1][-1] for perf in gest_perfs]]).transpose()
     
     random_split=random.randint(0,100)
     train_split,test_split=train_test_split(gest_strat,test_size=args['testset_size'],
                                             random_state=random_split,stratify=gest_strat[1])
-
-    subj=args['subject-id']
+    
     eeg_test=eeg_ppt[eeg_ppt['ID_stratID'].isin(test_split[0])]
     emg_test=emg_ppt[emg_ppt['ID_stratID'].isin(test_split[0])]
-    eeg_test=eeg_test[eeg_test['ID_pptID']==subj]
-    emg_test=emg_test[emg_test['ID_pptID']==subj]
-    eeg_train=eeg_ppt[eeg_ppt['ID_stratID'].isin(train_split[0])]
-    emg_train=emg_ppt[emg_ppt['ID_stratID'].isin(train_split[0])]
-    eeg_calib=eeg_train[eeg_train['ID_pptID']!=subj]
-    emg_calib=emg_train[emg_train['ID_pptID']!=subj]
-    eeg_train=eeg_train[eeg_train['ID_pptID']==subj]
-    emg_train=emg_train[emg_train['ID_pptID']==subj]
+    eeg_calib=eeg_ppt[eeg_ppt['ID_stratID'].isin(train_split[0])]
+    emg_calib=emg_ppt[emg_ppt['ID_stratID'].isin(train_split[0])]    
 
     
     sel_cols_emg=args['sel_cols_emg']
     sel_cols_eeg=args['sel_cols_eeg'] 
         
     if args['fusion_alg']['fusion_alg_type']=='svm':      
-        targets, predlist_emg, predlist_eeg, predlist_fusion, classlabels=fusion_stack_warm(emg_train, eeg_train, emg_test, eeg_test, args)
+        targets, predlist_emg, predlist_eeg, predlist_fusion, classlabels=fusion_stack_warm(emg_train, eeg_train, emg_calib, eeg_calib, emg_test, eeg_test, args)
     
     elif args['fusion_alg']['fusion_alg_type']=='lda':           
-        targets, predlist_emg, predlist_eeg, predlist_fusion, classlabels=fusion_stack_warm(emg_train, eeg_train, emg_test, eeg_test, args)
+        targets, predlist_emg, predlist_eeg, predlist_fusion, classlabels=fusion_stack_warm(emg_train, eeg_train, emg_calib, eeg_calib, emg_test, eeg_test, args)
     
     elif args['fusion_alg']['fusion_alg_type']=='rf':    
-        targets, predlist_emg, predlist_eeg, predlist_fusion, classlabels=fusion_stack_warm(emg_train, eeg_train, emg_test, eeg_test, args)
+        targets, predlist_emg, predlist_eeg, predlist_fusion, classlabels=fusion_stack_warm(emg_train, eeg_train, emg_calib, eeg_calib, emg_test, eeg_test, args)
     
     else:        
 
@@ -280,6 +301,12 @@ def fuse_warmstart(args):
         emg_train=emg_train.iloc[:,sel_cols_emg]
         
         emg_model,eeg_model=train_models_opt(emg_train,eeg_train,args)
+        
+        emg_calib=ml.drop_ID_cols(emg_calib)
+        eeg_calib=ml.drop_ID_cols(eeg_calib)
+        
+        eeg_calib=eeg_calib.iloc[:,sel_cols_eeg]
+        emg_calib=emg_calib.iloc[:,sel_cols_emg]
         
         emg_model,eeg_model=warm_cal_models(emg_model,eeg_model,emg_calib,eeg_calib,args)
     
@@ -321,41 +348,40 @@ def fuse_warmstart(args):
         'elapsed_time':end-start,}
 
 
-def fusion_test(emg_train,eeg_train,emg_test,eeg_test,args):
-    start=time.time() 
+def fusionWarm_test(emg_train,eeg_train,emg_test,eeg_test,args):
+    start=time.time()
+    
+    subj=args['subject-id']
+    eeg_calib=eeg_train[eeg_train['ID_pptID']==subj]
+    emg_calib=emg_train[emg_train['ID_pptID']==subj]
+    eeg_train=eeg_train[eeg_train['ID_pptID']!=subj]
+    emg_train=emg_train[emg_train['ID_pptID']!=subj]
         
     if args['fusion_alg']['fusion_alg_type']=='svm':      
-        if args['get_train_acc']:
-            targets, predlist_emg, predlist_eeg, predlist_fusion, classlabels, traintargs, predlist_train = fusion_SVM(emg_train, eeg_train, emg_test, eeg_test, args)
-        else:
-            targets, predlist_emg, predlist_eeg, predlist_fusion, classlabels=fusion_SVM(emg_train, eeg_train, emg_test, eeg_test, args)
+        targets, predlist_emg, predlist_eeg, predlist_fusion, classlabels=fusion_stack_warm(emg_train, eeg_train, emg_calib, eeg_calib, emg_test, eeg_test, args)
     
     elif args['fusion_alg']['fusion_alg_type']=='lda':           
-        if args['get_train_acc']:
-            targets, predlist_emg, predlist_eeg, predlist_fusion, classlabels, traintargs, predlist_train = fusion_LDA(emg_train, eeg_train, emg_test, eeg_test, args)
-        else:
-            targets, predlist_emg, predlist_eeg, predlist_fusion, classlabels=fusion_LDA(emg_train, eeg_train, emg_test, eeg_test, args)
+        targets, predlist_emg, predlist_eeg, predlist_fusion, classlabels=fusion_stack_warm(emg_train, eeg_train, emg_calib, eeg_calib, emg_test, eeg_test, args)
     
     elif args['fusion_alg']['fusion_alg_type']=='rf':    
-        if args['get_train_acc']:
-            targets, predlist_emg, predlist_eeg, predlist_fusion, classlabels, traintargs, predlist_train = fusion_RF(emg_train, eeg_train, emg_test, eeg_test, args)
-        else:
-            targets, predlist_emg, predlist_eeg, predlist_fusion, classlabels=fusion_RF(emg_train, eeg_train, emg_test, eeg_test, args)
+        targets, predlist_emg, predlist_eeg, predlist_fusion, classlabels=fusion_stack_warm(emg_train, eeg_train, emg_calib, eeg_calib, emg_test, eeg_test, args)
     
     else:        
-        if args['get_train_acc']:
-            emg_trainacc=emg_train.copy()
-            eeg_trainacc=eeg_train.copy()
-            emg_trainacc.sort_values(['ID_pptID','ID_run','Label','ID_gestrep','ID_tend'],ascending=[True,True,True,True,True],inplace=True)
-            eeg_trainacc.sort_values(['ID_pptID','ID_run','Label','ID_gestrep','ID_tend'],ascending=[True,True,True,True,True],inplace=True)
-       
         emg_train=ml.drop_ID_cols(emg_train)
         eeg_train=ml.drop_ID_cols(eeg_train)
         
-        eeg_train=eeg_train.iloc[:,args['sel_cols_eeg']]
-        emg_train=emg_train.iloc[:,args['sel_cols_emg']]
+        eeg_train=eeg_train.iloc[:,sel_cols_eeg]
+        emg_train=emg_train.iloc[:,sel_cols_emg]
         
         emg_model,eeg_model=train_models_opt(emg_train,eeg_train,args)
+        
+        emg_calib=ml.drop_ID_cols(emg_calib)
+        eeg_calib=ml.drop_ID_cols(eeg_calib)
+        
+        eeg_calib=eeg_calib.iloc[:,sel_cols_eeg]
+        emg_calib=emg_calib.iloc[:,sel_cols_emg]
+        
+        emg_model,eeg_model=warm_cal_models(emg_model,eeg_model,emg_calib,eeg_calib,args)
     
         classlabels = emg_model.classes_
         
@@ -363,9 +389,6 @@ def fusion_test(emg_train,eeg_train,emg_test,eeg_test,args):
         eeg_test.sort_values(['ID_pptID','ID_run','Label','ID_gestrep','ID_tend'],ascending=[True,True,True,True,True],inplace=True)
             
         targets, predlist_emg, predlist_eeg, predlist_fusion,_,_,_ = refactor_synced_predict(emg_test, eeg_test, emg_model, eeg_model, classlabels,args, sel_cols_eeg,sel_cols_emg)
-
-        if args['get_train_acc']:
-            traintargs, predlist_emgtrain, predlist_eegtrain, predlist_train,_,_,_ = refactor_synced_predict(emg_trainacc, eeg_trainacc, emg_model, eeg_model, classlabels, args, sel_cols_eeg,sel_cols_emg)
     
     gest_truth,gest_pred_emg,gest_pred_eeg,gest_pred_fusion,gesturelabels=classes_from_preds(targets,predlist_emg,predlist_eeg,predlist_fusion,classlabels)
     '''could calculate log loss if got the probabilities back''' #https://towardsdatascience.com/comprehensive-guide-on-multiclass-classification-metrics-af94cfb83fbd
@@ -382,12 +405,7 @@ def fusion_test(emg_train,eeg_train,emg_test,eeg_test,args):
 
     kappa=(cohen_kappa_score(gest_truth,gest_pred_fusion))
     
-    if args['get_train_acc']:
-        train_truth=[params.idx_to_gestures[gest] for gest in traintargs]
-        train_preds=[params.idx_to_gestures[pred] for pred in predlist_train]
-        train_acc=(accuracy_score(train_truth,train_preds))
-    else:
-        train_acc=(0)
+    train_acc=(0)
 
     end=time.time()
     #return 1-mean_acc
@@ -410,14 +428,14 @@ def scale_nonSubj(emg_others,eeg_others,augment_scale):
     emg_others=emg_others.loc[index_emg.isin(index_eeg)].reset_index(drop=True)
     eeg_others=eeg_others.loc[index_eeg.isin(index_emg)].reset_index(drop=True)
     
-    eeg_others['ID_stratID'] = eeg_others['ID_run'].astype(str)+eeg_others['ID_pptID'].astype(str)+eeg_others['Label'].astype(str)+eeg_others['ID_gestrep'].astype(str)
-    emg_others['ID_stratID'] = emg_others['ID_run'].astype(str)+emg_others['ID_pptID'].astype(str)+emg_others['Label'].astype(str)+emg_others['ID_gestrep'].astype(str)
+    eeg_others['ID_stratID'] = eeg_others['ID_run'].astype(str)+eeg_others['Label'].astype(str)+eeg_others['ID_pptID'].astype(str)+eeg_others['ID_gestrep'].astype(str)
+    emg_others['ID_stratID'] = emg_others['ID_run'].astype(str)+emg_others['Label'].astype(str)+emg_others['ID_pptID'].astype(str)+emg_others['ID_gestrep'].astype(str)
     random_split=random.randint(0,100)
     
     if not emg_others['ID_stratID'].equals(eeg_others['ID_stratID']):
         raise ValueError('EMG & EEG performances misaligned')
     gest_perfs=emg_others['ID_stratID'].unique()
-    gest_strat=pd.DataFrame([gest_perfs,[(perf.split('.')[1])+(perf.split('.')[2][-1]) for perf in gest_perfs]]).transpose()
+    gest_strat=pd.DataFrame([gest_perfs,[(perf.split('.')[1])+(perf.split('.')[2]) for perf in gest_perfs]]).transpose()
     
     _,augment_split=train_test_split(gest_strat,test_size=augment_scale,
                                           random_state=random_split,stratify=gest_strat[1])
@@ -436,7 +454,7 @@ gen_dev_accs={2: 0.76625, 3: 0.68875, 4: 0.7879166666666667, 5: 0.77875, 7: 0.81
 
 if __name__ == '__main__':
     
-    run_test=False
+    run_test=True
     plot_results=True
     load_res_path=None
     load_res_path=r"C:\Users\pritcham\Documents\mm-framework\multimodal-framework\lit_data_expts\jeong\results\RQ2\D1a_AugStable_mergedTemp.csv"
@@ -449,6 +467,7 @@ if __name__ == '__main__':
         
     if systemUnderTest == 'D1d_AugWarmstart':       
         train_sizes=np.concatenate(([0.05,0.1],np.linspace(0.01,1,5)[1:]))
+        train_sizes=[0.05,0.1,0.2575,0.505]
         
         feats_method='non-subject aug'
         opt_method='non-subject aug'
@@ -457,8 +476,7 @@ if __name__ == '__main__':
         # 0.00666 would be 1 full gesture per person, for a set of 19
         # ie 1/150, because each gesture was done 50 times on 3 days = 150 per gest per ppt
         # below coerces them to be multiples of 0.00666 ie to ensure equal # per ppt per class
-        augment_scales=[0,0.00666,0.02]#,0.1]#,0.67]
-        '''try 0.1 maybe if time but 5mins x 10 trials x 20 subjects = 20h for one trainSize...'''
+        augment_scales=[0.00666,0.02,0.05263,0.1]#,0.166]#0.33, 0.1, 0.075,#,0.67
         # the scales above are 0, 1, 3, not 6, 7.89, not 12 (0.08), 25, 50, 100 per ppt per class
         # 0.05263 is 1/19, 7.89 per gest per ppt, i.e. result in aug_size = train_size
             #(actually ends up as 0.05333 = 8 per class per ppt = 152 in the aug)
@@ -486,16 +504,8 @@ if __name__ == '__main__':
         
         for rolloff in train_sizes:
             for augment_scale in augment_scales:
+                print('Rolloff: ',str(rolloff),' Augment: ',str(augment_scale))
                 for idx,emg_mask in enumerate(emg_masks):
-                    if rolloff==0.505 and np.isclose(augment_scale,0.006666666666):
-                        skipRolloff=True
-                        break
-                    
-                    if rolloff in [0.05,0.1,0.2575] and augment_scale < 0.1:
-                        skipRolloff=True
-                        break
-                    
-                    print('Rolloff: ',str(rolloff),' Augment: ',str(augment_scale))
                     
                     space=setup_warmstart_space(architecture='decision',include_svm=True)
                     
@@ -523,8 +533,8 @@ if __name__ == '__main__':
                     emg_ppt=emg_ppt.loc[index_emg.isin(index_eeg)].reset_index(drop=True)
                     eeg_ppt=eeg_ppt.loc[index_eeg.isin(index_emg)].reset_index(drop=True)
                     
-                    eeg_ppt['ID_stratID']=eeg_ppt['ID_run'].astype(str)+eeg_ppt['Label'].astype(str)+eeg_ppt['ID_gestrep'].astype(str)
-                    emg_ppt['ID_stratID']=emg_ppt['ID_run'].astype(str)+eeg_ppt['Label'].astype(str)+eeg_ppt['ID_gestrep'].astype(str)
+                    eeg_ppt['ID_stratID']=eeg_ppt['ID_run'].astype(str)+eeg_ppt['Label'].astype(str)+emg_ppt['ID_pptID'].astype(str)+eeg_ppt['ID_gestrep'].astype(str)
+                    emg_ppt['ID_stratID']=emg_ppt['ID_run'].astype(str)+emg_ppt['Label'].astype(str)+emg_ppt['ID_pptID'].astype(str)+emg_ppt['ID_gestrep'].astype(str)
                     random_split=random.randint(0,100)
                     
                     if not emg_ppt['ID_stratID'].equals(eeg_ppt['ID_stratID']):
@@ -558,7 +568,7 @@ if __name__ == '__main__':
                     emg_others = emg_set[~emg_mask]
                     eeg_others = eeg_set[~eeg_mask]
                     
-                    for repeat in range(10):
+                    for repeat in range(1):
                         trials=Trials()
                         if augment_scale == 0:
                             emg_joint = emg_train
@@ -614,7 +624,7 @@ if __name__ == '__main__':
                         winner_args['subject id']=str(int(eeg_ppt['ID_pptID'][0]))
                         winner_args['repeat']=repeat
                         
-                        subject_results=fusion_test(emg_joint,eeg_joint,emg_test,eeg_test,winner_args)
+                        subject_results=fusionWarm_test(emg_joint,eeg_joint,emg_test,eeg_test,winner_args)
                         subject_results['best_loss']=best_loss
                         subject_results['repeat']=repeat
                         
@@ -679,7 +689,7 @@ if __name__ == '__main__':
         scores_minimal=pd.read_csv(load_res_path,index_col=0)        
     
     if plot_results:
-        
+        scores_minimal=scores_minimal.round({'augment_scale':5})
         for ppt in scores_minimal['subject id'].unique():
             subj= scores_minimal[scores_minimal['subject id']==ppt]
             subjScore=subj.groupby(['augment_scale','rolloff_factor'])['fusion_acc'].agg(['mean','std']).reset_index()
@@ -710,7 +720,7 @@ if __name__ == '__main__':
                 plt.title('Subject '+str(ppt))
                 ax.set_xlabel('Proportion of subject data')
                 
-                plt.axhline(y=gen_dev_accs[ppt],label='Generalist',linestyle='--',color='gray')
+                plt.axhline(y=gen_dev_accs[int(ppt)],label='Generalist',linestyle='--',color='gray')
                 ax.legend(title='Proportion of non-subject data augmenting')
                 plt.show()
             

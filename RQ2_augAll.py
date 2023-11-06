@@ -259,13 +259,14 @@ gen_dev_accs={2: 0.76625, 3: 0.68875, 4: 0.7879166666666667, 5: 0.77875, 7: 0.81
 
 if __name__ == '__main__':
     
-    run_test=False
+    run_test=True
     plot_results=True
     load_res_path=None
     load_res_path=r"C:\Users\pritcham\Documents\mm-framework\multimodal-framework\lit_data_expts\jeong\results\RQ2\D1_AugAllfinal_resMinimal.csv"
   #  load_res_path=r"C:\Users\pritcham\Documents\mm-framework\multimodal-framework\lit_data_expts\jeong\results\RQ2\B3_AugTrain_rolloff1.0_augment0.167_resMinimal.csv"
     load_res_path=r"/home/michael/Downloads/D1_AugAllfinal_resMinimal.csv"
     load_res_path=r"/home/michael/Downloads/D1_AugAllfinal_resMinimal - Copy.csv"
+ #   load_res_path=r"/home/michael/Downloads/D1_AugAllfinal_resMinimal.csv"
 
     systemUnderTest = 'D1_AugAll'
     rolling_off_subj=True
@@ -297,7 +298,9 @@ if __name__ == '__main__':
      #  train_sizes=np.linspace(0.01,1,5)
         #manually added 0.05 and 0.1 as 0.01 was too small
         
-        train_sizes=np.concatenate(([0.05,0.1],np.linspace(0.01,1,5)[1:]))
+        #train_sizes=np.concatenate(([0.05,0.1],np.linspace(0.01,1,5)[1:]))
+        '''TEMP removing 0.05 as it has been tried with aug of 0.3, 0.1, 0.073'''
+        train_sizes=np.concatenate(([0.1],np.linspace(0.01,1,5)[1:]))
         
         feats_method='non-subject aug'
         opt_method='non-subject aug'
@@ -312,7 +315,7 @@ if __name__ == '__main__':
             #(actually ends up as 0.05333 = 8 per class per ppt = 152 in the aug)
         # 100 per class per ppt is the same amount as left over in the training set after 0.33 reserved for test
         # 50 and 100 removed for now for practicality as very big! dwarfs the subject
-        augment_scales=[0.1, 0.075, 0.33, 0.45, 0.25, 0.67]
+        augment_scales=[0.33, 0.1, 0.075]#, 0.45, 0.25, 0.67]
         augment_scales = np.array([round(scale/(1/150))*(1/150) for scale in augment_scales])
     
     if run_test:
@@ -336,6 +339,8 @@ if __name__ == '__main__':
         for rolloff in train_sizes:
             for augment_scale in augment_scales:
                 for idx,emg_mask in enumerate(emg_masks):
+                    print('Rolloff: ',str(rolloff),' Augment: ',str(augment_scale))
+                    
                     space=setup_search_space(architecture='decision',include_svm=True)
                     
                     space.update({'l1_sparsity':0.05})
@@ -504,8 +509,8 @@ if __name__ == '__main__':
                 pickle.dump(results,open(picklepath,'wb'))
                 scores_minimal.to_csv(csvpath)
         
-        picklefullpath=os.path.join(resultpath,(systemUnderTest+'final_resDF.pkl'))
-        csvfullpath=os.path.join(resultpath,(systemUnderTest+'final_resMinimal.csv'))
+        picklefullpath=os.path.join(resultpath,(systemUnderTest+'finalNew_resDF.pkl'))
+        csvfullpath=os.path.join(resultpath,(systemUnderTest+'finalNew_resMinimal.csv'))
 
         pickle.dump(results,open(picklefullpath,'wb'))
         scores_minimal.to_csv(csvfullpath)

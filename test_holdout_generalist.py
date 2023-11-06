@@ -201,14 +201,37 @@ def fuse_LOO(emg_others,eeg_others,emg_ppt,eeg_ppt,args):
         train_acc=(0)
 
     end=time.time()
-    return {
-        'loss': 1-acc,
-        'kappa':kappa,
-        'fusion_acc':acc,
-        'emg_acc':emg_acc,
-        'eeg_acc':eeg_acc,
-        'train_acc':train_acc,
-        'elapsed_time':end-start,}
+    
+    if 'getPreds' in args:
+        if args['getPreds']==True:
+            return {
+                'loss': 1-acc,
+                'kappa':kappa,
+                'fusion_acc':acc,
+                'emg_acc':emg_acc,
+                'eeg_acc':eeg_acc,
+                'train_acc':train_acc,
+                'elapsed_time':end-start,
+                'gest_truth':gest_truth,
+                'gest_preds':gest_pred_fusion,}
+        else:
+            return {
+                'loss': 1-acc,
+                'kappa':kappa,
+                'fusion_acc':acc,
+                'emg_acc':emg_acc,
+                'eeg_acc':eeg_acc,
+                'train_acc':train_acc,
+                'elapsed_time':end-start,}
+    else:
+        return {
+            'loss': 1-acc,
+            'kappa':kappa,
+            'fusion_acc':acc,
+            'emg_acc':emg_acc,
+            'eeg_acc':eeg_acc,
+            'train_acc':train_acc,
+            'elapsed_time':end-start,}
 
 def get_confmats_eeg():
     trainEEGpath=params.jeong_eeg_noholdout
@@ -242,6 +265,7 @@ def get_confmats_eeg():
                   'eeg_feats_LOO':eeg_cols,})
     
     space.update({'plot_confmats':True})
+    space.update({'getPreds':True})
     
     ppt_scores=[]
     for ppt in holdout_ppts:
@@ -263,19 +287,21 @@ def get_confmats_eeg():
     scorestd=np.std(ppt_scores_just_eeg['fusion_acc'])
     print('Mean eeg acc over 5 heldout: ',str(scoremean))
     print('Std dev eeg acc over 5 heldout: ',str(scorestd))
+    
+    return ppt_scores_just_eeg
 
 if __name__ == '__main__':
     
-  #  get_confmats_eeg()
+    #eegScores = get_confmats_eeg()
     '''could do again but getting preds back for merged ConfMat?'''
     ''' will NEED to do again to get per ppt accs etc'''
-  #  raise
+    #raise
     
     test_archs=False
     save_overwrite_scores=False
     load_scores=False
     
-    test_litDefault=True
+    test_litDefault=False
     
     if test_litDefault:
         trainEEGpath=params.jeong_eeg_noholdout
@@ -353,6 +379,42 @@ if __name__ == '__main__':
               'eeg_path':r"H:\Jeong11tasks_data\final_dataset\holdout\eeg_holdout_ppt21.csv"}
         
         holdout_ppts=[ppt1,ppt6,ppt11,ppt16,ppt21]
+        
+        
+        
+        space=fuse.setup_search_space('just_eeg',include_svm=False)
+        
+        space=update_chosen_params(space,'just_eeg')
+        space.update({'trialmode':'LOO'})
+        emg_cols=pd.read_csv(params.emgLOOfeatpath,delimiter=',',header=None)
+        eeg_cols=pd.read_csv(params.eegLOOfeatpath,delimiter=',',header=None)
+        space.update({'emg_feats_LOO':emg_cols,
+                      'eeg_feats_LOO':eeg_cols,})
+        
+        ppt_scores=[]
+        for ppt in holdout_ppts:
+            emg=pd.read_csv(ppt['emg_path'],delimiter=',')
+            eeg=pd.read_csv(ppt['eeg_path'],delimiter=',')
+            emg,eeg=fuse.balance_set(emg,eeg)
+            results=fuse_LOO(trainEMG,trainEEG,emg,eeg,space)
+            ppt_scores.append(results)
+            
+        ppt_scores_just_eeg=pd.DataFrame(ppt_scores, index=['ppt1','ppt6','ppt11','ppt16','ppt21'])
+        
+        _,acc_eeg=plt.subplots()
+        ppt_scores_just_eeg.boxplot(column='fusion_acc',ax=acc_eeg)
+        acc_eeg.set(ylim=([0, 1]))
+        
+        scoremean=np.mean(ppt_scores_just_eeg['fusion_acc'])
+        scorestd=np.std(ppt_scores_just_eeg['fusion_acc'])
+        print('Mean eeg acc over 5 heldout: ',str(scoremean))
+        print('Std dev eeg acc over 5 heldout: ',str(scorestd))
+        
+        
+        
+        raise
+        
+        
         
         
         
@@ -482,33 +544,7 @@ if __name__ == '__main__':
         
         
         
-        space=fuse.setup_search_space('just_eeg',include_svm=False)
         
-        space=update_chosen_params(space,'just_eeg')
-        space.update({'trialmode':'LOO'})
-        emg_cols=pd.read_csv(params.emgLOOfeatpath,delimiter=',',header=None)
-        eeg_cols=pd.read_csv(params.eegLOOfeatpath,delimiter=',',header=None)
-        space.update({'emg_feats_LOO':emg_cols,
-                      'eeg_feats_LOO':eeg_cols,})
-        
-        ppt_scores=[]
-        for ppt in holdout_ppts:
-            emg=pd.read_csv(ppt['emg_path'],delimiter=',')
-            eeg=pd.read_csv(ppt['eeg_path'],delimiter=',')
-            emg,eeg=fuse.balance_set(emg,eeg)
-            results=fuse_LOO(trainEMG,trainEEG,emg,eeg,space)
-            ppt_scores.append(results)
-            
-        ppt_scores_just_eeg=pd.DataFrame(ppt_scores, index=['ppt1','ppt6','ppt11','ppt16','ppt21'])
-        
-        _,acc_eeg=plt.subplots()
-        ppt_scores_just_eeg.boxplot(column='fusion_acc',ax=acc_eeg)
-        acc_eeg.set(ylim=([0, 1]))
-        
-        scoremean=np.mean(ppt_scores_just_eeg['fusion_acc'])
-        scorestd=np.std(ppt_scores_just_eeg['fusion_acc'])
-        print('Mean eeg acc over 5 heldout: ',str(scoremean))
-        print('Std dev eeg acc over 5 heldout: ',str(scorestd))
         
         
         

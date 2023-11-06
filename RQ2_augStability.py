@@ -266,6 +266,8 @@ if __name__ == '__main__':
    # load_res_path=r"C:\Users\pritcham\Documents\mm-framework\multimodal-framework\lit_data_expts\jeong\results\RQ2\D1a_AugStable_rolloff0.505_augment0.007_resMinimal.csv"
     load_res_path=r"C:\Users\pritcham\Documents\mm-framework\multimodal-framework\lit_data_expts\jeong\results\RQ2\D1a_AugStable_mergedTemp.csv"
     load_res_path=r"/home/michael/Downloads/D1a_AugStable_mergedTemp (1).csv"
+    
+    load_res_path=r"/home/michael/Downloads/D1b_RolloffStable_rolloff0.1_augment0.007_resMinimal.csv"
 
     systemUnderTest = 'D1a_AugStable'
     rolling_off_subj=True
@@ -659,6 +661,55 @@ if __name__ == '__main__':
         #ignore the bits of training data that are non-subject, then learn helpful things from the subject data
     
         '''
+        
+    fig,ax=plt.subplots();
+    scores_agg=scores_minimal.groupby(['augment_scale','rolloff_factor'])['fusion_acc'].agg(['mean','std']).reset_index()
+    scores_agg=scores_agg.round({'augment_scale':5})
+    scores_agg.pivot(index='rolloff_factor',columns='augment_scale',values='mean').plot(kind='bar',ax=ax,rot=0,capsize=5,
+                                                                                               yerr=scores_agg.pivot(index='rolloff_factor',columns='augment_scale',values='std'))
+    ax.set_ylim(np.floor(scores_minimal['fusion_acc'].min()/0.05)*0.05,np.ceil(scores_minimal['fusion_acc'].max()/0.05)*0.05)
+    plt.title('Means across subjects')
+    ax.set_xlabel('Proportion of subject data')
+    
+    plt.axhline(y=0.723,label='Mean Generalist',linestyle='--',color='gray')
+    ax.legend(title='Proportion non-subj augmenting')
+    plt.show()
+    
+    
+    
+    nSubj=19
+    nGest=4
+    nRepsPerGest=150
+    nInstancePerGest=4
+    trainsplitSize=2/3
+    scores_minimal['augscale_instances']=scores_minimal['augment_scale']*nSubj*nGest*nRepsPerGest*nInstancePerGest
+    scores_minimal['augscale_wholegests']=scores_minimal['augment_scale']*nSubj*nGest*nRepsPerGest
+    scores_minimal['augscale_pergest']=scores_minimal['augment_scale']*nSubj*nRepsPerGest
+    scores_minimal['augscale_pergestpersubj']=scores_minimal['augment_scale']*nRepsPerGest
+    
+    scores_minimal['trainAmnt_instances']=scores_minimal['rolloff_factor']*(1-testset_size)*nGest*nRepsPerGest*nInstancePerGest
+    #scores_minimal['trainAmnt_wholegests']=scores_minimal['rolloff_factor']*(1-testset_size)*nGest*nRepsPerGest
+    scores_minimal['trainAmnt_wholegests']=np.around(scores_minimal['rolloff_factor']*trainsplitSize*nGest*nRepsPerGest)
+    scores_minimal['trainAmnt_pergest']=scores_minimal['rolloff_factor']*(1-testset_size)*nRepsPerGest
+    
+    
+    fig,ax=plt.subplots();
+    scores_agg=scores_minimal.groupby(['augscale_wholegests','trainAmnt_wholegests'])['fusion_acc'].agg(['mean','std']).reset_index()
+    scores_agg=scores_agg.round({'augscale_wholegests':5})
+    scores_agg.pivot(index='trainAmnt_wholegests',
+                     columns='augscale_wholegests',
+                     values='mean').plot(kind='bar',ax=ax,rot=0,capsize=2,width=0.8,
+                                         yerr=scores_agg.pivot(index='trainAmnt_wholegests',
+                                                               columns='augscale_wholegests',values='std'))
+    ax.set_ylim(np.floor(scores_minimal['fusion_acc'].min()/0.05)*0.05,np.ceil(scores_minimal['fusion_acc'].max()/0.05)*0.05)
+    plt.title('Means across subjects on reserved 33% (200 gests)')
+    ax.set_xlabel('# Subject gestures present (max 400)')
+    ax.set_ylabel('Classification Accuracy')#' on reserved 33% (200) subject')
+    
+    plt.axhline(y=0.723,label='Mean Generalist',linestyle='--',color='gray')
+    ax.legend(title='# Non-subject gestures\n (max 11400)')
+    plt.show()
+    
 if 0:
     def load_results_obj(path):
         load_trials=pickle.load(open(path,'rb'))

@@ -207,14 +207,51 @@ def SVM_params_significance(df,modelparam,resultparam,Cparam,Gammaparam):
   #  df_subset.plot(x=Gammaparam,y='invert',kind='scatter',loglog=True,ylim=(0,1),
   #                      title='Accuracy vs Gamma, pearson coefficient = '+str((round(pearsonR[0],4),round(pearsonR[1],4))))
 
+def GNB_smoothing_significance(df,modelparam,resultparam,Smoothparam,trial=None):
+    df_subset=df[[modelparam,resultparam,Smoothparam]]
+    df_subset[modelparam]=[x[0] for x in df_subset[modelparam]]
+    df_subset=df_subset.loc[df_subset[modelparam]==4].reset_index(drop=True)
+    df_subset[Smoothparam]=[x[0] for x in df_subset[Smoothparam]]
+    
+    pearsonR=stats.pearsonr(df_subset[Smoothparam],df_subset[resultparam])
+    
+    if round(pearsonR[1],4)==0:
+        title=trial+'\nAccuracy vs Smoothing, pearson coefficient = '+'('+str(round(pearsonR[0],4))+', <0.0001)'
+    else:
+        title=trial+'\nAccuracy vs Smoothing, pearson coefficient = '+str((round(pearsonR[0],4),round(pearsonR[1],4)))
+    df_subset.plot(x=Smoothparam,y=resultparam,kind='scatter',logx=True,#ylim=(0.8,1),
+                        )#title=title,titleheight=0.995)
+    plt.gcf().suptitle(title,y=0.995)
 
 
 if __name__=='__main__':
     test_LDAs=False
     test_decisions=False
-    test_hierarch = True
+    test_hierarch = False
     plt.rcParams['figure.dpi']=150
+    testGNB=True
     
+    if testGNB:
+        pathBespokeEEG=r"/home/michael/Documents/Aston/MultimodalFW/rq1-unimodal-opt-forGNB/bespoke_just_eeg/trials_obj.p"
+        _,_,eegBespoke=fuse.load_results_obj(pathBespokeEEG)
+        print('\n Bespoke EEG-Only:')
+        GNB_smoothing_significance(eegBespoke,'eeg model','eeg_mean_acc','eeg.gnb.smoothing',trial='GNBs in Bespoke Unimodal EEG System Optimisation')
+        
+        pathBespokeEMG=r"/home/michael/Documents/Aston/MultimodalFW/rq1-unimodal-opt-forGNB/bespoke_just_emg/trials_obj.p"
+        _,_,emgBespoke=fuse.load_results_obj(pathBespokeEMG)
+        print('\n Bespoke EMG-Only:')
+        GNB_smoothing_significance(emgBespoke,'emg model','emg_mean_acc','emg.gnb.smoothing',trial='GNBs in Bespoke Unimodal EMG System Optimisation')
+        
+        pathGenEEG=r"/home/michael/Documents/Aston/MultimodalFW/rq1-unimodal-opt-forGNB/Gen_EEG/trials_obj.p"
+        _,_,eegGen=fuse.load_results_obj(pathGenEEG)
+        print('\n Gen EEG-Only:')
+        GNB_smoothing_significance(eegGen,'eeg model','eeg_mean_acc','eeg.gnb.smoothing',trial='GNBs in Generalist Unimodal EEG System Optimisation')
+        
+        pathGenEMG=r"/home/michael/Documents/Aston/MultimodalFW/rq1-unimodal-opt-forGNB/Gen_EMG/trials_obj.p"
+        _,_,emgGen=fuse.load_results_obj(pathGenEMG)
+        print('\n Gen EMG-Only:')
+        GNB_smoothing_significance(emgGen,'emg model','emg_mean_acc','emg.gnb.smoothing',trial='GNBs in Generalist Unimodal EMG System Optimisation')
+    raise
     if test_hierarch:
         models=['RF','KNN','LDA','QDA','GNB','SVM']
         model_dict=dict(zip(range(0,len(models)+1),models))

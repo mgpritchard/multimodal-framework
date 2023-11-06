@@ -265,8 +265,9 @@ if __name__ == '__main__':
     load_res_path=r"C:\Users\pritcham\Documents\mm-framework\multimodal-framework\lit_data_expts\jeong\results\RQ2\D1_AugAllfinal_resMinimal.csv"
   #  load_res_path=r"C:\Users\pritcham\Documents\mm-framework\multimodal-framework\lit_data_expts\jeong\results\RQ2\B3_AugTrain_rolloff1.0_augment0.167_resMinimal.csv"
     load_res_path=r"/home/michael/Downloads/D1_AugAllfinal_resMinimal.csv"
-    load_res_path=r"/home/michael/Downloads/D1_AugAllfinal_resMinimal - Copy.csv"
- #   load_res_path=r"/home/michael/Downloads/D1_AugAllfinal_resMinimal.csv"
+    load_res_path=r"/home/michael/Downloads/D1_AugAllfinal_resMinimal - Copy (1).csv"
+    
+    load_res_path=r"/home/michael/Downloads/D1d_AugWarmstart_rolloff0.1_augment0.053_resMinimal.csv"
 
     systemUnderTest = 'D1_AugAll'
     rolling_off_subj=True

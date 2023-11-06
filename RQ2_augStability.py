@@ -561,7 +561,7 @@ if __name__ == '__main__':
                 plt.title('Subject '+str(ppt))
                 ax.set_xlabel('Proportion of subject data')
                 
-                plt.axhline(y=gen_dev_accs[ppt],label='Generalist',linestyle='--',color='gray')
+                plt.axhline(y=gen_dev_accs[int(ppt)],label='Generalist',linestyle='--',color='gray')
                 ax.legend(title='Proportion of non-subject data augmenting')
                 plt.show()
             

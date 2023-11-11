@@ -274,6 +274,8 @@ if __name__ == '__main__':
     load_res_path=r"/home/michael/Downloads/D1_AugAllfinal_resMinimal - Copy (1).csv"
     
     load_res_warmstart=r"/home/michael/Downloads/D1d_AugWarmstartfinal_resMinimal - Copy (2).csv"
+    
+    load_res_path=r"/home/michael/Downloads/D1_AugAllfinal_resMinimal - Copy - Copy.csv"
 
     systemUnderTest = 'D1a_AugStable'
     rolling_off_subj=True
@@ -683,7 +685,7 @@ if __name__ == '__main__':
     ax.legend(title='Proportion non-subj augmenting')
     plt.show()
     '''
-    
+    plt.rcParams['figure.dpi']=150
     
     nSubj=19
     nGest=4
@@ -691,13 +693,13 @@ if __name__ == '__main__':
     nInstancePerGest=4
     trainsplitSize=2/3
     scores_minimal['augscale_instances']=scores_minimal['augment_scale']*nSubj*nGest*nRepsPerGest*nInstancePerGest
-    scores_minimal['augscale_wholegests']=np.around(scores_minimal['augment_scale']*nSubj*nGest*nRepsPerGest)
+    scores_minimal['augscale_wholegests']=(np.around(scores_minimal['augment_scale']*nSubj*nGest*nRepsPerGest)).astype(int)
     scores_minimal['augscale_pergest']=scores_minimal['augment_scale']*nSubj*nRepsPerGest
     scores_minimal['augscale_pergestpersubj']=scores_minimal['augment_scale']*nRepsPerGest
     
     scores_minimal['trainAmnt_instances']=scores_minimal['rolloff_factor']*(1-testset_size)*nGest*nRepsPerGest*nInstancePerGest
     #scores_minimal['trainAmnt_wholegests']=scores_minimal['rolloff_factor']*(1-testset_size)*nGest*nRepsPerGest
-    scores_minimal['trainAmnt_wholegests']=np.around(scores_minimal['rolloff_factor']*trainsplitSize*nGest*nRepsPerGest)
+    scores_minimal['trainAmnt_wholegests']=(np.around(scores_minimal['rolloff_factor']*trainsplitSize*nGest*nRepsPerGest)).astype(int)
     scores_minimal['trainAmnt_pergest']=scores_minimal['rolloff_factor']*(1-testset_size)*nRepsPerGest
     
     
@@ -710,17 +712,17 @@ if __name__ == '__main__':
                                          yerr=scores_agg.pivot(index='trainAmnt_wholegests',
                                                                columns='augscale_wholegests',values='std'))
     ax.set_ylim(np.floor(scores_minimal['fusion_acc'].min()/0.05)*0.05,np.ceil(scores_minimal['fusion_acc'].max()/0.05)*0.05)
-    plt.title('Means across ppts on reserved 33% (200 gests), Aug')
+    plt.title('Means across ppts on reserved 33% (200 gestures), Aug')
     ax.set_xlabel('# Subject gestures present (max 400)')
     ax.set_ylabel('Classification Accuracy')#' on reserved 33% (200) subject')
     
-    plt.axhline(y=0.723,label='Mean Generalist',linestyle='--',color='gray')
-    plt.axhline(y=0.866105,label='Fully Bespoke',linestyle='--',color='pink')
+    plt.axhline(y=0.723,label='Mean\nGeneralist',linestyle='--',color='gray')
+    plt.axhline(y=0.866105,label='Fully\nBespoke',linestyle='--',color='pink')
     plt.axhline(y=0.866105-0.047168,linestyle=':',color='pink')
     plt.axhline(y=0.866105+0.047168,linestyle=':',color='pink')
     plt.axhline(y=0.723-0.073289,linestyle=':',color='gray')
     plt.axhline(y=0.723+0.073289,linestyle=':',color='gray')
-    ax.legend(title='# Non-subject gestures\n (max 11400)')
+    ax.legend(title='# Non-subject gestures\n (max 11400)',loc='center left',bbox_to_anchor=(1,0.5))
     plt.show()
     
    
@@ -733,17 +735,17 @@ if __name__ == '__main__':
                                          yerr=scores_agg.pivot(index='augscale_wholegests',
                                                                columns='trainAmnt_wholegests',values='std'))
     ax.set_ylim(np.floor(scores_minimal['fusion_acc'].min()/0.05)*0.05,np.ceil(scores_minimal['fusion_acc'].max()/0.05)*0.05)
-    plt.title('Means across ppts on reserved 33% (200 gests), Aug')
+    plt.title('Means across ppts on reserved 33% (200 gestures), Aug')
     ax.set_xlabel('# Non-subject gestures (max 11400)')
     ax.set_ylabel('Classification Accuracy')#' on reserved 33% (200) subject')
     
-    plt.axhline(y=0.723,label='Mean Generalist',linestyle='--',color='gray')
-    plt.axhline(y=0.866105,label='Fully Bespoke',linestyle='--',color='pink')
+    plt.axhline(y=0.723,label='Mean\nGeneralist',linestyle='--',color='gray')
+    plt.axhline(y=0.866105,label='Fully\nBespoke',linestyle='--',color='pink')
     plt.axhline(y=0.866105-0.047168,linestyle=':',color='pink')
     plt.axhline(y=0.866105+0.047168,linestyle=':',color='pink')
     plt.axhline(y=0.723-0.073289,linestyle=':',color='gray')
     plt.axhline(y=0.723+0.073289,linestyle=':',color='gray')
-    ax.legend(title='# Subject gestures\n present (max 400)')
+    ax.legend(title='# Subject gestures\n present (max 400)',loc='center left',bbox_to_anchor=(1,0.5))
     plt.show()
     
     if 1:   
@@ -755,15 +757,18 @@ if __name__ == '__main__':
         nInstancePerGest=4
         trainsplitSize=2/3
         scores_minimal['augscale_instances']=scores_minimal['augment_scale']*nSubj*nGest*nRepsPerGest*nInstancePerGest
-        scores_minimal['augscale_wholegests']=np.around(scores_minimal['augment_scale']*nSubj*nGest*nRepsPerGest)
+        scores_minimal['augscale_wholegests']=(np.around(scores_minimal['augment_scale']*nSubj*nGest*nRepsPerGest)).astype(int)
         scores_minimal['augscale_pergest']=scores_minimal['augment_scale']*nSubj*nRepsPerGest
         scores_minimal['augscale_pergestpersubj']=scores_minimal['augment_scale']*nRepsPerGest
         
         scores_minimal['trainAmnt_instances']=scores_minimal['rolloff_factor']*(1-testset_size)*nGest*nRepsPerGest*nInstancePerGest
         #scores_minimal['trainAmnt_wholegests']=scores_minimal['rolloff_factor']*(1-testset_size)*nGest*nRepsPerGest
-        scores_minimal['trainAmnt_wholegests']=np.around(scores_minimal['rolloff_factor']*trainsplitSize*nGest*nRepsPerGest)
+        scores_minimal['trainAmnt_wholegests']=(np.around(scores_minimal['rolloff_factor']*trainsplitSize*nGest*nRepsPerGest)).astype(int)
         scores_minimal['trainAmnt_pergest']=scores_minimal['rolloff_factor']*(1-testset_size)*nRepsPerGest
         
+        '''add dummy data of nonsubj=0 to line up the colour cycle'''
+        dummy_data=np.zeros((1,len(scores_minimal.columns.values)),dtype=int)
+        scores_minimal=scores_minimal.append(pd.DataFrame(data=dummy_data,columns=scores_minimal.columns))
         
         fig,ax=plt.subplots();
         scores_agg=scores_minimal.groupby(['augscale_wholegests','trainAmnt_wholegests'])['fusion_acc'].agg(['mean','std']).reset_index()
@@ -774,12 +779,12 @@ if __name__ == '__main__':
                                              yerr=scores_agg.pivot(index='trainAmnt_wholegests',
                                                                    columns='augscale_wholegests',values='std'))
         ax.set_ylim(np.floor(scores_minimal['fusion_acc'].min()/0.05)*0.05,np.ceil(scores_minimal['fusion_acc'].max()/0.05)*0.05)
-        plt.title('Means across ppts on reserved 33% (200 gests), Xfer')
-        ax.set_xlabel('# Subject gestures calib (max 400)')
+        plt.title('Means across ppts on reserved 33% (200 gestures), Model Xfer')
+        ax.set_xlabel('# Subject gestures calibrating (of 400)')
         ax.set_ylabel('Classification Accuracy')#' on reserved 33% (200) subject')
         
-        plt.axhline(y=0.723,label='Mean Generalist',linestyle='--',color='gray')
-        plt.axhline(y=0.866105,label='Fully Bespoke',linestyle='--',color='pink')
+        plt.axhline(y=0.723,label='Mean\nGeneralist',linestyle='--',color='gray')
+        plt.axhline(y=0.866105,label='Fully\nBespoke',linestyle='--',color='pink')
         plt.axhline(y=0.866105-0.047168,linestyle=':',color='pink')
         plt.axhline(y=0.866105+0.047168,linestyle=':',color='pink')
         plt.axhline(y=0.723-0.073289,linestyle=':',color='gray')
@@ -788,10 +793,17 @@ if __name__ == '__main__':
         i.e. from 10 repeats per subject of no rolloff, no aug, fully bespoke'''
         '''but note this is from across subjects. for each subject, stddev of no rolloff
         no aug is typically 0.014, ranges from 0.004 to 0.033'''
-        ax.legend(title='# Non-subject gestures\n training (max 11400)')
+        ax.legend(title='# Non-subject gestures\n training (of 11400)',loc='center left',bbox_to_anchor=(1,0.5))
+        left,right=ax.get_xlim()
+        ax.set_xlim(left-1.5*left,right)
+        handles,labels=ax.get_legend_handles_labels()
+        #plt.tight_layout()
+        ax.legend(handles[0:2]+handles[3:],labels[0:2]+labels[3:],title='# Non-subject gestures\n training (of 11400)',loc='center left',bbox_to_anchor=(1,0.5))
         plt.show()
         
-       
+        '''remove the dummy data again'''
+        scores_minimal=scores_minimal[~scores_minimal.eq(0).all(axis=1)]
+        
         fig,ax=plt.subplots();
         scores_agg=scores_minimal.groupby(['augscale_wholegests','trainAmnt_wholegests'])['fusion_acc'].agg(['mean','std']).reset_index()
         scores_agg=scores_agg.round({'trainAmnt_wholegests':5})
@@ -801,17 +813,20 @@ if __name__ == '__main__':
                                              yerr=scores_agg.pivot(index='augscale_wholegests',
                                                                    columns='trainAmnt_wholegests',values='std'))
         ax.set_ylim(np.floor(scores_minimal['fusion_acc'].min()/0.05)*0.05,np.ceil(scores_minimal['fusion_acc'].max()/0.05)*0.05)
-        plt.title('Means across ppts on reserved 33% (200 gests), Xfer')
-        ax.set_xlabel('# Non-subject gestures training (max 11400)')
+        plt.title('Means across ppts on reserved 33% (200 gestures), Model Xfer')
+        ax.set_xlabel('# Non-subject gestures initial training (of 11400)')
         ax.set_ylabel('Classification Accuracy')#' on reserved 33% (200) subject')
         
-        plt.axhline(y=0.723,label='Mean Generalist',linestyle='--',color='gray')
-        plt.axhline(y=0.866105,label='Fully Bespoke',linestyle='--',color='pink')
+        plt.axhline(y=0.723,label='Mean\nGeneralist',linestyle='--',color='gray')
+        plt.axhline(y=0.866105,label='Fully\nBespoke',linestyle='--',color='pink')
         plt.axhline(y=0.866105-0.047168,linestyle=':',color='pink')
         plt.axhline(y=0.866105+0.047168,linestyle=':',color='pink')
         plt.axhline(y=0.723-0.073289,linestyle=':',color='gray')
         plt.axhline(y=0.723+0.073289,linestyle=':',color='gray')
-        ax.legend(title='# Subject gestures\n calib (max 400)')
+        ax.legend(title='# Subject gestures\n calibrating (of 400)',loc='center left',bbox_to_anchor=(1,0.5))
+        #left,right=ax.get_xlim()
+        #ax.set_xlim(left-1.5*left,right)
+        #plt.tight_layout()
         plt.show()
     
 if 0:

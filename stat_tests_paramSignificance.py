@@ -188,7 +188,7 @@ def LDA_solver_significance(df,modelparam,resultparam,solverparam,shrinkageparam
                         +'\nspearman rho = '+str((round(spearmanR[0],4),round(spearmanR[1],4))))
 
 
-def SVM_params_significance(df,modelparam,resultparam,Cparam,Gammaparam):
+def SVM_params_significance(df,modelparam,resultparam,Cparam,Gammaparam,trial=None):
     df_subset=df[[modelparam,resultparam,Cparam,Gammaparam]]
     df_subset[modelparam]=[x[0] for x in df_subset[modelparam]]
     df_subset=df_subset.loc[df_subset[modelparam]==5].reset_index(drop=True)
@@ -196,12 +196,15 @@ def SVM_params_significance(df,modelparam,resultparam,Cparam,Gammaparam):
     df_subset[Gammaparam]=[x[0] for x in df_subset[Gammaparam]]
     
     pearsonR=stats.pearsonr(df_subset[Cparam],df_subset[resultparam])
-    df_subset.plot(x=Cparam,y=resultparam,kind='scatter',#ylim=(0.8,1),
-                        title='Accuracy vs C, pearson coefficient = '+str((round(pearsonR[0],4),round(pearsonR[1],4))))
+    df_subset.plot(x=Cparam,y=resultparam,kind='scatter')#,logx=True)#ylim=(0.8,1),
+    title=trial+'\nAccuracy vs C, pearson coefficient = '+(str((round(pearsonR[0],4),round(pearsonR[1],4))) if round(pearsonR[1],4)!=0 else '('+str(round(pearsonR[0],4))+', <0.0001)')
+    plt.gcf().suptitle(title,y=0.995)
     
     pearsonR=stats.pearsonr(df_subset[Gammaparam],df_subset[resultparam])
-    df_subset.plot(x=Gammaparam,y=resultparam,kind='scatter',
-                        title='Accuracy vs Gamma, pearson coefficient = '+str((round(pearsonR[0],4),round(pearsonR[1],4))))
+    df_subset.plot(x=Gammaparam,y=resultparam,kind='scatter')#,logx=True)
+    #title=trial+'\nAccuracy vs Gamma, pearson coefficient = '+str((round(pearsonR[0],4),round(pearsonR[1],4)))
+    title=trial+'\nAccuracy vs Gamma, pearson coefficient = '+(str((round(pearsonR[0],4),round(pearsonR[1],4))) if round(pearsonR[1],4)!=0 else '('+str(round(pearsonR[0],4))+', <0.0001)')
+    plt.gcf().suptitle(title,y=0.995)
     
   #  df_subset['invert']=1-df_subset[resultparam]
   #  df_subset.plot(x=Gammaparam,y='invert',kind='scatter',loglog=True,ylim=(0,1),
@@ -223,14 +226,103 @@ def GNB_smoothing_significance(df,modelparam,resultparam,Smoothparam,trial=None)
                         )#title=title,titleheight=0.995)
     plt.gcf().suptitle(title,y=0.995)
 
+def kNN_k_significance(df,modelparam,resultparam,Kparam,trial=None):
+    df_subset=df[[modelparam,resultparam,Kparam]]
+    df_subset[modelparam]=[x[0] for x in df_subset[modelparam]]
+    df_subset=df_subset.loc[df_subset[modelparam]==1].reset_index(drop=True)
+    df_subset[Kparam]=[x[0] for x in df_subset[Kparam]]
+    
+    spearmanR=stats.spearmanr(df_subset[Kparam],df_subset[resultparam])
+    
+    title=trial+'\nAccuracy vs k, spearman rho = '+(str((round(spearmanR[0],4),round(spearmanR[1],4))) if round(spearmanR[1],4)!=0 else '('+str(round(spearmanR[0],4))+', <0.0001)')
+    df_subset.plot(x=Kparam,y=resultparam,kind='scatter')
+    plt.gcf().suptitle(title,y=0.995)
+    
+def QDA_reg_significance(df,modelparam,resultparam,Regparam,trial=None):
+    df_subset=df[[modelparam,resultparam,Regparam]]
+    df_subset[modelparam]=[x[0] for x in df_subset[modelparam]]
+    df_subset=df_subset.loc[df_subset[modelparam]==3].reset_index(drop=True)
+    df_subset[Regparam]=[x[0] for x in df_subset[Regparam]]
+    
+    pearsonR=stats.pearsonr(df_subset[Regparam],df_subset[resultparam])
+    
+    title=trial+'\nAccuracy vs Regularisation, pearson coefficient = '+(str((round(pearsonR[0],4),round(pearsonR[1],4))) if round(pearsonR[1],4)!=0 else '('+str(round(pearsonR[0],4))+', <0.0001)')
+    df_subset.plot(x=Regparam,y=resultparam,kind='scatter')
+    plt.gcf().suptitle(title,y=0.995)
+    
+def RF_trees_significance(df,modelparam,resultparam,Treesparam,trial=None):
+    df_subset=df[[modelparam,resultparam,Treesparam]]
+    df_subset[modelparam]=[x[0] for x in df_subset[modelparam]]
+    df_subset=df_subset.loc[df_subset[modelparam]==0].reset_index(drop=True)
+    df_subset[Treesparam]=[x[0] for x in df_subset[Treesparam]]
+    
+    spearmanR=stats.spearmanr(df_subset[Treesparam],df_subset[resultparam])
+    
+    title=trial+'\nAccuracy vs # of trees, spearman rho = '+(str((round(spearmanR[0],4),round(spearmanR[1],4))) if round(spearmanR[1],4)!=0 else '('+str(round(spearmanR[0],4))+', <0.0001)')
+    df_subset.plot(x=Treesparam,y=resultparam,kind='scatter')
+    plt.gcf().suptitle(title,y=0.995)
 
 if __name__=='__main__':
     test_LDAs=False
     test_decisions=False
     test_hierarch = False
     plt.rcParams['figure.dpi']=150
-    testGNB=True
+    testGNB=False
     
+    test_featfuse_SVMs=False
+    test_eeg_SVMs=False
+    test_knns=True
+    test_QDAs=True
+    test_RFs=True
+    
+    pathBespokeEEG=r"/home/michael/Documents/Aston/MultimodalFW/rq1-unimodal-opt-forGNB/bespoke_just_eeg/trials_obj.p"
+    _,_,eegBespoke=fuse.load_results_obj(pathBespokeEEG)
+
+    pathBespokeEMG=r"/home/michael/Documents/Aston/MultimodalFW/rq1-unimodal-opt-forGNB/bespoke_just_emg/trials_obj.p"
+    _,_,emgBespoke=fuse.load_results_obj(pathBespokeEMG)
+
+    pathGenEEG=r"/home/michael/Documents/Aston/MultimodalFW/rq1-unimodal-opt-forGNB/Gen_EEG/trials_obj.p"
+    _,_,eegGen=fuse.load_results_obj(pathGenEEG)
+
+    pathGenEMG=r"/home/michael/Documents/Aston/MultimodalFW/rq1-unimodal-opt-forGNB/Gen_EMG/trials_obj.p"
+    _,_,emgGen=fuse.load_results_obj(pathGenEMG)
+    
+    if test_knns:
+        kNN_k_significance(eegBespoke,'eeg model','eeg_mean_acc','eeg.knn.k',trial='kNNs in Bespoke Unimodal EEG System Optimisation')
+        kNN_k_significance(emgBespoke,'emg model','emg_mean_acc','emg.knn.k',trial='kNNs in Bespoke Unimodal EMG System Optimisation')
+        kNN_k_significance(eegGen,'eeg model','eeg_mean_acc','eeg.knn.k',trial='kNNs in Generalist Unimodal EEG System Optimisation')
+        kNN_k_significance(emgGen,'emg model','emg_mean_acc','emg.knn.k',trial='kNNs in Generalist Unimodal EMG System Optimisation')
+    
+    if test_QDAs:
+       QDA_reg_significance(eegBespoke,'eeg model','eeg_mean_acc','eeg.qda.regularisation',trial='QDAs in Bespoke Unimodal EEG System Optimisation')
+       QDA_reg_significance(emgBespoke,'emg model','emg_mean_acc','emg.qda.regularisation',trial='QDAs in Bespoke Unimodal EMG System Optimisation')
+       QDA_reg_significance(eegGen,'eeg model','eeg_mean_acc','eeg.qda.regularisation',trial='QDAs in Generalist Unimodal EEG System Optimisation')
+       QDA_reg_significance(emgGen,'emg model','emg_mean_acc','emg.qda.regularisation',trial='QDAs in Generalist Unimodal EMG System Optimisation')
+       
+    if test_RFs:
+       RF_trees_significance(eegBespoke,'eeg model','eeg_mean_acc','eeg_ntrees',trial='RFs in Bespoke Unimodal EEG System Optimisation')
+       RF_trees_significance(emgBespoke,'emg model','emg_mean_acc','emg.RF.ntrees',trial='RFs in Bespoke Unimodal EMG System Optimisation')
+       RF_trees_significance(eegGen,'eeg model','eeg_mean_acc','eeg_ntrees',trial='RFs in Generalist Unimodal EEG System Optimisation')
+       RF_trees_significance(emgGen,'emg model','emg_mean_acc','emg.RF.ntrees',trial='RFs in Generalist Unimodal EMG System Optimisation')
+    
+    raise
+    if test_featfuse_SVMs:
+        pathBespokeFeatSep=r"/home/michael/Documents/Aston/MultimodalFW/rq1-featfuse-opt-res/featlevel (sep)/trials_obj.p"
+        _,_,bespokeFeatSep=fuse.load_results_obj(pathBespokeFeatSep)
+        print('\n Bespoke Feature-Level (separate selection):')
+        SVM_params_significance(bespokeFeatSep,'featfuse model','fusion_mean_acc','featfuse.svm.c','featfuse.svm.gamma',trial='SVMs in Bespoke Feature-Fusion (Separate Sel) Optimisation')
+        
+        pathBespokeFeatJoin=r"/home/michael/Documents/Aston/MultimodalFW/rq1-featfuse-opt-res/featlevel_joint/trials_obj.p"
+        _,_,bespokeFeatJoin=fuse.load_results_obj(pathBespokeFeatJoin)
+        print('\n Bespoke Feature-Level (joint selection):')
+        SVM_params_significance(bespokeFeatJoin,'featfuse model','fusion_mean_acc','featfuse.svm.c','featfuse.svm.gamma',trial='SVMs in Bespoke Feature-Fusion (Joint Sel) Optimisation')
+        
+        raise
+    if test_eeg_SVMs:
+        pathBespokeEEG=r"/home/michael/Documents/Aston/MultimodalFW/rq1-unimodal-opt-forGNB/bespoke_just_eeg/trials_obj.p"
+        _,_,bespokeEEG=fuse.load_results_obj(pathBespokeEEG)
+        SVM_params_significance(bespokeEEG,'eeg model','eeg_mean_acc','eeg.svm.c','eeg.svm.gamma',trial='SVMs in Bespoke Unimodal EEG System Optimisation')
+    raise    
     if testGNB:
         pathBespokeEEG=r"/home/michael/Documents/Aston/MultimodalFW/rq1-unimodal-opt-forGNB/bespoke_just_eeg/trials_obj.p"
         _,_,eegBespoke=fuse.load_results_obj(pathBespokeEEG)

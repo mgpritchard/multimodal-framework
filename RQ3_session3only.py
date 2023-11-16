@@ -293,14 +293,15 @@ def eegsearchspace_lowdata(include_svm=True):
 
 if __name__ == '__main__':
     
-    run_test=True
+    run_test=False
     plot_results=True
     load_res_path=None
     
-    load_res_path=r"C:\Users\pritcham\Documents\mm-framework\multimodal-framework\lit_data_expts\jeong\results\RQ3\C1_Session3onlyfinal_resMinimal.csv"
-    
+    load_res_path=r"C:\Users\pritcham\Documents\mm-framework\multimodal-framework\lit_data_expts\jeong\results\RQ3\C1_Session3onlyfinal_resMinimal - Copy.csv"
+    load_res_path=r"/home/michael/Downloads/C1_Session3onlyfinal_resMinimal - Copy.csv"
     load_calib_res_path=r"C:\Users\pritcham\Documents\mm-framework\multimodal-framework\lit_data_expts\jeong\results\RQ3\B1_AugPipelinefinal_resMinimal - Copy.csv"
-
+    load_calib_res_path=r"/home/michael/Downloads/B1_AugPipelinefinal_resMinimal - Copy.csv"
+    
     systemUnderTest = 'C1_Session3only'
     
     if systemUnderTest=='A1a_session1':
@@ -555,10 +556,10 @@ if __name__ == '__main__':
         pickle.dump(results,open(picklefullpath,'wb'))
         scores_minimal.to_csv(csvfullpath)
     else:
-        scores_minimal=pd.read_csv(load_res_path,index_col=0)        
-    
-    if plot_results:
+        scores_minimal=pd.read_csv(load_res_path,index_col=0)
         
+    if plot_results:
+        scores_calib_minimal=pd.read_csv(load_calib_res_path,index_col=0)
         '''
 
         fig,ax=plt.subplots();
@@ -627,6 +628,7 @@ if __name__ == '__main__':
         scores_minimal['calib_level_wholegests']=scores_minimal['calib_level']*(1-testset_size)*nGest*nRepsPerGest
         scores_minimal['calib_level_pergest']=scores_minimal['calib_level']*(1-testset_size)*nRepsPerGest
         
+        scores_calib_minimal['calib_level_wholegests']=scores_calib_minimal['calib_level']*(1-testset_size)*nGest*nRepsPerGest
         
         
         
@@ -694,13 +696,18 @@ if __name__ == '__main__':
         fig,ax=plt.subplots();
         scores_agg=scores_minimal.groupby(['calib_level_wholegests'])['fusion_acc'].agg(['mean','std']).reset_index()
         scores_agg=scores_agg.round({'calib_level_wholegests':5})
+        
+        scores_calib_agg=scores_calib_minimal.groupby(['calib_level_wholegests'])['fusion_acc'].agg(['mean','std']).reset_index()
+        scores_calib_agg=scores_calib_agg.round({'calib_level_wholegests':5})
+        
+        scores_calib_agg.plot(y='mean',x='calib_level_wholegests',kind='line',marker='.',ax=ax,rot=0,label='Session 3 calibrating\ntrained on 1&2')
         scores_agg.plot(y='mean',x='calib_level_wholegests',kind='line',marker='.',ax=ax,rot=0,label='Session3 only')
         ax.set_ylim(np.floor(scores_minimal['fusion_acc'].min()/0.05)*0.05,np.ceil(scores_minimal['fusion_acc'].max()/0.05)*0.05)
         plt.title('Mean accuracies over subjects on reserved 33% of session 3 (66 gests)')
         ax.set_xlabel('# Session 3 gestures used (max 134)')
         ax.set_ylabel('Classification Accuracy')#' on reserved 33% (200) subject')
         
-        plt.axhline(y=0.86907,label='RQ2 Full Besp\nNot session-split!',linestyle='--',color='pink')
+        plt.axhline(y=0.86907,label='RQ2 Full Besp\n(Not session-split!)',linestyle='--',color='pink')
         #plt.axhline(y=0.723,label='RQ1 Generalist\nNot session-split!',linestyle='--',color='gray')
         #ax.legend(title='Subject',loc='center left',bbox_to_anchor=(1,0.5),ncol=2)
         #ax.set_ylim(0.3,0.95)

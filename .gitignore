@@ -14,6 +14,8 @@ pyan*
 
 #Ignore any parameter graphs made with graphviz
 *.gv
+#Ignore any rendered graphs from graphviz
+*.pdf
 
 #Ignore scripts to learn onehot encoding, hyperopt, and call graphs
 attemptOnehot.py

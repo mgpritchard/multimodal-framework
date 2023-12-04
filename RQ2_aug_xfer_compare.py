@@ -576,100 +576,7 @@ if __name__ == '__main__':
             
         
         
-        '''
-        fig,ax=plt.subplots();
-        for ppt in scores_minimal['subject id'].unique():
-            scores_minimal[scores_minimal['subject id']==ppt].plot(y='fusion_acc',x='rolloff_factor',ax=ax,color='tab:blue',legend=None)
-            scores_minimal[scores_minimal['subject id']==ppt].plot(y='opt_acc',x='rolloff_factor',ax=ax,color='tab:orange',legend=None)
-            
-        #    scores_minimal[scores_minimal['subject id']==ppt].plot(y='emg_acc',x='rolloff_factor',ax=ax,color='tab:green',legend=None)
-        #    scores_minimal[scores_minimal['subject id']==ppt].plot(y='eeg_acc',x='rolloff_factor',ax=ax,color='tab:purple',legend=None)
-        #ax.set_xlim(0.05,0.4)
-            
-        fig,ax=plt.subplots();
-        for ppt in scores_minimal['subject id'].unique():
-            scores_minimal[scores_minimal['subject id']==ppt].plot(y='fusion_acc',x='augment_scale',ax=ax,color='tab:green',legend=None)
-       #     scores_minimal[scores_minimal['subject id']==ppt].plot(y='opt_acc',x='augment_scale',ax=ax,color='tab:purple',legend=None)
-        ax.set_ylim(0.25,1)
-        
-        fig,ax=plt.subplots();
-        ax.scatter(scores_minimal['rolloff_factor'],scores_minimal['augment_scale'],c=scores_minimal['fusion_acc'],cmap='copper')
-        
-        for ppt in scores_minimal['subject id'].unique():
-            fig,ax=plt.subplots();
-         #   scores_minimal[scores_minimal['subject id']==ppt].plot.scatter(y='augment_scale',x='rolloff_factor',c='fusion_acc',
-         #                                                                  ax=ax,cmap='copper')
-            
-
-            plt.rcParams['figure.dpi'] = 150 # DEFAULT IS 100
-            subj= scores_minimal[scores_minimal['subject id']==ppt]
-            fullbesp=subj[subj['rolloff_factor']==1][subj['augment_scale']==0]['fusion_acc'].item()
-         #   subj['relative_to_bespoke']=subj['fusion_acc']-fullbesp
-         #   plt.scatter(subj['rolloff_factor'],subj['augment_scale'],c=subj['relative_to_bespoke'])
-            plt.scatter(subj['rolloff_factor'],subj['augment_scale'],c=subj['fusion_acc'],norm=PowerNorm(np.e))
-            plt.xlabel('Proportion of subject\'s 67% non-test data')
-            #plt.yticks(rotation=33)
-            plt.ylabel('Proportion of non-subj augmenting Everything')
-            plt.colorbar()
-            plt.title('Subject '+str(ppt)+'. No rolloff, no aug = '+str(round(fullbesp,5)))
-            wincoords=tuple(subj.loc[subj['fusion_acc'].idxmax()][['rolloff_factor','augment_scale']].tolist())
-            plt.annotate(str(round(subj['fusion_acc'].max(),3)),wincoords)
-            
-            tolerance=0.0001 # 0.01% is close enough
-            meetsOrBeats=subj.loc[subj['fusion_acc']>fullbesp-tolerance][['rolloff_factor','augment_scale']]
-            for _,row in meetsOrBeats.iterrows():
-                #ax.add_patch(plt.Circle((row['rolloff_factor'],row['augment_scale']),0.07,color='r',fill=False))
-                ax.add_patch(Ellipse((row['rolloff_factor'],row['augment_scale']),width=0.05,height=0.01,color='r',fill=False))
-            
-            plt.show()
-
-            
-        plot_all_rollofs=True    
-        for ppt in scores_minimal['subject id'].unique():
-            fig,ax=plt.subplots();
-
-            plt.rcParams['figure.dpi'] = 150 # DEFAULT IS 100
-            subj= scores_minimal[scores_minimal['subject id']==ppt]
-            fullbesp=subj[subj['rolloff_factor']==1][subj['augment_scale']==0]['fusion_acc'].item()
-            
-            if plot_all_rollofs:
-                for rolloff in np.sort(subj['rolloff_factor'].unique()):
-                    subj[subj['rolloff_factor']==rolloff].plot(x='augment_scale',y='fusion_acc',marker='.',ax=ax)
-     #           ax.set_ylim((0.65,0.95))
-            else:
-                subj=subj[subj['rolloff_factor']>0.15]
-                for rolloff in np.sort(subj['rolloff_factor'].unique()):
-                    subj[subj['rolloff_factor']==rolloff].plot(x='augment_scale',y='fusion_acc',marker='.',ax=ax)
-                
-            ax.legend(np.sort(subj['rolloff_factor'].unique()),title='Proportion subject data')
-            
-
-            plt.title('Subject '+str(ppt)+'. No rolloff, no aug = '+str(round(fullbesp,5)))
-            
-            wincoords=tuple(subj.loc[subj['fusion_acc'].idxmax()][['augment_scale','fusion_acc']].tolist())
-            plt.annotate(str(round(subj['fusion_acc'].max(),3)),wincoords)
-            
-       #     tolerance=0.0001 # 0.01% is close enough
-       #     meetsOrBeats=subj.loc[subj['fusion_acc']>fullbesp-tolerance][['rolloff_factor','augment_scale']]
-            # np.isclose ??
-       #     for _,row in meetsOrBeats.iterrows():
-                #ax.add_patch(plt.Circle((row['rolloff_factor'],row['augment_scale']),0.07,color='r',fill=False))
-       #         ax.add_patch(Ellipse((row['rolloff_factor'],row['augment_scale']),width=0.05,height=0.01,color='r',fill=False))
-            
-            #ax.set_xticks(subj['augment_scale'].unique())
-            ax.set_xlabel('Proportion of non-subj augmenting Everything')
-            plt.show()
-            
-        print('*****\nHeavily affected by randomness, BUT I think it may be in part the',
-              'randomness of which bits of non-subj are chosen to be added. IE not randomness in model etc causing',
-              'effect where there is none, but rather randomness as to how effective it will be dependent on',
-              'the non-subj data that is most helpful (or most helpful to this subj) which one could',
-              'theoretically identify statically or find way to auto identify.\n*****')
-    
-    #chance we confuse it eg that by adding non subject within opt, all its doing is learning to firstly
-        #ignore the bits of training data that are non-subject, then learn helpful things from the subject data
-    
-        '''
+       
     
     '''
     fig,ax=plt.subplots();
@@ -687,11 +594,75 @@ if __name__ == '__main__':
     '''
     plt.rcParams['figure.dpi']=150
     
+    scores_aug=pd.read_csv(load_res_path,index_col=0)
+    scores_xfer=pd.read_csv(load_res_warmstart,index_col=0)
+    
+    
     nSubj=19
     nGest=4
     nRepsPerGest=150
     nInstancePerGest=4
     trainsplitSize=2/3
+    
+    scores_aug['augscale_wholegests']=(np.around(scores_aug['augment_scale']*nSubj*nGest*nRepsPerGest)).astype(int)
+    scores_xfer['augscale_wholegests']=(np.around(scores_xfer['augment_scale']*nSubj*nGest*nRepsPerGest)).astype(int)
+    scores_aug['trainAmnt_wholegests']=(np.around(scores_aug['rolloff_factor']*trainsplitSize*nGest*nRepsPerGest)).astype(int)
+    scores_xfer['trainAmnt_wholegests']=(np.around(scores_xfer['rolloff_factor']*trainsplitSize*nGest*nRepsPerGest)).astype(int)
+    
+    
+    scores_aug_agg=scores_aug.groupby(['augscale_wholegests','trainAmnt_wholegests'])['fusion_acc'].agg(['mean','std']).reset_index()
+    scores_aug_agg=scores_aug_agg.round({'augscale_wholegests':5})
+    scores_aug_agg=scores_aug_agg.add_prefix('aug_')
+    scores_xfer_agg=scores_xfer.groupby(['augscale_wholegests','trainAmnt_wholegests'])['fusion_acc'].agg(['mean','std']).reset_index()
+    scores_xfer_agg=scores_xfer_agg.round({'augscale_wholegests':5})
+    scores_xfer_agg=scores_xfer_agg.add_prefix('xfer_')
+    
+    figL,axL=plt.subplots()
+    scores_aug_agg.pivot(columns='aug_trainAmnt_wholegests',
+                     index='aug_augscale_wholegests',
+                     values='aug_mean').plot(kind='line',marker='.',ax=axL,rot=0)
+    plt.gca().set_prop_cycle(None)
+    scores_xfer_agg.pivot(columns='xfer_trainAmnt_wholegests',
+                     index='xfer_augscale_wholegests',
+                     values='xfer_mean').plot(kind='line',marker='x',linestyle='-.',ax=axL,rot=0)
+    plt.title('Means across ppts on reserved 33% (200 gestures)')
+    axL.set_xlabel('# Non-subject gestures (of 11400)')
+    axL.set_ylabel('Classification Accuracy')#' on reserved 33% (200) subject')
+    
+    plt.axhline(y=0.723,label='Mean\nGeneralist',linestyle='--',color='gray')
+    plt.axhline(y=0.866105,label='Fully\nBespoke',linestyle='--',color='pink')
+    #handles,labels=axL.get_legend_handles_labels()
+    #plt.tight_layout()
+    axL.legend(title='# Subject gestures\n (of 400)',loc='center left',bbox_to_anchor=(1,0.5))
+    #axL.set_ylim(np.floor(scores_agg[scores_agg['mean']>0]['mean'].min()/0.1)*0.1,np.ceil(scores_agg['mean'].max()/0.05)*0.05)
+    #axL.set_ylim(0.6,0.9)
+    plt.show()
+    
+    figL,axL=plt.subplots()
+    scores_aug_agg.pivot(columns='aug_trainAmnt_wholegests',
+                     index='aug_augscale_wholegests',
+                     values='aug_mean').plot(kind='line',marker='.',ax=axL,rot=0)
+    plt.gca().set_prop_cycle(None)
+    scores_xfer_agg.pivot(columns='xfer_trainAmnt_wholegests',
+                     index='xfer_augscale_wholegests',
+                     values='xfer_mean').plot(kind='line',marker='x',linestyle='-.',ax=axL,rot=0)
+    plt.title('Means across ppts on reserved 33% (200 gestures)')
+    axL.set_xlabel('# Non-subject gestures (of 11400)')
+    axL.set_ylabel('Classification Accuracy')#' on reserved 33% (200) subject')
+    
+    plt.axhline(y=0.723,label='Mean\nGeneralist',linestyle='--',color='gray')
+    plt.axhline(y=0.866105,label='Fully\nBespoke',linestyle='--',color='pink')
+    #handles,labels=axL.get_legend_handles_labels()
+    #plt.tight_layout()
+    axL.legend(title='# Subject gestures\n (of 400)',loc='center left',bbox_to_anchor=(1,0.5))
+    #axL.set_ylim(np.floor(scores_agg[scores_agg['mean']>0]['mean'].min()/0.1)*0.1,np.ceil(scores_agg['mean'].max()/0.05)*0.05)
+    axL.set_ylim(0.6,0.9)
+    axL.set_xlim(-100,2000)
+    plt.show()
+    
+    raise
+    
+    
     scores_minimal['augscale_instances']=scores_minimal['augment_scale']*nSubj*nGest*nRepsPerGest*nInstancePerGest
     scores_minimal['augscale_wholegests']=(np.around(scores_minimal['augment_scale']*nSubj*nGest*nRepsPerGest)).astype(int)
     scores_minimal['augscale_pergest']=scores_minimal['augment_scale']*nSubj*nRepsPerGest

@@ -298,9 +298,9 @@ if __name__ == '__main__':
     load_res_path=None
     
     load_res_path=r"C:\Users\pritcham\Documents\mm-framework\multimodal-framework\lit_data_expts\jeong\results\RQ3\C1_Session3onlyfinal_resMinimal - Copy.csv"
-    load_res_path=r"/home/michael/Downloads/C1_Session3onlyfinal_resMinimal - Copy.csv"
+    #load_res_path=r"/home/michael/Downloads/C1_Session3onlyfinal_resMinimal - Copy.csv"
     load_calib_res_path=r"C:\Users\pritcham\Documents\mm-framework\multimodal-framework\lit_data_expts\jeong\results\RQ3\B1_AugPipelinefinal_resMinimal - Copy.csv"
-    load_calib_res_path=r"/home/michael/Downloads/B1_AugPipelinefinal_resMinimal - Copy.csv"
+    #load_calib_res_path=r"/home/michael/Downloads/B1_AugPipelinefinal_resMinimal - Copy.csv"
     
     systemUnderTest = 'C1_Session3only'
     
@@ -341,7 +341,7 @@ if __name__ == '__main__':
         
         train_session='third'
         
-        calib_levels = [8/134,20/134,40/134,60/134,72/134,100/134,120/134,132/134]
+        calib_levels = [8/134,20/134,40/134,60/134,72/134,80/134,100/134,120/134,132/134]
         
         calib_levels = np.array([round(scale/(4/134))*(4/134) for scale in calib_levels])
     
@@ -700,9 +700,9 @@ if __name__ == '__main__':
         scores_calib_agg=scores_calib_minimal.groupby(['calib_level_wholegests'])['fusion_acc'].agg(['mean','std']).reset_index()
         scores_calib_agg=scores_calib_agg.round({'calib_level_wholegests':5})
         
-        scores_calib_agg.plot(y='mean',x='calib_level_wholegests',kind='line',marker='.',ax=ax,rot=0,label='Session 3 calibrating\ntrained on 1&2')
+        scores_calib_agg.plot(y='mean',x='calib_level_wholegests',kind='line',marker='.',ax=ax,rot=0,label='Session 3 augmented\ntrained on 1&2')
         scores_agg.plot(y='mean',x='calib_level_wholegests',kind='line',marker='.',ax=ax,rot=0,label='Session3 only')
-        ax.set_ylim(np.floor(scores_minimal['fusion_acc'].min()/0.05)*0.05,np.ceil(scores_minimal['fusion_acc'].max()/0.05)*0.05)
+        ax.set_ylim(np.floor(scores_calib_minimal['fusion_acc'].min()/0.05)*0.05,np.ceil(scores_calib_minimal['fusion_acc'].max()/0.05)*0.05)
         plt.title('Mean accuracies over subjects on reserved 33% of session 3 (66 gests)')
         ax.set_xlabel('# Session 3 gestures used (max 134)')
         ax.set_ylabel('Classification Accuracy')#' on reserved 33% (200) subject')

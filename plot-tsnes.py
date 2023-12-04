@@ -58,10 +58,41 @@ eeg_set_path=params.jeong_eeg_noholdout,
 emg_set=ml.pd.read_csv(emg_set_path[0],delimiter=',')
 eeg_set=ml.pd.read_csv(eeg_set_path[0],delimiter=',')
 
-per_ppt = True
+per_ppt = False
 plotemg=False
 ploteeg=True
 n_components = 2
+
+plt.rcParams['figure.dpi']=150
+
+
+
+
+eegCSP_set_path=params.eeg_jeongSyncCSP_feats
+eegCSP=ml.pd.read_csv(eegCSP_set_path,delimiter=',')
+eegCSP_noHO=eegCSP[~eegCSP['ID_pptID'].isin([1,6,11,16,21])]
+
+eeg_set_noCSP=eeg_set.copy()
+eeg_set=eegCSP_noHO
+
+
+y_eeg=eeg_set.pop('Label')
+X_eeg=eeg_set
+X_eeg=ml.drop_ID_cols(X_eeg)
+tsne_eeg = TSNE(n_components)
+   
+print('starting csp eeg tsne')
+tsne_result_eeg = tsne_eeg.fit_transform(X_eeg)
+print(tsne_result_eeg.shape)
+plot_tsne(tsne_result_eeg,y_eeg,'csp eeg')
+
+cspEEGtsne=(tsne_result_eeg,y_eeg)
+plot_tsne(cspEEGtsne[0],cspEEGtsne[1],'Dev set EEG with CSP, no feat reduction')
+pickle.dump(cspEEGtsne,open(r"C:\Users\pritcham\Documents\RQ1_plots_stats\newTSNEsNoHoldout\CSP_EEGnoHO.pkl",'wb'))
+
+
+
+
 if per_ppt:
     emg_masks=fuse.get_ppt_split_flexi(emg_set)
     eeg_masks=fuse.get_ppt_split_flexi(eeg_set)
@@ -132,7 +163,7 @@ if per_ppt:
                     plot_tsne(tsne_result_eeg,y_eeg,('CSP eeg ppt '+str(idx)+' session '+str(idx2)))
 
 else:
-    tsne_raw=False
+    tsne_raw=True
     if plotemg:        
         y_emg=emg_set.pop('Label')
         X_emg=emg_set
@@ -192,3 +223,9 @@ else:
             
             plot_tsne(tsne_result_eeg,y_eeg,'eeg L1 40')
             plot_mass_tsne_per_ppt()
+
+'''
+rawEEGtsne=(tsne_result_eeg,y_eeg)
+plot_tsne(rawEEGtsne[0],rawEEGtsne[1],'Dev set EEG without CSP, all features')
+pickle.dump(rawEEGtsne,open(r"C:\Users\pritcham\Documents\RQ1_plots_stats\newTSNEsNoHoldout\rawEEGnoCSPnoHO.pkl",'wb'))
+'''

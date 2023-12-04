@@ -472,7 +472,7 @@ if __name__ == '__main__':
         train_sizes=np.concatenate(([0.05,0.1],np.linspace(0.01,1,5)[1:]))
         train_sizes=[0.05,0.1,0.2575,0.505,0.7525,1.0]
         #train_sizes=[0.7525,1.0]
-        train_sizes=[0.505,0.7525,1.0]
+        #train_sizes=[0.505,0.7525,1.0]
         
         feats_method='non-subject aug'
         opt_method='non-subject aug'
@@ -483,6 +483,7 @@ if __name__ == '__main__':
         # below coerces them to be multiples of 0.00666 ie to ensure equal # per ppt per class
         augment_scales=[0.00666,0.02]#,0.05263,0.1]#,0.166]#0.33, 0.1, 0.075,#,0.67
         augment_scales=[0.33]
+        augment_scales=[0.05263, 0.075, 0.1, 0.166,]
         # the scales above are 0, 1, 3, not 6, 7.89, not 12 (0.08), 25, 50, 100 per ppt per class
         # 0.05263 is 1/19, 7.89 per gest per ppt, i.e. result in aug_size = train_size
             #(actually ends up as 0.05333 = 8 per class per ppt = 152 in the aug)
@@ -512,7 +513,13 @@ if __name__ == '__main__':
             for augment_scale in augment_scales:
                 print('Rolloff: ',str(rolloff),' Augment: ',str(augment_scale))
                 for idx,emg_mask in enumerate(emg_masks):
-                    
+                 #   if np.isclose(augment_scale,0.0533333) or np.isclose(augment_scale,0.1):
+                 #       if rolloff < 0.7:
+                 #           skipRolloff=True
+                 #           #print('skip rolloff '+str(rolloff*400)+' and augment '+str(augment_scale*11400))
+                 #           break
+                 # commenting out as only needed when we had a few partially done   
+
                     space=setup_warmstart_space(architecture='decision',include_svm=True)
                     
                     space.update({'l1_sparsity':0.05})
@@ -915,6 +922,7 @@ if __name__ == '__main__':
    # next(ax._get_lines.prop_cycler)
   #  colors = plt.rcParams['axes.prop_cycle'].by_key()['color']
   #  plt.gca().set_prop_cycle(color=colors[1:])
+    #https://matplotlib.org/stable/api/_as_gen/matplotlib.axes.Axes.set_prop_cycle.html
     #https://stackoverflow.com/questions/46670710/is-it-possible-to-ignore-matplotlib-first-default-color-for-plotting
     scores_agg=scores_minimal.groupby(['augscale_wholegests','trainAmnt_wholegests'])['fusion_acc'].agg(['mean','std']).reset_index()
     scores_agg=scores_agg.round({'augscale_wholegests':0})

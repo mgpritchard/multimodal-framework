@@ -126,9 +126,9 @@ params=['smoothing','emg_model_type','n_trees','max_depth','knn_k','LDA_solver',
 ##doctest_mark_exe()
 #emg_dot.render(view=True)
 
-sysdot=graphviz.Digraph('space',edge_attr={'arrowhead':'none'},node_attr={'shape':'box','style':'rounded'})
+sysdot=graphviz.Digraph('space2',edge_attr={'arrowhead':'none'},node_attr={'shape':'box','style':'rounded'})
 
-emgdot=graphviz.Digraph('emg',edge_attr={'arrowhead':'none'},node_attr={'shape':'box','style':'rounded'})
+emgdot=graphviz.Digraph('emg2',edge_attr={'arrowhead':'none'},node_attr={'shape':'box','style':'rounded'})
 emgdot.node('emgtop','EMG Model')
 emgdot.node('emgrf','RF')
 emgdot.node('emgrfntrees','n_trees',style='solid')
@@ -175,7 +175,7 @@ emgdot.edges([('emgsvm','emg.svm.C'),('emg.svm.C','emg.svm.C.vals'),
               ('emgsvm','emg.svm.gamma'),('emg.svm.gamma','emg.svm.gamma.vals')])
 #sysdot.subgraph(emgdot)
 
-eegdot=graphviz.Digraph('eeg',edge_attr={'arrowhead':'none'},node_attr={'shape':'box','style':'rounded'})
+eegdot=graphviz.Digraph('eeg2',edge_attr={'arrowhead':'none'},node_attr={'shape':'box','style':'rounded'})
 eegdot.node('eegtop','EEG Model')
 eegdot.node('eegrf','RF')
 eegdot.node('eegrfntrees','trees',style='solid')
@@ -222,7 +222,7 @@ eegdot.edges([('eegsvm','eeg.svm.C'),('eeg.svm.C','eeg.svm.C.vals'),
               ('eegsvm','eeg.svm.gamma'),('eeg.svm.gamma','eeg.svm.gamma.vals')])
 #sysdot.subgraph(eegdot)
 
-decdot=graphviz.Digraph('decfus',edge_attr={'arrowhead':'none'},node_attr={'shape':'box','style':'rounded'})
+decdot=graphviz.Digraph('decfus2',edge_attr={'arrowhead':'none'},node_attr={'shape':'box','style':'rounded'})
 decdot.node('dectop','Decision Fusion Algorithm')
 decdot.node('dec.mean','Mean')
 decdot.node('dec.EMG','EMG-biased')# Average')
@@ -256,7 +256,7 @@ decdot.edges([('dectop','dec.mean'),
 
 
 
-MLdot=graphviz.Digraph('ML',edge_attr={'arrowhead':'none'},node_attr={'shape':'box','style':'rounded'})
+MLdot=graphviz.Digraph('ML2',edge_attr={'arrowhead':'none'},node_attr={'shape':'box','style':'rounded'})
 MLdot.node('MLtop','Classifier')
 MLdot.node('MLrf','RF')
 MLdot.node('MLrfntrees','trees',style='solid')
@@ -323,6 +323,109 @@ sysdot.render(view=True)
 #decdot.render(view=True)
 
 
+reduceddot=graphviz.Digraph('reduced',edge_attr={'arrowhead':'none'},node_attr={'shape':'box','style':'rounded'})
+
+
+MLdot=graphviz.Digraph('ML_reduced',edge_attr={'arrowhead':'none'},node_attr={'shape':'box','style':'rounded'})
+MLdot.node('MLtop','Classifier')
+MLdot.node('MLrf','RF')
+MLdot.node('MLrfntrees','trees',style='solid')
+MLdot.node('MLrfntrees.vals','10 - 100\n(steps of 5)',style='solid')
+MLdot.node('MLknn','KNN')
+MLdot.node('ML.knn.k','k',style='solid')
+MLdot.node('ML.knn.k.vals','1 - 25',style='solid')
+MLdot.node('MLlda','LDA')
+MLdot.node('ML.lda.solver','solver',style='solid')
+#below is actual
+MLdot.node('ML.lda.solver.vals','SVD\nLSQR\nEigen',style='solid')
+MLdot.node('ML.lda.shrinkage','shrinkage',style='solid')
+MLdot.node('ML.lda.shrinkage.vals','0.0 - 0.5',style='solid')
+#below is theoretical
+#MLdot.node('ML.lda.solver.svd','SVD',shape='box')
+#MLdot.node('ML.lda.solver.nonSVD','LSQR\nEigen',shape='box')
+#MLdot.node('ML.lda.shrinkage','shrinkage',shape='box')
+#MLdot.node('ML.lda.shrinkage.vals','0.0 - 1.0',shape='box')
+MLdot.node('MLqda','QDA')
+MLdot.node('ML.qda.regularisation','regularisation',style='solid')
+MLdot.node('ML.qda.regularisation.vals','0.0 - 1.0',style='solid')
+#MLdot.node('MLgnb','GNB')
+#MLdot.node('ML.gnb.smoothing','smoothing',style='solid')
+#MLdot.node('ML.gnb.smoothing.vals','1e-9 - 1\n(log scaled)',style='solid')
+MLdot.node('MLsvm','SVM')
+MLdot.node('ML.svm.C','C',style='solid')
+MLdot.node('ML.svm.C.vals','0.1 - 100\n(log scaled)',style='solid')
+MLdot.node('ML.svm.gamma','gamma',style='solid')
+MLdot.node('ML.svm.gamma.vals','0.01 - 0.2\n(log scaled)',style='solid')
+MLdot.edges([('MLtop','MLrf'),('MLrf','MLrfntrees'),('MLrfntrees','MLrfntrees.vals'),
+              #below is actual
+              ('MLtop','MLlda'),('MLlda','ML.lda.solver'),('ML.lda.solver','ML.lda.solver.vals'),
+                                  ('MLlda','ML.lda.shrinkage'),('ML.lda.shrinkage','ML.lda.shrinkage.vals'),
+              #below is theoretical
+              #('MLtop','MLlda'),('MLlda','ML.lda.solver'),('ML.lda.solver','ML.lda.solver.svd'),
+              #    ('ML.lda.solver','ML.lda.solver.nonSVD'),
+              #        ('ML.lda.solver.nonSVD','ML.lda.shrinkage'),('ML.lda.shrinkage','ML.lda.shrinkage.vals'),
+              ('MLtop','MLqda'),('MLqda','ML.qda.regularisation'),('ML.qda.regularisation','ML.qda.regularisation.vals'),
+         #     ('MLtop','MLgnb'),('MLgnb','ML.gnb.smoothing'),('ML.gnb.smoothing','ML.gnb.smoothing.vals'),
+              ])
+MLdot.edge('MLtop','MLsvm',style='dashed',label='Bespoke only')
+MLdot.edges([('MLsvm','ML.svm.C'),('ML.svm.C','ML.svm.C.vals'),
+              ('MLsvm','ML.svm.gamma'),('ML.svm.gamma','ML.svm.gamma.vals')])
+
+MLdot.edge('MLtop','MLknn',style='dashed',label='EMG only')
+MLdot.edges([('MLknn','ML.knn.k'),('ML.knn.k','ML.knn.k.vals')])
+
+
+#sysdot.node('sys.root','System')
+reduceddot.node('sys.emg','EMG model')
+reduceddot.node('sys.eeg','EEG model')
+#sysdot.node('sys.feat','Feature-level fused model')
+reduceddot.subgraph(MLdot)
+
+#sysdot.edges([('sys.root','sys.emg'),('sys.root','sys.eeg')])
+reduceddot.edges([('sys.emg','MLtop'),('sys.eeg','MLtop')])
+#sysdot.edge('sys.root','sys.feat',style='dashed',label='in Feature-level fusion')
+#sysdot.attr(rank='same')
+#sysdot.edge('sys.feat','MLtop',style='dotted',label='in Feature-level fusion')
+#sysdot.subgraph(decdot)
+#sysdot.edge('sys.root','dectop',style='dashed',label='in Decision-level fusion')
+
+
+reduceddot.render(view=True)
+
+
+
+decdot=graphviz.Digraph('decfus_reduced',edge_attr={'arrowhead':'none'},node_attr={'shape':'box','style':'rounded'})
+decdot.node('dectop','Decision Fusion Algorithm')
+decdot.node('dec.mean','Mean')
+decdot.node('dec.EMG','EMG-biased')# Average')
+#decdot.node('dec.EEG','EEG-biased')# Average')
+#decdot.node('dec.tune','Tunable Average')#'Parameter-Weighted Average')
+#decdot.node('dec.tune.weight','EEG weighting',style='solid')
+#decdot.node('dec.tune.weight.vals','0.0 - 100.0',style='solid')
+decdot.node('dec.max','Maximum')
+decdot.node('dec.svm','Linear SVM')
+decdot.node('dec.svm.C','C',style='solid')
+decdot.node('dec.svm.C.vals','0.01 - 100\n(log scaled)',style='solid')
+decdot.node('dec.lda','LDA')
+decdot.node('dec.lda.solver','solver',style='solid')
+decdot.node('dec.lda.solver.vals','SVD\nLSQR\nEigen',style='solid')
+decdot.node('dec.lda.shrinkage','shrinkage',style='solid')
+decdot.node('dec.lda.shrinkage.vals','0.0 - 1.0',style='solid')
+decdot.node('dec.rf','RF')
+decdot.node('dec.rf.ntrees','n_trees',style='solid')
+decdot.node('dec.rf.ntrees.vals','10 - 100\n(steps of 5)',style='solid')
+decdot.edges([('dectop','dec.mean'),
+              ('dectop','dec.EMG'),
+#              ('dectop','dec.EEG'),
+#              ('dectop','dec.tune'),('dec.tune','dec.tune.weight'),('dec.tune.weight','dec.tune.weight.vals'),
+              ('dectop','dec.max'),
+              ('dectop','dec.svm'),('dec.svm','dec.svm.C'),('dec.svm.C','dec.svm.C.vals'),
+              ('dectop','dec.lda'),('dec.lda','dec.lda.solver'),('dec.lda.solver','dec.lda.solver.vals'),
+                                  ('dec.lda','dec.lda.shrinkage'),('dec.lda.shrinkage','dec.lda.shrinkage.vals'),
+              ('dectop','dec.rf'),('dec.rf','dec.rf.ntrees'),('dec.rf.ntrees','dec.rf.ntrees.vals'),
+              ])
+
+decdot.render(view=True)
 
 
 

@@ -267,7 +267,7 @@ gen_dev_accs={2: 0.76625, 3: 0.68875, 4: 0.7879166666666667, 5: 0.77875, 7: 0.81
 
 if __name__ == '__main__':
     
-    run_test=True
+    run_test=False
     plot_results=True
     load_res_path=None
     load_res_path=r"C:\Users\pritcham\Documents\mm-framework\multimodal-framework\lit_data_expts\jeong\results\RQ2\H1_NoAugHalfData_final_resMinimal - Copy.csv"
@@ -275,9 +275,18 @@ if __name__ == '__main__':
     load_res_devset_path=r"C:\Users\pritcham\Documents\mm-framework\multimodal-framework\lit_data_expts\jeong\results\RQ2\D1_AugAllfinal_resMinimal.csv"
     
     load_res_devset_path=r"C:\Users\pritcham\Documents\mm-framework\multimodal-framework\lit_data_expts\jeong\results\RQ2\D1b_RolloffStable_with_noRolloff_5trials.csv"
+    
+    load_res_path=r"C:\Users\pritcham\Documents\mm-framework\multimodal-framework\lit_data_expts\jeong\results\RQ2\H2_HalfDataAug_final_resMinimal - Copy.csv"
+    
+   # load_res_path=r"C:\Users\pritcham\Documents\mm-framework\multimodal-framework\lit_data_expts\jeong\results\RQ2\H4_AugLow_rolloff0.05_augment0.053_resMinimal.csv"
+    
+    load_res_path=r"C:\Users\pritcham\Documents\mm-framework\multimodal-framework\lit_data_expts\jeong\results\RQ2\H4_AugLow_final_resMinimal - Copy.csv"
+    
+    load_res_path=r"C:\Users\pritcham\Documents\mm-framework\multimodal-framework\lit_data_expts\jeong\results\RQ2\H2_AugWinnerThreeQ_final_resMinimal - Copy.csv"
 
+    load_res_path=r"C:\Users\pritcham\Documents\mm-framework\multimodal-framework\lit_data_expts\jeong\results\RQ2\H1_RolloffSaturate_5reps.csv"
 
-    systemUnderTest = 'H2_HalfDataAug'
+    systemUnderTest = 'H3a_H4_0333NonSubjAug'
     
     testset_size = 0.33
     
@@ -295,6 +304,21 @@ if __name__ == '__main__':
         augment_scales=[0]
         
         train_sizes=np.linspace(0.01,1,5)[2:][::-1]
+        augment_scales = np.array([round(scale/(1/150))*(1/150) for scale in augment_scales])
+        
+    elif systemUnderTest == 'H1a_NoAugRolloff':
+
+        #feats_method='subject'
+        #train_method='subject'
+        # aug of 0 is the same as not aug, system should be able to handle this now
+        
+        feats_method='non-subject aug'
+        opt_method='non-subject aug'
+        train_method='non-subject aug'
+        
+        augment_scales=[0]
+        
+        train_sizes=[0.05,0.1,0.2575]
         augment_scales = np.array([round(scale/(1/150))*(1/150) for scale in augment_scales])
         
     elif systemUnderTest == 'H2_HalfDataAug':
@@ -316,18 +340,70 @@ if __name__ == '__main__':
         # 100 per class per ppt is the same amount as left over per class in training set after 0.33 reserved for test
         # ie same amount contributed by each subject
         
-        augment_scales=[0.00666,0.02,0.166]
+        augment_scales=[0.00666,0.02,0.05263,0.166]
         # this is 1, 3, and 25 gestures per subject per class. because for holdouts there are now 20 non-subjects
         # so 12000 int total not 11400, this equates to
         # 80, 240, and 1992 total rather than 76, 228, and 1900
         # but we could get those specific levels with 0.006333, 0.019, and 0.158333
         
+        '''augment_scales=[0.05263]'''
+        #this is 8 per subject per class, which was highest scoring for development set's 202-subject case
+        # though still worse than no-cal in the dev set, it was strongest competitor at this level of subj
+        # (with dev set it was 608, here it will be 640 total)
+        
         # 0.00666 ie 1/150 would be 1 full gesture per person
         # because each gesture was done 50 times on 3 days = 150 per gest per ppt
         # below coerces all scales to be multiples of 0.00666 ie to ensure equal # per ppt per class
         augment_scales = np.array([round(scale/(1/150))*(1/150) for scale in augment_scales])
+        
+    elif systemUnderTest == 'H2_AugWinnerThreeQ':
+        train_sizes=[0.7525]
+        
+        feats_method='non-subject aug'
+        opt_method='non-subject aug'
+        train_method='non-subject aug'
+        
+        augment_scales=[0,0.05263]
+        # 0.333 removed as it is a Lot of aug data, and trends showed it to not be better so why bother
+        
+        augment_scales = np.array([round(scale/(1/150))*(1/150) for scale in augment_scales])
     
-    n_repeats=9
+    elif systemUnderTest == 'H4_AugLow':
+        train_sizes=[0.05,0.1]
+        
+        feats_method='non-subject aug'
+        opt_method='non-subject aug'
+        train_method='non-subject aug'
+        
+        #augment_scales=[0.05263,0.075,0.1,0.166]
+        # 0.333 removed as it is a Lot of aug data, and trends showed it to not be better so why bother
+        augment_scales=[0]
+        augment_scales = np.array([round(scale/(1/150))*(1/150) for scale in augment_scales])
+    
+    elif systemUnderTest == 'H3a_AugForCompare':
+        train_sizes=[0.7525]
+        
+        feats_method='non-subject aug'
+        opt_method='non-subject aug'
+        train_method='non-subject aug'
+        
+        #augment_scales=[0.05263,0.075,0.1,0.166]
+        # 0.333 removed as it is a Lot of aug data, and trends showed it to not be better so why bother
+        #augment_scales=[0.00666,0.02,0.075] #0 and 0.05263 already done in H2 WinnerThreeQ
+        augment_scales=[0.1, 0.166]
+        augment_scales = np.array([round(scale/(1/150))*(1/150) for scale in augment_scales])
+        
+    elif systemUnderTest=='H3a_H4_0333NonSubjAug':
+        train_sizes=[0.05,0.1,0.7525]
+        
+        feats_method='non-subject aug'
+        opt_method='non-subject aug'
+        train_method='non-subject aug'
+        
+        augment_scales=[0.33]
+        augment_scales = np.array([round(scale/(1/150))*(1/150) for scale in augment_scales])
+    
+    n_repeats= 1 #if systemUnderTest == 'H3a_AugForCompare' or systemUnderTest == 'H4_AugLow' else 9
     
     if run_test:
         iters = 100
@@ -369,6 +445,9 @@ if __name__ == '__main__':
                 #for idx,emg_ppt in enumerate(emg_HOs):
                 #    eeg_ppt=eeg_HOs[idx]
                 for ppt in holdout_ppts:
+                #    if augment_scale==0.053333333333 and rolloff==0.05:
+                #        skipRolloff=True
+                #        continue
                     emg_ppt=(ml.pd.read_csv(ppt['emg_path'],delimiter=','))
                     eeg_ppt=(ml.pd.read_csv(ppt['eeg_path'],delimiter=','))
                     emg_ppt,eeg_ppt=balance_set(emg_ppt,eeg_ppt)
@@ -376,6 +455,10 @@ if __name__ == '__main__':
                     print('Rolloff: ',str(rolloff),' Augment: ',str(augment_scale))
                     
                     space=setup_search_space(architecture='decision',include_svm=True)
+                    
+                    if augment_scale > 0.2:
+                        print('no SVM')
+                        space=setup_search_space(architecture='decision',include_svm=False)
                     
                     space.update({'l1_sparsity':0.05})
                     space.update({'l1_maxfeats':40})
@@ -556,6 +639,8 @@ if __name__ == '__main__':
         
         
     if plot_results:
+        plt.rcParams['figure.dpi']=150
+        
         per_subject=False
         if per_subject==True:
             fig,ax=plt.subplots();

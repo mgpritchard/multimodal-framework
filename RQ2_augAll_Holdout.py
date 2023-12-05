@@ -756,17 +756,20 @@ if __name__ == '__main__':
     nInstancePerGest=4
     trainsplitSize=2/3
     scores_minimal['augscale_instances']=scores_minimal['augment_scale']*nSubj*nGest*nRepsPerGest*nInstancePerGest
-    scores_minimal['augscale_wholegests']=scores_minimal['augment_scale']*nSubj*nGest*nRepsPerGest
+    scores_minimal['augscale_wholegests']=np.around(scores_minimal['augment_scale']*nSubj*nGest*nRepsPerGest).astype(int)
     scores_minimal['augscale_pergest']=scores_minimal['augment_scale']*nSubj*nRepsPerGest
     scores_minimal['augscale_pergestpersubj']=scores_minimal['augment_scale']*nRepsPerGest
     
     scores_minimal['trainAmnt_instances']=scores_minimal['rolloff_factor']*(1-testset_size)*nGest*nRepsPerGest*nInstancePerGest
     #scores_minimal['trainAmnt_wholegests']=scores_minimal['rolloff_factor']*(1-testset_size)*nGest*nRepsPerGest
-    scores_minimal['trainAmnt_wholegests']=np.around(scores_minimal['rolloff_factor']*trainsplitSize*nGest*nRepsPerGest)
+    scores_minimal['trainAmnt_wholegests']=np.around(scores_minimal['rolloff_factor']*trainsplitSize*nGest*nRepsPerGest).astype(int)
     scores_minimal['trainAmnt_pergest']=scores_minimal['rolloff_factor']*(1-testset_size)*nRepsPerGest
     
     scores_minimal=scores_minimal.round({'augscale_wholegests':5})
     scores_minimal=scores_minimal.round({'trainAmnt_wholegests':5})
+    
+    generalist_HO_featfus=[0.66333,0.74750,0.82333,0.72458,0.71208] #this was the winner Generalist
+    mean_gen_HO=np.mean(generalist_HO_featfus)
     
     fig,ax=plt.subplots();
     scores_agg=scores_minimal.groupby(['augscale_wholegests','trainAmnt_wholegests'])['fusion_acc'].agg(['mean','std']).reset_index()
@@ -780,14 +783,62 @@ if __name__ == '__main__':
    # ax.set_ylim(0.78,0.9)
     ax.set_ylim(0.25,1)
     
-    plt.title('Means across subjects on reserved 33% (200 gests)')
+    plt.title('Means across holdout subjects on reserved 33% (200 gests)')
     ax.set_xlabel('# Subject gestures present (max 400)')
     ax.set_ylabel('Classification Accuracy')#' on reserved 33% (200) subject')
     
+    plt.axhline(y=mean_gen_HO,label='Mean RQ1\nGeneralist',linestyle='--',color='gray')
     #plt.axhline(y=0.723,label='Mean Generalist',linestyle='--',color='gray')
-    ax.legend(title='# Non-subject gestures\n (max 12000)')
+    ax.legend(title='# Non-subject gestures\n (max 12000)',loc='center left',bbox_to_anchor=(1,0.5))
     plt.show()
     
+    
+    if systemUnderTest[0:2]=='H1':
+    
+        scores_minimal_dev=pd.read_csv(load_res_devset_path,index_col=0)  
+        scores_minimal_dev['augscale_wholegests']=np.around(scores_minimal_dev['augment_scale']*nSubj*nGest*nRepsPerGest).astype(int)
+        scores_minimal_dev['trainAmnt_wholegests']=np.around(scores_minimal_dev['rolloff_factor']*trainsplitSize*nGest*nRepsPerGest).astype(int)
+        
+        noAugDev=scores_minimal_dev[scores_minimal_dev['augscale_wholegests']==0]
+        noAugDev=noAugDev.groupby(['trainAmnt_wholegests','augscale_wholegests'])['fusion_acc'].agg(['mean','std']).reset_index()
+        
+        
+        
+        fig,ax=plt.subplots();
+        '''
+        noAugDev.pivot(index='trainAmnt_wholegests',
+                         columns='augscale_wholegests',
+                         values='mean').plot(kind='line',ax=ax,rot=0,#capsize=2,#width=0.8,
+                                           #  yerr=noAugDev.pivot(index='trainAmnt_wholegests',columns='augscale_wholegests',values='std'),
+                                             marker='.',label='Development set')
+                                             '''
+        noAugDev.plot(x='trainAmnt_wholegests',y='mean',kind='line',ax=ax,rot=0,marker='.',label='Development set')
+        '''
+        scores_agg.pivot(index='trainAmnt_wholegests',
+                         columns='augscale_wholegests',
+                         values='mean').plot(kind='line',ax=ax,rot=0,#capsize=2,#width=0.8,
+                                           #  yerr=scores_agg.pivot(index='trainAmnt_wholegests',columns='augscale_wholegests',values='std'),
+                                             marker='.',label='Holdout set') 
+                         '''
+        scores_agg.plot(x='trainAmnt_wholegests',y='mean',kind='line',ax=ax,rot=0,marker='.',label='Holdout set')
+        ax.set_ylim(np.floor(scores_minimal['fusion_acc'].min()/0.05)*0.05,np.ceil(scores_minimal['fusion_acc'].max()/0.05)*0.05)
+       # ax.set_ylim(0.78,0.9)
+        ax.set_ylim(0.25,1)
+        #ax.set_xlim(0,400)
+        
+        plt.title('Means across subjects on reserved 33% (200 gests)')
+        ax.set_xlabel('# Subject gestures present (max 400)')
+        ax.set_ylabel('Classification Accuracy')#' on reserved 33% (200) subject')
+        
+        plt.axhline(y=0.723,label='Mean RQ1 Dev\nGeneralist',linestyle='--',color='steelblue')
+        plt.axhline(y=mean_gen_HO,label='Mean RQ1 Holdout\nGeneralist',linestyle='--',color='chocolate')
+        ax.legend(title='',loc='center left',bbox_to_anchor=(1,0.5))
+        plt.show()
+
+
+
+
+
     
     if systemUnderTest == 'H1_NoAugHalfData':
         noAug=scores_minimal[scores_minimal['augscale_wholegests']==0]
@@ -818,6 +869,11 @@ if __name__ == '__main__':
         print(f'\nTOST that diff between Full & Half subj\nis {low_threshold}% < diff < {high_threshold}%\n')
         print(weightstats.ttost_paired(noAugScores['400.0Subj'],noAugScores['202.0Subj'],
                                        low_threshold/100,high_threshold/100))
+        
+        
+        #https://cran.rstudio.com/web/packages/TOSTER/vignettes/IntroductionToTOSTER.html
+        #https://search.r-project.org/CRAN/refmans/equivalence/html/tost.html
+        #https://math.stackexchange.com/questions/1499142/statistical-tests-for-checking-that-the-mean-is-less-than-some-value-and-for-com
     
     
     

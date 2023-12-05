@@ -455,7 +455,7 @@ gen_dev_accs={2: 0.76625, 3: 0.68875, 4: 0.7879166666666667, 5: 0.77875, 7: 0.81
 
 if __name__ == '__main__':
     
-    run_test=False
+    run_test=True
     plot_results=True
     load_res_path=None
     load_res_path=r"C:\Users\pritcham\Documents\mm-framework\multimodal-framework\lit_data_expts\jeong\results\RQ2\D1a_AugStable_mergedTemp.csv"
@@ -469,8 +469,14 @@ if __name__ == '__main__':
     load_res_path=r"C:\Users\pritcham\Documents\mm-framework\multimodal-framework\lit_data_expts\jeong\results\RQ2\H3_XferVsAugNewfinal_resMinimal - Copy.csv"
     
     load_res_path=r"C:\Users\pritcham\Documents\mm-framework\multimodal-framework\lit_data_expts\jeong\results\RQ2\H4_XferLowNewfinal_resMinimal - Copy.csv"
+    
+    load_aug_path=r"C:\Users\pritcham\Documents\mm-framework\multimodal-framework\lit_data_expts\jeong\results\RQ2\H3a_AugForCompare_final_resMinimal - Copy withAug033.csv"
+    
+    load_res_path=r"C:\Users\pritcham\Documents\mm-framework\multimodal-framework\lit_data_expts\jeong\results\RQ2\H3_XferVsAugNewfinal_resMinimal - Copy.csv"
+    
+    load_res_path=r"C:\Users\pritcham\Documents\mm-framework\multimodal-framework\lit_data_expts\jeong\results\RQ2\H4_AugLow_final_resMinimal - Copy with Aug033.csv"
 
-    systemUnderTest = 'H4_XferLow'
+    systemUnderTest = 'H4_Xfer0333'
     
     testset_size = 0.33
         
@@ -516,6 +522,16 @@ if __name__ == '__main__':
             #(actually ends up as 0.05333 = 8 per class per ppt = 152 in the aug)
         # 100 per class per ppt is the same amount as left over in the training set after 0.33 reserved for test
         # 50 and 100 removed for now for practicality as very big! dwarfs the subject
+        augment_scales = np.array([round(scale/(1/150))*(1/150) for scale in augment_scales])
+        
+    elif systemUnderTest =='H4_Xfer0333':
+        train_sizes=[0.05,0.1]#,0.7525]
+        
+        feats_method='non-subject aug'
+        opt_method='non-subject aug'
+        train_method='non-subject aug'
+        augment_scales=[0.33]
+        
         augment_scales = np.array([round(scale/(1/150))*(1/150) for scale in augment_scales])
     
     n_repeats=1

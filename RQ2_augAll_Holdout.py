@@ -285,6 +285,8 @@ if __name__ == '__main__':
     load_res_path=r"C:\Users\pritcham\Documents\mm-framework\multimodal-framework\lit_data_expts\jeong\results\RQ2\H2_AugWinnerThreeQ_final_resMinimal - Copy.csv"
 
     load_res_path=r"C:\Users\pritcham\Documents\mm-framework\multimodal-framework\lit_data_expts\jeong\results\RQ2\H1_RolloffSaturate_5reps.csv"
+    
+    load_res_path=r"C:\Users\pritcham\Documents\mm-framework\multimodal-framework\lit_data_expts\jeong\results\RQ2\H4_AugLow_final_resMinimal - Copy with Aug033.csv"
 
     systemUnderTest = 'H3a_H4_0333NonSubjAug'
     

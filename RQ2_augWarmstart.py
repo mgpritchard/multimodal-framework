@@ -131,6 +131,8 @@ def warm_model(model,calib_data):
     train=calib_data.values[:,:-1]
     targets=calib_data.values[:,-1]
     model.set_params(warm_start=True)
+    if model.__class__.__name__ == 'RandomForestClassifier':
+        model.set_params(n_estimators=model.n_estimators+10)
     model.fit(train.astype(np.float64),targets)
     return model
 
@@ -154,6 +156,8 @@ def warm_cal_models(emg_model,eeg_model,emg_calib,eeg_calib,args):
 def warm_cal_fuser(fuser, mode1, mode2, fustargets, args):
     train=np.column_stack([mode1,mode2])
     fuser.set_params(warm_start=True)
+    if fuser.__class__.__name__ == 'RandomForestClassifier':
+        fuser.set_params(n_estimators=fuser.n_estimators+10)
     fuser.fit(train.astype(np.float64),fustargets)
     return fuser
 
@@ -463,8 +467,11 @@ if __name__ == '__main__':
     load_res_path=r"C:\Users\pritcham\Documents\mm-framework\multimodal-framework\lit_data_expts\jeong\results\RQ2\D1d_AugWarmstartfinal_resMinimal - Copy.csv"
     
     fullybespoke_load_path=r"C:\Users\pritcham\Documents\mm-framework\multimodal-framework\lit_data_expts\jeong\results\RQ2\ProvisTests\A1_FullBespoke_rolloff_all_resMinimal.csv"
+    
+    load_res_path=r"C:\Users\pritcham\Documents\mm-framework\multimodal-framework\lit_data_expts\jeong\results\RQ2\D1d_a_Warmstart_FixRFNewfinal_resMinimal - Copy.csv"
 
     systemUnderTest = 'D1d_AugWarmstart'
+    systemUnderTest = 'D1d_a_Warmstart_FixRF'
     rolling_off_subj=True
     
     testset_size = 0.33
@@ -491,6 +498,18 @@ if __name__ == '__main__':
         # 100 per class per ppt is the same amount as left over in the training set after 0.33 reserved for test
         # 50 and 100 removed for now for practicality as very big! dwarfs the subject
         augment_scales = np.array([round(scale/(1/150))*(1/150) for scale in augment_scales])
+        
+    elif systemUnderTest == 'D1d_a_Warmstart_FixRF':
+        train_sizes=np.concatenate(([0.05,0.1],np.linspace(0.01,1,5)[1:]))
+        train_sizes=[0.05,0.1,0.2575,0.505,0.7525,1.0]
+        
+        feats_method='non-subject aug'
+        opt_method='non-subject aug'
+        train_method='non-subject aug'
+        
+        #augment_scales=[0.00666,0.02,0.05263, 0.075, 0.1, 0.166,0.33]
+        augment_scales=[0.33]
+        augment_scales = np.array([round(scale/(1/150))*(1/150) for scale in augment_scales])
     
     if run_test:
         iters = 100
@@ -510,10 +529,12 @@ if __name__ == '__main__':
         ppt_results=[]
         skipRolloff=False
         
-        for rolloff in train_sizes:
-            for augment_scale in augment_scales:
+        
+        for augment_scale in augment_scales:
+            for rolloff in train_sizes:
                 print('Rolloff: ',str(rolloff),' Augment: ',str(augment_scale))
                 for idx,emg_mask in enumerate(emg_masks):
+                    print('subject ',str(idx+1),' of 20')
                  #   if np.isclose(augment_scale,0.0533333) or np.isclose(augment_scale,0.1):
                  #       if rolloff < 0.7:
                  #           skipRolloff=True
@@ -521,6 +542,11 @@ if __name__ == '__main__':
                  #           break
                  # commenting out as only needed when we had a few partially done   
 
+                   # if augment_scale < 0.2 and rolloff < 0.1:
+                    if rolloff < 0.1:
+                        skipRolloff=True
+                        break
+                    
                     space=setup_warmstart_space(architecture='decision',include_svm=True)
                     
                     space.update({'l1_sparsity':0.05})

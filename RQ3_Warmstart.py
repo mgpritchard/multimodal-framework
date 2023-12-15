@@ -131,6 +131,8 @@ def warm_model(model,calib_data):
     train=calib_data.values[:,:-1]
     targets=calib_data.values[:,-1]
     model.set_params(warm_start=True)
+    if model.__class__.__name__ == 'RandomForestClassifier':
+        model.set_params(n_estimators=model.n_estimators+10)
     model.fit(train.astype(np.float64),targets)
     return model
 
@@ -154,6 +156,8 @@ def warm_cal_models(emg_model,eeg_model,emg_calib,eeg_calib,args):
 def warm_cal_fuser(fuser, mode1, mode2, fustargets, args):
     train=np.column_stack([mode1,mode2])
     fuser.set_params(warm_start=True)
+    if fuser.__class__.__name__ == 'RandomForestClassifier':
+        fuser.set_params(n_estimators=fuser.n_estimators+10)
     fuser.fit(train.astype(np.float64),fustargets)
     return fuser
 
@@ -509,7 +513,13 @@ if __name__ == '__main__':
     
     load_aug_res_path=r"C:\Users\pritcham\Documents\mm-framework\multimodal-framework\lit_data_expts\jeong\results\RQ3\B1_1_AugAdjustedSplit_final_resMinimal - Copy.csv"
     
-    systemUnderTest = 'D1_1_Warmstart_NoAppend'
+    
+    load_RF_bad_path=r"C:\Users\pritcham\Documents\mm-framework\multimodal-framework\lit_data_expts\jeong\results\RQ3\D1_1_Warmstart_NoAppend_final_resMinimal - Copy.csv"
+    
+    load_RF_fixed_path=r"C:\Users\pritcham\Documents\mm-framework\multimodal-framework\lit_data_expts\jeong\results\RQ3\D1a_Warmstart_FixRF_final_resMinimal - Copy.csv"
+    load_res_path=load_RF_fixed_path
+    
+    systemUnderTest = 'D1a_Warmstart_FixRF'
     
     testset_size = 0.33
         
@@ -518,6 +528,31 @@ if __name__ == '__main__':
         calib_levels = [8/134,20/134,40/134,60/134,72/134,100/134,120/134,132/134]
         # can't do 4/134 as not left with enough calib data to warmstart and use for opt target
         calib_levels = [80/134]
+                
+        feats_method='calib'
+        opt_method='calib'
+        train_method='calib'
+        
+        train_session='both'
+        
+        calib_levels = np.array([round(scale/(4/134))*(4/134) for scale in calib_levels])
+        
+    elif systemUnderTest == 'D1a_TEST_Warmstart_FixRF':
+        calib_levels = [8/134,20/134,60/134,120/134]
+        # can't do 4/134 as not left with enough calib data to warmstart and use for opt target
+        #skip 72, 80, 40, 100, 132
+                
+        feats_method='calib'
+        opt_method='calib'
+        train_method='calib'
+        
+        train_session='both'
+        
+        calib_levels = np.array([round(scale/(4/134))*(4/134) for scale in calib_levels])
+        
+    elif systemUnderTest == 'D1a_Warmstart_FixRF':
+        calib_levels = [8/134,20/134,40/134,60/134,72/134,80/134,100/134,120/134,132/134]
+        # can't do 4/134 as not left with enough calib data to warmstart and use for opt target
                 
         feats_method='calib'
         opt_method='calib'
@@ -753,7 +788,52 @@ if __name__ == '__main__':
         scores_sessiononly_minimal=pd.read_csv(load_sessiononly_res_path,index_col=0)
         
        # scores_aug_unadjusted=pd.read_csv(load_aug_unadjusted,index_col=0)
-        
+        if 0:
+            scores_RF_bad=pd.read_csv(load_RF_bad_path,index_col=0)
+            #scores_RF_bad=scores_RF_bad[scores_RF_bad['subject id'].isin([2,3,4,5,7])]
+            scores_RF_fixed=pd.read_csv(load_RF_fixed_path,index_col=0)
+            #scores_RF_fixed=scores_RF_fixed[scores_RF_fixed['subject id'].isin([2,3,4,5,7])]
+            
+            nGest=4
+            nRepsPerGest=50
+            nInstancePerGest=4
+            trainsplitSize=2/3
+            scores_RF_bad['calib_level_wholegests']=scores_RF_bad['calib_level']*(1-testset_size)*nGest*nRepsPerGest
+            scores_RF_fixed['calib_level_wholegests']=scores_RF_fixed['calib_level']*(1-testset_size)*nGest*nRepsPerGest
+            
+            fig,ax=plt.subplots();
+            scores_RF_bad_agg=scores_RF_bad.groupby(['calib_level_wholegests'])['fusion_acc'].agg(['mean','std']).reset_index()
+            scores_RF_bad_agg=scores_RF_bad_agg.round({'calib_level_wholegests':5})
+            
+            scores_RF_fixed_agg=scores_RF_fixed.groupby(['calib_level_wholegests'])['fusion_acc'].agg(['mean','std']).reset_index()
+            scores_RF_fixed_agg=scores_RF_fixed_agg.round({'calib_level_wholegests':5})
+            
+            scores_RF_bad_agg.plot(y='mean',x='calib_level_wholegests',kind='line',marker='.',ax=ax,rot=0,label='Without proper RF xfer',yerr='std',capsize=5)
+            scores_RF_fixed_agg.plot(y='mean',x='calib_level_wholegests',kind='line',marker='.',ax=ax,rot=0,label='With 10 extra RF trees',yerr='std',capsize=5)
+            
+            
+     #       scores_aug_unadjusted['calib_level_wholegests']=scores_aug_unadjusted['calib_level']*(1-testset_size)*nGest*nRepsPerGest
+     #       aug_unadjust_agg=scores_aug_adjusted.groupby(['calib_level_wholegests'])['fusion_acc'].agg(['mean','std']).reset_index()
+     #       aug_unadjust_agg=aug_adjust_agg.round({'calib_level_wholegests':5})
+     #       aug_unadjust_agg.plot(y='mean',x='calib_level_wholegests',kind='line',marker='.',ax=ax,rot=0,label='Session 3 augmented\nadjusted split')
+            
+    
+            
+           # ax.set_ylim(np.floor(scores_minimal['fusion_acc'].min()/0.05)*0.05,np.ceil(scores_minimal['fusion_acc'].max()/0.05)*0.05)
+            plt.title('Mean accuracies over subjects on reserved 33% of session 3 (66 gests)')
+            ax.set_xlabel('# Session 3 gestures calibrating (max 134)')
+            ax.set_ylabel('Classification Accuracy')#' on reserved 33% (200) subject')
+            
+            plt.axhline(y=0.86907,label='RQ2 Full Besp\nNot session-split!',linestyle='--',color='pink')
+            plt.axhline(y=0.723,label='RQ1 Generalist\nNot session-split!',linestyle='--',color='gray')
+            #ax.legend(title='Subject',loc='center left',bbox_to_anchor=(1,0.5),ncol=2)
+            ax.set_ylim(0.5,0.95)
+            plt.axhline(y=0.7475,label='Train 1&2\n(no cal) avg',linestyle='--',color='black')
+            ax.legend(loc='center left',bbox_to_anchor=(1,0.5))
+            plt.show()
+            
+            raise
+            
         
         scores_minimal=scores_minimal.round({'augment_scale':5})
         

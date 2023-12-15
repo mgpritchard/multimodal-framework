@@ -131,6 +131,8 @@ def warm_model(model,calib_data):
     train=calib_data.values[:,:-1]
     targets=calib_data.values[:,-1]
     model.set_params(warm_start=True)
+    if model.__class__.__name__ == 'RandomForestClassifier':
+        model.set_params(n_estimators=model.n_estimators+10)
     model.fit(train.astype(np.float64),targets)
     return model
 
@@ -154,6 +156,8 @@ def warm_cal_models(emg_model,eeg_model,emg_calib,eeg_calib,args):
 def warm_cal_fuser(fuser, mode1, mode2, fustargets, args):
     train=np.column_stack([mode1,mode2])
     fuser.set_params(warm_start=True)
+    if fuser.__class__.__name__ == 'RandomForestClassifier':
+        fuser.set_params(n_estimators=fuser.n_estimators+10)
     fuser.fit(train.astype(np.float64),fustargets)
     return fuser
 
@@ -455,7 +459,7 @@ gen_dev_accs={2: 0.76625, 3: 0.68875, 4: 0.7879166666666667, 5: 0.77875, 7: 0.81
 
 if __name__ == '__main__':
     
-    run_test=True
+    run_test=False
     plot_results=True
     load_res_path=None
     load_res_path=r"C:\Users\pritcham\Documents\mm-framework\multimodal-framework\lit_data_expts\jeong\results\RQ2\D1a_AugStable_mergedTemp.csv"
@@ -474,15 +478,26 @@ if __name__ == '__main__':
     
     load_res_path=r"C:\Users\pritcham\Documents\mm-framework\multimodal-framework\lit_data_expts\jeong\results\RQ2\H3_XferVsAugNewfinal_resMinimal - Copy.csv"
     
-    load_res_path=r"C:\Users\pritcham\Documents\mm-framework\multimodal-framework\lit_data_expts\jeong\results\RQ2\H4_AugLow_final_resMinimal - Copy with Aug033.csv"
+    load_res_path=r"C:\Users\pritcham\Documents\mm-framework\multimodal-framework\lit_data_expts\jeong\results\RQ2\H4_XferLowNewfinal_resMinimal - Copy.csv"
+    
+    #load_res_path=r"C:\Users\pritcham\Documents\mm-framework\multimodal-framework\lit_data_expts\jeong\results\RQ2\H2_XferWinnerVsNoAug.csv"
+    
+    #load_res_path=r"C:\Users\pritcham\Documents\mm-framework\multimodal-framework\lit_data_expts\jeong\results\RQ2\H2_AugWinnerThreeQ_final_resMinimal - Copy.csv"
+    
+   # load_res_path=r"C:\Users\pritcham\Documents\mm-framework\multimodal-framework\lit_data_expts\jeong\results\RQ2\D1d_a_Warmstart_FixRFNewfinal_resMinimal - Copy.csv"
+    
+    load_res_path=r"C:\Users\pritcham\Documents\mm-framework\multimodal-framework\lit_data_expts\jeong\results\RQ2\H2_XferFixRFWinnerVsNoAug.csv"
+    
+    load_res_path=r"C:\Users\pritcham\Documents\mm-framework\multimodal-framework\lit_data_expts\jeong\results\RQ2\H4_XferLow_FixRFNewfinal_resMinimal - Copy.csv"
 
-    systemUnderTest = 'H4_Xfer0333'
+    #systemUnderTest = 'H3_XferVsAug_FixRF'
+    systemUnderTest = 'H4_XferLow_FixRF'
     
     testset_size = 0.33
         
-    if systemUnderTest == 'H3_XferVsAug':       
-        train_sizes=np.concatenate(([0.05,0.1],np.linspace(0.01,1,5)[1:]))
-        train_sizes=[0.05,0.1,0.2575,0.505,0.7525,1.0]
+    if systemUnderTest == 'H3_XferVsAug' or systemUnderTest == 'H3_XferVsAug_FixRF':       
+        #train_sizes=np.concatenate(([0.05,0.1],np.linspace(0.01,1,5)[1:]))
+        #train_sizes=[0.05,0.1,0.2575,0.505,0.7525,1.0]
         #train_sizes=[0.7525,1.0]
         #train_sizes=[0.505,0.7525,1.0]
         
@@ -496,7 +511,7 @@ if __name__ == '__main__':
         # ie 1/150, because each gesture was done 50 times on 3 days = 150 per gest per ppt
         # below coerces them to be multiples of 0.00666 ie to ensure equal # per ppt per class
 
-        augment_scales=[0.00666,0.02,0.05263, 0.075, 0.1, 0.166]#0.33
+        augment_scales=[0.00666,0.02,0.05263, 0.075, 0.1, 0.166, 0.33]
         # the scales above are 0, 1, 3, not 6, 7.89, not 12 (0.08), 25, 50, 100 per ppt per class
         # 0.05263 is 1/19, 7.89 per gest per ppt, i.e. result in aug_size = train_size
             #(actually ends up as 0.05333 = 8 per class per ppt = 152 in the aug)
@@ -504,7 +519,7 @@ if __name__ == '__main__':
         # 50 and 100 removed for now for practicality as very big! dwarfs the subject
         augment_scales = np.array([round(scale/(1/150))*(1/150) for scale in augment_scales])
         
-    elif systemUnderTest == 'H4_XferLow':               
+    elif systemUnderTest == 'H4_XferLow' or systemUnderTest == 'H4_XferLow_FixRF':               
         train_sizes=[0.05,0.1]
         
         feats_method='non-subject aug'
@@ -515,8 +530,8 @@ if __name__ == '__main__':
         # ie 1/150, because each gesture was done 50 times on 3 days = 150 per gest per ppt
         # below coerces them to be multiples of 0.00666 ie to ensure equal # per ppt per class
 
-        augment_scales=[0.00666,0.02,0.05263, 0.075]
-        augment_scales=[0.1, 0.166]#, 0.33]
+        #augment_scales=[0.00666,0.02,0.05263, 0.075]
+        augment_scales=[0.00666,0.02,0.05263, 0.075, 0.1, 0.166, 0.33]
         # the scales above are 1, 3, 7.89, 11, 15, 25, not 50 per ppt per class
         # 0.05263 is 1/19, 7.89 per gest per ppt, i.e. result in aug_size = train_size
             #(actually ends up as 0.05333 = 8 per class per ppt = 152 in the aug)
@@ -525,7 +540,19 @@ if __name__ == '__main__':
         augment_scales = np.array([round(scale/(1/150))*(1/150) for scale in augment_scales])
         
     elif systemUnderTest =='H4_Xfer0333':
+        '''only needed when this high xfer was missed before'''
         train_sizes=[0.05,0.1]#,0.7525]
+        
+        feats_method='non-subject aug'
+        opt_method='non-subject aug'
+        train_method='non-subject aug'
+        augment_scales=[0.33]
+        
+        augment_scales = np.array([round(scale/(1/150))*(1/150) for scale in augment_scales])
+        
+    elif systemUnderTest =='H3_XferCompare_Xfer0333':
+        '''only needed when this high xfer was missed before'''
+        train_sizes=[0.7525]
         
         feats_method='non-subject aug'
         opt_method='non-subject aug'

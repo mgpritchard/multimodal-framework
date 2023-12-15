@@ -288,7 +288,7 @@ if __name__ == '__main__':
     
     load_res_path=r"C:\Users\pritcham\Documents\mm-framework\multimodal-framework\lit_data_expts\jeong\results\RQ2\H4_AugLow_final_resMinimal - Copy with Aug033.csv"
 
-    systemUnderTest = 'H3a_H4_0333NonSubjAug'
+    systemUnderTest = 'H1a_NoAugRolloff'
     
     testset_size = 0.33
     
@@ -785,13 +785,13 @@ if __name__ == '__main__':
    # ax.set_ylim(0.78,0.9)
     ax.set_ylim(0.25,1)
     
-    plt.title('Means across holdout subjects on reserved 33% (200 gests)')
-    ax.set_xlabel('# Subject gestures present (max 400)')
+    plt.title('Means across holdout subjects on reserved 33% (200 gestures)',loc='left')
+    ax.set_xlabel('# Same-Subject gestures (max 400)')
     ax.set_ylabel('Classification Accuracy')#' on reserved 33% (200) subject')
     
-    plt.axhline(y=mean_gen_HO,label='Mean RQ1\nGeneralist',linestyle='--',color='gray')
+    plt.axhline(y=mean_gen_HO,label='RQ1 Generalist',linestyle='--',color='gray')
     #plt.axhline(y=0.723,label='Mean Generalist',linestyle='--',color='gray')
-    ax.legend(title='# Non-subject gestures\n (max 12000)',loc='center left',bbox_to_anchor=(1,0.5))
+    ax.legend(title='# Other-Subject gestures\naugmenting (max 12000)',loc='center left',bbox_to_anchor=(1,0.5))
     plt.show()
     
     
@@ -814,7 +814,7 @@ if __name__ == '__main__':
                                            #  yerr=noAugDev.pivot(index='trainAmnt_wholegests',columns='augscale_wholegests',values='std'),
                                              marker='.',label='Development set')
                                              '''
-        noAugDev.plot(x='trainAmnt_wholegests',y='mean',kind='line',ax=ax,rot=0,marker='.',label='Development set')
+        noAugDev.plot(x='trainAmnt_wholegests',y='mean',kind='line',ax=ax,rot=0,marker='.',label='Subject-specific\n(Development set)')
         '''
         scores_agg.pivot(index='trainAmnt_wholegests',
                          columns='augscale_wholegests',
@@ -822,19 +822,19 @@ if __name__ == '__main__':
                                            #  yerr=scores_agg.pivot(index='trainAmnt_wholegests',columns='augscale_wholegests',values='std'),
                                              marker='.',label='Holdout set') 
                          '''
-        scores_agg.plot(x='trainAmnt_wholegests',y='mean',kind='line',ax=ax,rot=0,marker='.',label='Holdout set')
+        scores_agg.plot(x='trainAmnt_wholegests',y='mean',kind='line',ax=ax,rot=0,marker='.',label='Subject-specific\n(Holdout set)')
         ax.set_ylim(np.floor(scores_minimal['fusion_acc'].min()/0.05)*0.05,np.ceil(scores_minimal['fusion_acc'].max()/0.05)*0.05)
        # ax.set_ylim(0.78,0.9)
         ax.set_ylim(0.25,1)
         #ax.set_xlim(0,400)
         
-        plt.title('Means across subjects on reserved 33% (200 gests)')
-        ax.set_xlabel('# Subject gestures present (max 400)')
+        plt.title('Means across subjects on reserved 33% (200 gestures)',loc='left')
+        ax.set_xlabel('# Subject gestures utilised (max 400)')
         ax.set_ylabel('Classification Accuracy')#' on reserved 33% (200) subject')
         
-        plt.axhline(y=0.723,label='Mean RQ1 Dev\nGeneralist',linestyle='--',color='steelblue')
-        plt.axhline(y=mean_gen_HO,label='Mean RQ1 Holdout\nGeneralist',linestyle='--',color='chocolate')
-        ax.legend(title='',loc='center left',bbox_to_anchor=(1,0.5))
+        plt.axhline(y=0.723,label='RQ1 Generalist\n(Development set)',linestyle='--',color='steelblue')
+        plt.axhline(y=mean_gen_HO,label='RQ1 Generalist\n(Holdout set)',linestyle='--',color='chocolate')
+        ax.legend(title='System',loc='center left',bbox_to_anchor=(1,0.5))
         plt.show()
 
 

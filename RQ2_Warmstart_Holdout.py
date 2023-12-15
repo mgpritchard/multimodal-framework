@@ -996,6 +996,75 @@ if __name__ == '__main__':
     
     generalist_HO_featfus=[0.66333,0.74750,0.82333,0.72458,0.71208] #this was the winner Generalist
     mean_gen_HO=np.mean(generalist_HO_featfus)
+    std_gen_HO=np.std(generalist_HO_featfus)
+    
+    
+    if 0:
+        ''' Comparing winner Xfer to no Aug at Subj Saturation'''
+        fig,ax=plt.subplots();
+        scores_agg=scores_minimal.groupby(['augscale_wholegests','trainAmnt_wholegests'])['fusion_acc'].agg(['mean','std']).reset_index()
+        scores_agg=scores_agg.round({'augscale_wholegests':0})
+        scores_agg=scores_agg.round({'trainAmnt_wholegests':0})
+        #scores_agg['augscale_wholegests']=scores_agg['augscale_wholegests'].astype(int)
+        means=scores_agg.pivot(index='trainAmnt_wholegests',
+                         columns='augscale_wholegests',
+                         values='mean')
+        stds=scores_agg.pivot(index='trainAmnt_wholegests',
+                         columns='augscale_wholegests',
+                         values='std')
+        means.plot(kind='bar',ax=ax,rot=0,capsize=2,width=0.8,
+                                             yerr=stds)
+      #  means.iloc[:,0].plot(kind='bar',ax=ax,rot=0,capsize=2,width=0.8,
+      #                                       yerr=stds.iloc[:,0],color='tab:blue',label='No Non-Subject\ndata')
+      #  means.iloc[:,1].plot(kind='bar',ax=ax,rot=0,capsize=2,width=0.8,
+      #                                       yerr=stds.iloc[:,1],color='tab:pink',label='Model transfer from\n640 Non-Subject\ngestures')
+        #ax.set_ylim(np.floor(scores_minimal['fusion_acc'].min()/0.05)*0.05,np.ceil(scores_minimal['fusion_acc'].max()/0.05)*0.05)
+        ax.set_ylim(0.25,1)
+        plt.title('Means across holdout subjects on reserved 33% (200 gests)')
+        ax.set_xlabel('# Subject gestures (max 400)')
+        ax.set_ylabel('Classification Accuracy')#' on reserved 33% (200) subject')
+        
+        #plt.axhline(y=0.723,label='Mean Generalist',linestyle='--',color='gray')
+        #plt.axhline(y=0.86907,label='Mean Fully Bespoke',linestyle='--',color='pink')
+        plt.axhline(y=mean_gen_HO,label='Mean RQ1\nGeneralist',linestyle='--',color='gray')
+        h, l = ax.get_legend_handles_labels()
+        ax.legend(h,[l[0],'No Non-Subject\ndata','Model transfer from\n2000 Non-Subject\ngestures'],
+                  title='# Non-subject gestures\n (max 12000)',loc='center left',bbox_to_anchor=(1,0.5))
+        plt.show()
+        
+    if 0:
+        ''' Comparing winner Aug to no Aug at Subj Saturation'''
+        fig,ax=plt.subplots();
+        scores_agg=scores_minimal.groupby(['augscale_wholegests','trainAmnt_wholegests'])['fusion_acc'].agg(['mean','std']).reset_index()
+        scores_agg=scores_agg.round({'augscale_wholegests':0})
+        scores_agg=scores_agg.round({'trainAmnt_wholegests':0})
+        #scores_agg['augscale_wholegests']=scores_agg['augscale_wholegests'].astype(int)
+        means=scores_agg.pivot(index='trainAmnt_wholegests',
+                         columns='augscale_wholegests',
+                         values='mean')
+        stds=scores_agg.pivot(index='trainAmnt_wholegests',
+                         columns='augscale_wholegests',
+                         values='std')
+        means.plot(kind='bar',ax=ax,rot=0,capsize=2,width=0.8,
+                                             yerr=stds)
+      #  means.iloc[:,0].plot(kind='bar',ax=ax,rot=0,capsize=2,width=0.8,
+      #                                       yerr=stds.iloc[:,0],color='tab:blue',label='No Non-Subject\ndata')
+      #  means.iloc[:,1].plot(kind='bar',ax=ax,rot=0,capsize=2,width=0.8,
+      #                                       yerr=stds.iloc[:,1],color='tab:pink',label='Model transfer from\n640 Non-Subject\ngestures')
+        #ax.set_ylim(np.floor(scores_minimal['fusion_acc'].min()/0.05)*0.05,np.ceil(scores_minimal['fusion_acc'].max()/0.05)*0.05)
+        ax.set_ylim(0.25,1)
+        plt.title('Means across holdout subjects on reserved 33% (200 gests)')
+        ax.set_xlabel('# Subject gestures (max 400)')
+        ax.set_ylabel('Classification Accuracy')#' on reserved 33% (200) subject')
+        
+        #plt.axhline(y=0.723,label='Mean Generalist',linestyle='--',color='gray')
+        #plt.axhline(y=0.86907,label='Mean Fully Bespoke',linestyle='--',color='pink')
+        plt.axhline(y=mean_gen_HO,label='Mean RQ1\nGeneralist',linestyle='--',color='gray')
+        h, l = ax.get_legend_handles_labels()
+        ax.legend(h,[l[0],'No Non-Subject\ndata','Augmentation by\n640 Non-Subject\ngestures'],
+                  title='# Non-subject gestures\n (max 12000)',loc='center left',bbox_to_anchor=(1,0.5))
+        plt.show()
+    
     
     
     fig,ax=plt.subplots();
@@ -1017,16 +1086,20 @@ if __name__ == '__main__':
                                                                columns='augscale_wholegests',values='std'))
     #ax.set_ylim(np.floor(scores_minimal['fusion_acc'].min()/0.05)*0.05,np.ceil(scores_minimal['fusion_acc'].max()/0.05)*0.05)
     ax.set_ylim(0.25,1)
-    plt.title('Means across holdout subjects on reserved 33% (200 gests)')
-    ax.set_xlabel('# Subject gestures for calib (max 400)')
+    plt.title('Means across holdout subjects on reserved 33% (200 gestures)',loc='left')
+    ax.set_xlabel('# Same-Subject gestures used to calibrate (max 400)')
     ax.set_ylabel('Classification Accuracy')#' on reserved 33% (200) subject')
     
     #plt.axhline(y=0.723,label='Mean Generalist',linestyle='--',color='gray')
     #plt.axhline(y=0.86907,label='Mean Fully Bespoke',linestyle='--',color='pink')
-    plt.axhline(y=mean_gen_HO,label='Mean RQ1\nGeneralist',linestyle='--',color='gray')
+    plt.axhline(y=mean_gen_HO,label='RQ1 Generalist',linestyle='--',color='gray')
+    #plt.axhline(y=0.723-0.073289,linestyle=':',color='gray') #DEV Gen error
+    #plt.axhline(y=0.723+0.073289,linestyle=':',color='gray') #DEV Gen error
+    plt.axhline(y=mean_gen_HO+std_gen_HO,linestyle=':',color='gray')
+    plt.axhline(y=mean_gen_HO-std_gen_HO,linestyle=':',color='gray')
     h, l = ax.get_legend_handles_labels()
     ax.legend(h[0:1]+h[2:],l[0:1]+l[2:],
-              title='# Non-subject gests for\n train (max 12000)',loc='center left',bbox_to_anchor=(1,0.5))
+              title='# Other-Subject gestures in\ninitial training (max 12000)',loc='center left',bbox_to_anchor=(1,0.5))
     plt.show()
     
     
@@ -1075,14 +1148,17 @@ if __name__ == '__main__':
                      values='mean').plot(kind='line',ax=ax,rot=0,marker='x',linestyle='-.',color='tab:purple'
                                          #yerr=scores_agg.pivot(index='augscale_wholegests',columns='trainAmnt_wholegests',values='std'),
                                          )
-    plt.title('Means across holdout subjects on reserved 33% (200 gests)')
-    ax.set_xlabel('# Non-subject gestures (max 12000)')
+    plt.title('Means across Holdout subjects on reserved 33% (200 gestures)\n    where system has access to 301 same-subject gestures',loc='left')
+    ax.set_xlabel('# Other-Subject gestures (max 12000)')
     ax.set_ylabel('Classification Accuracy')
     
     ax.set_ylim(0.455,0.88)
+    ax.set_ylim(0.43,0.93)
     
-    plt.axhline(y=mean_gen_HO,label='Mean RQ1\nGeneralist',linestyle='--',color='gray')
-    ax.legend(title='# Subject gestures\n(max 400)',loc='center left',bbox_to_anchor=(1,0.5))
+    plt.axhline(y=mean_gen_HO,label='RQ1 Generalist',linestyle='--',color='gray')
+    h,l=ax.get_legend_handles_labels()
+    
+    ax.legend(h,['Augmentation','Transfer Learning','RQ1 Generalist'],title='System',loc='center left',bbox_to_anchor=(1,0.5))
     plt.show()
     
     

@@ -11,10 +11,10 @@ import matplotlib.pyplot as plt
 from matplotlib.ticker import AutoMinorLocator
 
 fig,ax=plt.subplots(figsize=(4,0.75));
-ax.scatter(np.around(np.array([0,0.00666,0.02,0.05263, 0.075, 0.1, 0.166])*150,0),
-           np.array([0,0,0,0, 0, 0, 0]),marker='.');
-ax.set_title('Levels of non-subject data included');
-ax.set_xlabel('Gestures of each class from each non-subject');
+ax.scatter(np.around(np.array([0,0.00666,0.02,0.05263, 0.075, 0.1, 0.166, 0.33])*150,0),
+           np.array([0,0,0,0, 0, 0, 0, 0]),marker='.');
+ax.set_title('Levels of Other-Subject data included');
+ax.set_xlabel('Gestures of each class from each other subject');
 ax.set_yticks([]);
 ax.tick_params(axis='x',which='minor',bottom=False,grid_linestyle='-',grid_alpha=0.25);
 ax.xaxis.set_minor_locator(AutoMinorLocator(5));
@@ -24,7 +24,8 @@ ax.set_ylim(-0.2,0.2);
 ax.spines['top'].set_visible(False)
 ax.spines['right'].set_visible(False)
 ax.spines['left'].set_visible(False)
-ax.set_xlim(-0.5,25.5)
+ax.set_xlim(-0.5,25.5) #when only going up to 0.166 ie 25
+ax.set_xlim(-1,51)
 plt.show()
 
 

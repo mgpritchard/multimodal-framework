@@ -49,7 +49,7 @@ def fuse_fullbespoke(args):
     random_split=random.randint(0,100)
     
     if args['calib_level'] < 8/134:
-        raise ValueError('Insufficient data top optimise')
+        raise ValueError('Insufficient data to optimise')
     elif args['calib_level']==8/134:
         testset_size=0.5
     else:

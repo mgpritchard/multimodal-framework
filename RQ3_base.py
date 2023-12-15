@@ -284,7 +284,7 @@ gen_dev_accs={2: 0.76625, 3: 0.68875, 4: 0.7879166666666667, 5: 0.77875, 7: 0.81
 
 if __name__ == '__main__':
     
-    run_test=False
+    run_test=True
     plot_results=True
     load_res_path=None
     
@@ -299,6 +299,8 @@ if __name__ == '__main__':
     elif systemUnderTest=='A1b_session2':
         train_session='second'
     elif systemUnderTest=='A2_both1and2':
+        train_session='both'
+    elif systemUnderTest=='A2a_bothNoExtraData':
         train_session='both'
     
     feats_method='no calib'
@@ -326,7 +328,7 @@ if __name__ == '__main__':
     
     testset_size = 0.33
     
-    
+    n_repeats = 5 if systemUnderTest=='A2a_bothNoExtraData' else 1
     
     if run_test:
         iters = 100
@@ -347,6 +349,7 @@ if __name__ == '__main__':
         skipRolloff=False
         
         for calib_level in calib_levels:
+            #leaving space in case we want another loop eg rolloff or add nonsubj
                 for idx,emg_mask in enumerate(emg_masks):
                     print('Calib level: ',str(calib_level),' (subject ',str(idx),' of 20)')
                     
@@ -356,17 +359,14 @@ if __name__ == '__main__':
                     space.update({'l1_maxfeats':40})
                     
                     space.update({'calib_level':calib_level})
-                    
-                    trials=Trials()
-                    
+                                        
                     space.update({'testset_size':testset_size,})
                     
                     eeg_mask=eeg_masks[idx]
                     
                     emg_ppt = emg_set[emg_mask]
                     eeg_ppt = eeg_set[eeg_mask]
-                    
-                    
+                                      
                     
                     emg_ppt.sort_values(['ID_pptID','ID_run','Label','ID_gestrep','ID_tend'],ascending=[True,True,True,True,True],inplace=True)
                     eeg_ppt.sort_values(['ID_pptID','ID_run','Label','ID_gestrep','ID_tend'],ascending=[True,True,True,True,True],inplace=True)
@@ -382,123 +382,163 @@ if __name__ == '__main__':
                     
                     if not emg_ppt['ID_stratID'].equals(eeg_ppt['ID_stratID']):
                         raise ValueError('EMG & EEG performances misaligned')
+                    
+                    
+                    for repeat in range (n_repeats):
+                        trials=Trials()
                         
+                        emg_session1=emg_ppt[emg_ppt['ID_run']==1.0]
+                        eeg_session1=eeg_ppt[eeg_ppt['ID_run']==1.0]
+                        emg_session2=emg_ppt[emg_ppt['ID_run']==2.0]
+                        eeg_session2=eeg_ppt[eeg_ppt['ID_run']==2.0]
+                        emg_session3=emg_ppt[emg_ppt['ID_run']==3.0]
+                        eeg_session3=eeg_ppt[eeg_ppt['ID_run']==3.0]
+                                       
                         
-                    emg_session1=emg_ppt[emg_ppt['ID_run']==1.0]
-                    eeg_session1=eeg_ppt[eeg_ppt['ID_run']==1.0]
-                    emg_session2=emg_ppt[emg_ppt['ID_run']==2.0]
-                    eeg_session2=eeg_ppt[eeg_ppt['ID_run']==2.0]
-                    emg_session3=emg_ppt[emg_ppt['ID_run']==3.0]
-                    eeg_session3=eeg_ppt[eeg_ppt['ID_run']==3.0]
-                         
-                    
-                    if train_session=='first':
-                        emg_train=emg_session1
-                        eeg_train=eeg_session1
-                    elif train_session=='second':
-                        emg_train=emg_session2
-                        eeg_train=eeg_session2
-                    elif train_session=='both':
-                        emg_train=pd.concat([emg_session1,emg_session2])
-                        eeg_train=pd.concat([eeg_session1,eeg_session2])
+                        if train_session=='first':
+                            emg_train=emg_session1
+                            eeg_train=eeg_session1
+                        elif train_session=='second':
+                            emg_train=emg_session2
+                            eeg_train=eeg_session2
+                        elif train_session=='both':
+                            emg_train=pd.concat([emg_session1,emg_session2])
+                            eeg_train=pd.concat([eeg_session1,eeg_session2])
+                            ''' below downsamples after join sessions'''
+                            '''
+                            if systemUnderTest=='A2a_bothNoExtraData':
+                                gest_perfs=emg_train['ID_stratID'].unique()
+                                gest_strat=pd.DataFrame([gest_perfs,[perf.split('.')[1][-1] for perf in gest_perfs]]).transpose()
+                                
+                                train_split,_=train_test_split(gest_strat,test_size=0.5,
+                                                                      random_state=random_split,stratify=gest_strat[1])
+                                emg_train=emg_train[emg_train['ID_stratID'].isin(train_split[0])]
+                                eeg_train=eeg_train[eeg_train['ID_stratID'].isin(train_split[0])]
+                            '''
+                            '''below gets equal amount from each session'''    
+                            if systemUnderTest=='A2a_bothNoExtraData':
+                                gest_perfs1=emg_session1['ID_stratID'].unique()
+                                gest_strat1=pd.DataFrame([gest_perfs1,[perf.split('.')[1][-1] for perf in gest_perfs1]]).transpose()
+                                
+                                train_split1,_=train_test_split(gest_strat1,test_size=0.5,
+                                                                      random_state=random_split,stratify=gest_strat1[1])
+                                emg_session1=emg_session1[emg_session1['ID_stratID'].isin(train_split1[0])]
+                                eeg_session1=eeg_session1[eeg_session1['ID_stratID'].isin(train_split1[0])]
+                                
+                                gest_perfs2=emg_session2['ID_stratID'].unique()
+                                gest_strat2=pd.DataFrame([gest_perfs2,[perf.split('.')[1][-1] for perf in gest_perfs2]]).transpose()
+                                
+                                train_split2,_=train_test_split(gest_strat2,test_size=0.5,
+                                                                      random_state=random_split,stratify=gest_strat2[1])
+                                emg_session2=emg_session2[emg_session2['ID_stratID'].isin(train_split2[0])]
+                                eeg_session2=eeg_session2[eeg_session2['ID_stratID'].isin(train_split2[0])]
+                                
+                                emg_train=pd.concat([emg_session1,emg_session2])
+                                eeg_train=pd.concat([eeg_session1,eeg_session2])
+                                
+                            
+                        gest_perfs=emg_session3['ID_stratID'].unique()
+                        gest_strat=pd.DataFrame([gest_perfs,[perf.split('.')[1][-1] for perf in gest_perfs]]).transpose()
                         
+                        calib_split,test_split=train_test_split(gest_strat,test_size=testset_size,
+                                                              random_state=random_split,stratify=gest_strat[1])
                         
-                    gest_perfs=emg_session3['ID_stratID'].unique()
-                    gest_strat=pd.DataFrame([gest_perfs,[perf.split('.')[1][-1] for perf in gest_perfs]]).transpose()
-                    
-                    calib_split,test_split=train_test_split(gest_strat,test_size=testset_size,
-                                                          random_state=random_split,stratify=gest_strat[1])
-                    
-
-                    emg_test=emg_session3[emg_session3['ID_stratID'].isin(test_split[0])]
-                    eeg_test=eeg_session3[eeg_session3['ID_stratID'].isin(test_split[0])]
-             
-                         
-                    emg_train,emgscaler=feats.scale_feats_train(emg_train,space['scalingtype'])
-                    eeg_train,eegscaler=feats.scale_feats_train(eeg_train,space['scalingtype'])
-                    emg_test=feats.scale_feats_test(emg_test,emgscaler)
-                    eeg_test=feats.scale_feats_test(eeg_test,eegscaler)
-                                    
-                    
-                    if calib_level == 0:
-                        emg_joint = emg_train
-                        eeg_joint = eeg_train
-                    else:
-                        if space['calib_level'] > 130/134:
-                            '''case for when we cant train_test_split as the (unused) "test" would be < n_classes'''
-                            stratsize=np.min(calib_split[1].value_counts())
-                            calib_split = calib_split.groupby(1,axis=0)
-                            calib_split=calib_split.apply(lambda x: x.sample(stratsize))
-                        elif 0 < space['calib_level'] < 1:
-                            calib_split,_=train_test_split(calib_split,train_size=space['calib_level'],random_state=random_split,stratify=calib_split[1])
-                            if min(calib_split[1].value_counts()) < 2:
-                                print('calib of ' +str(space['calib_level'])+' results in < 2 performances per class')
-                                if space['calib_level']==4/134:
-                                    print('special exception where 1 gesture per class is used for calibration')
-                                else:
-                                    skipRolloff=True
-                                    break
+    
+                        emg_test=emg_session3[emg_session3['ID_stratID'].isin(test_split[0])]
+                        eeg_test=eeg_session3[eeg_session3['ID_stratID'].isin(test_split[0])]
+                 
+                             
+                        emg_train,emgscaler=feats.scale_feats_train(emg_train,space['scalingtype'])
+                        eeg_train,eegscaler=feats.scale_feats_train(eeg_train,space['scalingtype'])
+                        emg_test=feats.scale_feats_test(emg_test,emgscaler)
+                        eeg_test=feats.scale_feats_test(eeg_test,eegscaler)
+                                        
                         
-                        emg_calib=emg_session3[emg_session3['ID_stratID'].isin(calib_split[0])]
-                        eeg_calib=eeg_session3[eeg_session3['ID_stratID'].isin(calib_split[0])]
+                        if calib_level == 0:
+                            emg_joint = emg_train
+                            eeg_joint = eeg_train
+                        else:
+                            if space['calib_level'] > 130/134:
+                                '''case for when we cant train_test_split as the (unused) "test" would be < n_classes'''
+                                stratsize=np.min(calib_split[1].value_counts())
+                                calib_split = calib_split.groupby(1,axis=0)
+                                calib_split=calib_split.apply(lambda x: x.sample(stratsize))
+                            elif 0 < space['calib_level'] < 1:
+                                calib_split,_=train_test_split(calib_split,train_size=space['calib_level'],random_state=random_split,stratify=calib_split[1])
+                                if min(calib_split[1].value_counts()) < 2:
+                                    print('calib of ' +str(space['calib_level'])+' results in < 2 performances per class')
+                                    if space['calib_level']==4/134:
+                                        print('special exception where 1 gesture per class is used for calibration')
+                                    else:
+                                        skipRolloff=True
+                                        break
+                            
+                            emg_calib=emg_session3[emg_session3['ID_stratID'].isin(calib_split[0])]
+                            eeg_calib=eeg_session3[eeg_session3['ID_stratID'].isin(calib_split[0])]
+                            
+                            emg_calib=feats.scale_feats_test(emg_calib,emgscaler)
+                            eeg_calib=feats.scale_feats_test(eeg_calib,eegscaler)
+                            
+                            emg_joint = pd.concat([emg_train,emg_calib])
+                            eeg_joint = pd.concat([eeg_train,eeg_calib])
+    
+    
+                        if feats_method=='no calib':
+                            sel_cols_emg=feats.sel_percent_feats_df(ml.drop_ID_cols(emg_train),percent=15)
+                            sel_cols_emg=np.append(sel_cols_emg,ml.drop_ID_cols(emg_train).columns.get_loc('Label'))
+                            sel_cols_eeg=feats.sel_feats_l1_df(ml.drop_ID_cols(eeg_train),sparsityC=space['l1_sparsity'],maxfeats=space['l1_maxfeats'])
+                            sel_cols_eeg=np.append(sel_cols_eeg,ml.drop_ID_cols(eeg_train).columns.get_loc('Label')) 
                         
-                        emg_calib=feats.scale_feats_test(emg_calib,emgscaler)
-                        eeg_calib=feats.scale_feats_test(eeg_calib,eegscaler)
+                        elif feats_method=='calib':                     
+                            sel_cols_emg=feats.sel_percent_feats_df(ml.drop_ID_cols(emg_joint),percent=15)
+                            sel_cols_emg=np.append(sel_cols_emg,ml.drop_ID_cols(emg_joint).columns.get_loc('Label'))
+                            sel_cols_eeg=feats.sel_feats_l1_df(ml.drop_ID_cols(eeg_joint),sparsityC=space['l1_sparsity'],maxfeats=space['l1_maxfeats'])
+                            sel_cols_eeg=np.append(sel_cols_eeg,ml.drop_ID_cols(eeg_joint).columns.get_loc('Label')) 
                         
-                        emg_joint = pd.concat([emg_train,emg_calib])
-                        eeg_joint = pd.concat([eeg_train,eeg_calib])
-
-
-                    if feats_method=='no calib':
-                        sel_cols_emg=feats.sel_percent_feats_df(ml.drop_ID_cols(emg_train),percent=15)
-                        sel_cols_emg=np.append(sel_cols_emg,ml.drop_ID_cols(emg_train).columns.get_loc('Label'))
-                        sel_cols_eeg=feats.sel_feats_l1_df(ml.drop_ID_cols(eeg_train),sparsityC=space['l1_sparsity'],maxfeats=space['l1_maxfeats'])
-                        sel_cols_eeg=np.append(sel_cols_eeg,ml.drop_ID_cols(eeg_train).columns.get_loc('Label')) 
-                    
-                    elif feats_method=='calib':                     
-                        sel_cols_emg=feats.sel_percent_feats_df(ml.drop_ID_cols(emg_joint),percent=15)
-                        sel_cols_emg=np.append(sel_cols_emg,ml.drop_ID_cols(emg_joint).columns.get_loc('Label'))
-                        sel_cols_eeg=feats.sel_feats_l1_df(ml.drop_ID_cols(eeg_joint),sparsityC=space['l1_sparsity'],maxfeats=space['l1_maxfeats'])
-                        sel_cols_eeg=np.append(sel_cols_eeg,ml.drop_ID_cols(eeg_joint).columns.get_loc('Label')) 
-                    
- 
-                    space['sel_cols_emg']=sel_cols_emg
-                    space['sel_cols_eeg']=sel_cols_eeg
-                    space['subject-id']=eeg_ppt['ID_pptID'][0]  
-                    
-                    if systemUnderTest in ['A1a_session1','A1b_session2','A2_both1and2']:
-                        if not emg_train.equals(emg_joint):
-                            raise ValueError('Not expecting aug, but train and joint dont match')
-                    
-                    if opt_method=='no calib':
-                        space.update({'emg_set':emg_train,'eeg_set':eeg_train,'data_in_memory':True,'prebalanced':True})
-                    elif opt_method=='calib':
-                        space.update({'emg_set':emg_joint,'eeg_set':eeg_joint,'data_in_memory':True,'prebalanced':True})
-                    
-                    space.update({'featsel_method':feats_method})
-                    space.update({'train_method':train_method})
-                    space.update({'opt_method':opt_method})
-                    space.update({'train_session':train_session})
-                    
-                    best = fmin(fuse_fullbespoke,
-                            space=space,
-                            algo=tpe.suggest,
-                            max_evals=iters,
-                            trials=trials)
-                    
-                    winner_args=space_eval(space,best)
-                    best_loss=trials.best_trial['result']['loss']
-            
-                    winner_args['sel_cols_emg']=sel_cols_emg
-                    winner_args['sel_cols_eeg']=sel_cols_eeg 
-                    winner_args['plot_confmats']=True
-                    winner_args['subject id']=str(int(eeg_ppt['ID_pptID'][0]))
-                    
-                    subject_results=fusion_test(emg_joint,eeg_joint,emg_test,eeg_test,winner_args)
-                    subject_results['best_loss']=best_loss
-                    
-                    ppt_winners.append(winner_args)
-                    ppt_results.append(subject_results)
+     
+                        space['sel_cols_emg']=sel_cols_emg
+                        space['sel_cols_eeg']=sel_cols_eeg
+                        space['subject-id']=eeg_ppt['ID_pptID'][0]  
+                        
+                        if systemUnderTest in ['A1a_session1','A1b_session2','A2_both1and2']:
+                            if not emg_train.equals(emg_joint):
+                                raise ValueError('Not expecting aug, but train and joint dont match')
+                        
+                        if opt_method=='no calib':
+                            space.update({'emg_set':emg_train,'eeg_set':eeg_train,'data_in_memory':True,'prebalanced':True})
+                        elif opt_method=='calib':
+                            space.update({'emg_set':emg_joint,'eeg_set':eeg_joint,'data_in_memory':True,'prebalanced':True})
+                        
+                        space.update({'featsel_method':feats_method})
+                        space.update({'train_method':train_method})
+                        space.update({'opt_method':opt_method})
+                        space.update({'train_session':train_session})
+                        
+                        best = fmin(fuse_fullbespoke,
+                                space=space,
+                                algo=tpe.suggest,
+                                max_evals=iters,
+                                trials=trials)
+                        
+                        winner_args=space_eval(space,best)
+                        best_loss=trials.best_trial['result']['loss']
+                
+                        winner_args['sel_cols_emg']=sel_cols_emg
+                        winner_args['sel_cols_eeg']=sel_cols_eeg 
+                        winner_args['plot_confmats']=True
+                        winner_args['subject id']=str(int(eeg_ppt['ID_pptID'][0]))
+                        
+                        if n_repeats > 1:
+                            winner_args['plot_confmats']=False
+                        else:
+                            winner_args['plot_confmats']=True
+                        
+                        subject_results=fusion_test(emg_joint,eeg_joint,emg_test,eeg_test,winner_args)
+                        subject_results['best_loss']=best_loss
+                        subject_results['repeat']=repeat
+                        
+                        ppt_winners.append(winner_args)
+                        ppt_results.append(subject_results)
     
                 if skipRolloff:
                     skipRolloff=False
@@ -520,8 +560,8 @@ if __name__ == '__main__':
                     
                 results=results_final.join(winners_final)
                 results['opt_acc']=1-results['best_loss']
-                scores_minimal=results[['subject id','fusion_acc','emg_acc','eeg_acc','elapsed_time','train_session',
-                               'fusion_alg_fusion_alg_type','eeg_eeg_model_type','emg_emg_model_type',
+                scores_minimal=results[['subject id','fusion_acc','emg_acc','eeg_acc','elapsed_time','repeat',
+                               'train_session','fusion_alg_fusion_alg_type','eeg_eeg_model_type','emg_emg_model_type',
                                'featsel_method','opt_method','train_method','calib_level','best_loss','opt_acc']]
                 
                 currentpath=os.path.dirname(__file__)
@@ -542,8 +582,8 @@ if __name__ == '__main__':
                 pickle.dump(results,open(picklepath,'wb'))
                 scores_minimal.to_csv(csvpath)
         
-        picklefullpath=os.path.join(resultpath,(systemUnderTest+'final_resDF.pkl'))
-        csvfullpath=os.path.join(resultpath,(systemUnderTest+'final_resMinimal.csv'))
+        picklefullpath=os.path.join(resultpath,(systemUnderTest+'_final_resDF.pkl'))
+        csvfullpath=os.path.join(resultpath,(systemUnderTest+'_final_resMinimal.csv'))
 
         pickle.dump(results,open(picklefullpath,'wb'))
         scores_minimal.to_csv(csvfullpath)
@@ -700,4 +740,7 @@ if __name__ == '__main__':
         plt.axhline(y=0.7475,label='Train both\n(no cal) avg',linestyle='--',color='black')
         ax.legend(loc='center left',bbox_to_anchor=(1,0.5))
         plt.show()
+        
+        
+        #scores_minimal.groupby(['calib_level_wholegests','repeat'])['fusion_acc'].agg(['mean','std']).reset_index()
 

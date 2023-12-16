@@ -468,19 +468,40 @@ if __name__ == '__main__':
     
     fullybespoke_load_path=r"C:\Users\pritcham\Documents\mm-framework\multimodal-framework\lit_data_expts\jeong\results\RQ2\ProvisTests\A1_FullBespoke_rolloff_all_resMinimal.csv"
     
-    load_res_path=r"C:\Users\pritcham\Documents\mm-framework\multimodal-framework\lit_data_expts\jeong\results\RQ2\D1d_a_Warmstart_FixRFNewfinal_resMinimal - Copy.csv"
+    load_aug_path=r"C:\Users\pritcham\Documents\mm-framework\multimodal-framework\lit_data_expts\jeong\results\RQ2\H3a_AugForCompare_final_resMinimal - Copy.csv"
+    
+    load_res_path=r"C:\Users\pritcham\Documents\mm-framework\multimodal-framework\lit_data_expts\jeong\results\RQ2\H3_XferVsAugNewfinal_resMinimal - Copy.csv"
+    
+    load_res_path=r"C:\Users\pritcham\Documents\mm-framework\multimodal-framework\lit_data_expts\jeong\results\RQ2\H4_XferLowNewfinal_resMinimal - Copy.csv"
+    
+    load_aug_path=r"C:\Users\pritcham\Documents\mm-framework\multimodal-framework\lit_data_expts\jeong\results\RQ2\H3a_AugForCompare_final_resMinimal - Copy withAug033.csv"
+    
+    load_res_path=r"C:\Users\pritcham\Documents\mm-framework\multimodal-framework\lit_data_expts\jeong\results\RQ2\H3_XferVsAugNewfinal_resMinimal - Copy.csv"
+    
+    load_res_path=r"C:\Users\pritcham\Documents\mm-framework\multimodal-framework\lit_data_expts\jeong\results\RQ2\H4_XferLowNewfinal_resMinimal - Copy.csv"
+    
+    #load_res_path=r"C:\Users\pritcham\Documents\mm-framework\multimodal-framework\lit_data_expts\jeong\results\RQ2\H2_XferWinnerVsNoAug.csv"
+    
+    #load_res_path=r"C:\Users\pritcham\Documents\mm-framework\multimodal-framework\lit_data_expts\jeong\results\RQ2\H2_AugWinnerThreeQ_final_resMinimal - Copy.csv"
+    
+   # load_res_path=r"C:\Users\pritcham\Documents\mm-framework\multimodal-framework\lit_data_expts\jeong\results\RQ2\D1d_a_Warmstart_FixRFNewfinal_resMinimal - Copy.csv"
+    
+    load_res_path=r"C:\Users\pritcham\Documents\mm-framework\multimodal-framework\lit_data_expts\jeong\results\RQ2\H2_XferFixRFWinnerVsNoAug.csv"
+    
+    load_res_path=r"C:\Users\pritcham\Documents\mm-framework\multimodal-framework\lit_data_expts\jeong\results\RQ2\H4_XferLow_FixRFNewfinal_resMinimal - Copy.csv"
 
-    systemUnderTest = 'D1d_AugWarmstart'
-    systemUnderTest = 'D1d_a_Warmstart_FixRF'
-    rolling_off_subj=True
+    #systemUnderTest = 'H3_XferVsAug_FixRF'
+    systemUnderTest = 'H4_XferLow_FixRF'
     
     testset_size = 0.33
         
-    if systemUnderTest == 'D1d_AugWarmstart':       
-        train_sizes=np.concatenate(([0.05,0.1],np.linspace(0.01,1,5)[1:]))
-        train_sizes=[0.05,0.1,0.2575,0.505,0.7525,1.0]
+    if systemUnderTest == 'H3_XferVsAug' or systemUnderTest == 'H3_XferVsAug_FixRF':       
+        #train_sizes=np.concatenate(([0.05,0.1],np.linspace(0.01,1,5)[1:]))
+        #train_sizes=[0.05,0.1,0.2575,0.505,0.7525,1.0]
         #train_sizes=[0.7525,1.0]
         #train_sizes=[0.505,0.7525,1.0]
+        
+        train_sizes=[0.7525]
         
         feats_method='non-subject aug'
         opt_method='non-subject aug'
@@ -489,9 +510,8 @@ if __name__ == '__main__':
         # 0.00666 would be 1 full gesture per person, for a set of 19
         # ie 1/150, because each gesture was done 50 times on 3 days = 150 per gest per ppt
         # below coerces them to be multiples of 0.00666 ie to ensure equal # per ppt per class
-        augment_scales=[0.00666,0.02]#,0.05263,0.1]#,0.166]#0.33, 0.1, 0.075,#,0.67
-        augment_scales=[0.33]
-        augment_scales=[0.05263, 0.075, 0.1, 0.166,]
+
+        augment_scales=[0.00666,0.02,0.05263, 0.075, 0.1, 0.166, 0.33]
         # the scales above are 0, 1, 3, not 6, 7.89, not 12 (0.08), 25, 50, 100 per ppt per class
         # 0.05263 is 1/19, 7.89 per gest per ppt, i.e. result in aug_size = train_size
             #(actually ends up as 0.05333 = 8 per class per ppt = 152 in the aug)
@@ -499,21 +519,76 @@ if __name__ == '__main__':
         # 50 and 100 removed for now for practicality as very big! dwarfs the subject
         augment_scales = np.array([round(scale/(1/150))*(1/150) for scale in augment_scales])
         
-    elif systemUnderTest == 'D1d_a_Warmstart_FixRF':
-        train_sizes=np.concatenate(([0.05,0.1],np.linspace(0.01,1,5)[1:]))
-        train_sizes=[0.05,0.1,0.2575,0.505,0.7525,1.0]
+    elif systemUnderTest == 'H4_XferLow' or systemUnderTest == 'H4_XferLow_FixRF':               
+        train_sizes=[0.05,0.1]
         
         feats_method='non-subject aug'
         opt_method='non-subject aug'
         train_method='non-subject aug'
-        
-        #augment_scales=[0.00666,0.02,0.05263, 0.075, 0.1, 0.166,0.33]
-        augment_scales=[0.33]
+        #augment_scales = np.geomspace(0.02,0.33,4)
+        # 0.00666 would be 1 full gesture per person, for a set of 19
+        # ie 1/150, because each gesture was done 50 times on 3 days = 150 per gest per ppt
+        # below coerces them to be multiples of 0.00666 ie to ensure equal # per ppt per class
+
+        #augment_scales=[0.00666,0.02,0.05263, 0.075]
+        augment_scales=[0.00666,0.02,0.05263, 0.075, 0.1, 0.166, 0.33]
+        # the scales above are 1, 3, 7.89, 11, 15, 25, not 50 per ppt per class
+        # 0.05263 is 1/19, 7.89 per gest per ppt, i.e. result in aug_size = train_size
+            #(actually ends up as 0.05333 = 8 per class per ppt = 152 in the aug)
+        # 100 per class per ppt is the same amount as left over in the training set after 0.33 reserved for test
+        # 50 and 100 removed for now for practicality as very big! dwarfs the subject
         augment_scales = np.array([round(scale/(1/150))*(1/150) for scale in augment_scales])
+        
+    elif systemUnderTest =='H4_Xfer0333':
+        '''only needed when this high xfer was missed before'''
+        train_sizes=[0.05,0.1]#,0.7525]
+        
+        feats_method='non-subject aug'
+        opt_method='non-subject aug'
+        train_method='non-subject aug'
+        augment_scales=[0.33]
+        
+        augment_scales = np.array([round(scale/(1/150))*(1/150) for scale in augment_scales])
+        
+    elif systemUnderTest =='H3_XferCompare_Xfer0333':
+        '''only needed when this high xfer was missed before'''
+        train_sizes=[0.7525]
+        
+        feats_method='non-subject aug'
+        opt_method='non-subject aug'
+        train_method='non-subject aug'
+        augment_scales=[0.33]
+        
+        augment_scales = np.array([round(scale/(1/150))*(1/150) for scale in augment_scales])
+    
+    n_repeats=1
     
     if run_test:
         iters = 100
         
+        emg_nonsubj_path=params.jeong_emg_noholdout
+        eeg_nonsubj_path=params.jeong_eeg_noholdout
+        
+        emg_others=ml.pd.read_csv(emg_nonsubj_path,delimiter=',')
+        eeg_others=ml.pd.read_csv(eeg_nonsubj_path,delimiter=',')
+        emg_others,eeg_others=balance_set(emg_others,eeg_others) 
+        
+        
+        ppt1={'emg_path':r"H:\Jeong11tasks_data\final_dataset\holdout\emg_holdout_ppt1.csv",
+              'eeg_path':r"H:\Jeong11tasks_data\final_dataset\holdout\eeg_holdout_ppt1.csv"}
+        ppt6={'emg_path':r"H:\Jeong11tasks_data\final_dataset\holdout\emg_holdout_ppt6.csv",
+              'eeg_path':r"H:\Jeong11tasks_data\final_dataset\holdout\eeg_holdout_ppt6.csv"}
+        ppt11={'emg_path':r"H:\Jeong11tasks_data\final_dataset\holdout\emg_holdout_ppt11.csv",
+              'eeg_path':r"H:\Jeong11tasks_data\final_dataset\holdout\eeg_holdout_ppt11.csv"}
+        ppt16={'emg_path':r"H:\Jeong11tasks_data\final_dataset\holdout\emg_holdout_ppt16.csv",
+              'eeg_path':r"H:\Jeong11tasks_data\final_dataset\holdout\eeg_holdout_ppt16.csv"}
+        ppt21={'emg_path':r"H:\Jeong11tasks_data\final_dataset\holdout\emg_holdout_ppt21.csv",
+              'eeg_path':r"H:\Jeong11tasks_data\final_dataset\holdout\eeg_holdout_ppt21.csv"}
+        
+        holdout_ppts=[ppt1,ppt6,ppt11,ppt16,ppt21]
+        
+        
+        '''
         emg_set_path=params.jeong_emg_noholdout
         eeg_set_path=params.jeong_eeg_noholdout
         
@@ -524,45 +599,33 @@ if __name__ == '__main__':
     
         eeg_masks=get_ppt_split_flexi(eeg_set)
         emg_masks=get_ppt_split_flexi(emg_set)
+        '''
         
         ppt_winners=[]
         ppt_results=[]
         skipRolloff=False
         
-        
-        for augment_scale in augment_scales:
-            for rolloff in train_sizes:
-                print('Rolloff: ',str(rolloff),' Augment: ',str(augment_scale))
-                for idx,emg_mask in enumerate(emg_masks):
-                    print('subject ',str(idx+1),' of 20')
-                 #   if np.isclose(augment_scale,0.0533333) or np.isclose(augment_scale,0.1):
-                 #       if rolloff < 0.7:
-                 #           skipRolloff=True
-                 #           #print('skip rolloff '+str(rolloff*400)+' and augment '+str(augment_scale*11400))
-                 #           break
-                 # commenting out as only needed when we had a few partially done   
-
-                   # if augment_scale < 0.2 and rolloff < 0.1:
-                    if rolloff < 0.1:
-                        skipRolloff=True
-                        break
+        for rolloff in train_sizes:
+            for augment_scale in augment_scales:
+                for ppt in holdout_ppts:  
                     
+                    emg_ppt=(ml.pd.read_csv(ppt['emg_path'],delimiter=','))
+                    eeg_ppt=(ml.pd.read_csv(ppt['eeg_path'],delimiter=','))
+                    emg_ppt,eeg_ppt=balance_set(emg_ppt,eeg_ppt)
+                    
+                    print('Rolloff: ',str(rolloff),' Augment: ',str(augment_scale))
+                    
+
                     space=setup_warmstart_space(architecture='decision',include_svm=True)
                     
                     space.update({'l1_sparsity':0.05})
                     space.update({'l1_maxfeats':40})
                     
                     space.update({'rolloff_factor':rolloff})
-                    space.update({'augment_scale':augment_scale})
-                    
+                    space.update({'augment_scale':augment_scale})                    
                     
                     
                     space.update({'testset_size':testset_size,})
-                    
-                    eeg_mask=eeg_masks[idx]
-                    
-                    emg_ppt = emg_set[emg_mask]
-                    eeg_ppt = eeg_set[eeg_mask]
                     
                     
                     emg_ppt.sort_values(['ID_pptID','ID_run','Label','ID_gestrep','ID_tend'],ascending=[True,True,True,True,True],inplace=True)
@@ -575,41 +638,42 @@ if __name__ == '__main__':
                     
                     eeg_ppt['ID_stratID']=eeg_ppt['ID_run'].astype(str)+eeg_ppt['Label'].astype(str)+emg_ppt['ID_pptID'].astype(str)+eeg_ppt['ID_gestrep'].astype(str)
                     emg_ppt['ID_stratID']=emg_ppt['ID_run'].astype(str)+emg_ppt['Label'].astype(str)+emg_ppt['ID_pptID'].astype(str)+emg_ppt['ID_gestrep'].astype(str)
-                    random_split=random.randint(0,100)
+                    
                     
                     if not emg_ppt['ID_stratID'].equals(eeg_ppt['ID_stratID']):
                         raise ValueError('EMG & EEG performances misaligned')
-                    gest_perfs=emg_ppt['ID_stratID'].unique()
-                    gest_strat=pd.DataFrame([gest_perfs,[perf.split('.')[1][-1] for perf in gest_perfs]]).transpose()
-                    
-                    remainder,test_split=train_test_split(gest_strat,test_size=testset_size,
-                                                          random_state=random_split,stratify=gest_strat[1])
-                    
-                    if space['rolloff_factor'] < 1:
-                        remainder,_=train_test_split(remainder,train_size=space['rolloff_factor'],random_state=random_split,stratify=remainder[1])
-                        if min(remainder[1].value_counts()) < 2:
-                            print('rolloff of ' +str(space['rolloff_factor'])+' results in < 2 performances per class')
-                            skipRolloff=True
-                            break
-        
-                    
-                    eeg_test=eeg_ppt[eeg_ppt['ID_stratID'].isin(test_split[0])]
-                    emg_test=emg_ppt[emg_ppt['ID_stratID'].isin(test_split[0])]
-                    eeg_train=eeg_ppt[eeg_ppt['ID_stratID'].isin(remainder[0])]
-                    emg_train=emg_ppt[emg_ppt['ID_stratID'].isin(remainder[0])]
-                                 
-                         
-                    emg_train,emgscaler=feats.scale_feats_train(emg_train,space['scalingtype'])
-                    eeg_train,eegscaler=feats.scale_feats_train(eeg_train,space['scalingtype'])
-                    emg_test=feats.scale_feats_test(emg_test,emgscaler)
-                    eeg_test=feats.scale_feats_test(eeg_test,eegscaler)
-                                    
-                    
-                    emg_others = emg_set[~emg_mask]
-                    eeg_others = eeg_set[~eeg_mask]
-                    
-                    for repeat in range(1):
+                        
+                        
+                    for repeat in range(n_repeats):
                         trials=Trials()
+                        random_split=random.randint(0,100)
+                            
+                        gest_perfs=emg_ppt['ID_stratID'].unique()
+                        gest_strat=pd.DataFrame([gest_perfs,[perf.split('.')[1][-1] for perf in gest_perfs]]).transpose()
+                        
+                        remainder,test_split=train_test_split(gest_strat,test_size=testset_size,
+                                                              random_state=random_split,stratify=gest_strat[1])
+                        
+                        if space['rolloff_factor'] < 1:
+                            remainder,_=train_test_split(remainder,train_size=space['rolloff_factor'],random_state=random_split,stratify=remainder[1])
+                            if min(remainder[1].value_counts()) < 2:
+                                print('rolloff of ' +str(space['rolloff_factor'])+' results in < 2 performances per class')
+                                skipRolloff=True
+                                break
+            
+                        
+                        eeg_test=eeg_ppt[eeg_ppt['ID_stratID'].isin(test_split[0])]
+                        emg_test=emg_ppt[emg_ppt['ID_stratID'].isin(test_split[0])]
+                        eeg_train=eeg_ppt[eeg_ppt['ID_stratID'].isin(remainder[0])]
+                        emg_train=emg_ppt[emg_ppt['ID_stratID'].isin(remainder[0])]
+                                     
+                             
+                        emg_train,emgscaler=feats.scale_feats_train(emg_train,space['scalingtype'])
+                        eeg_train,eegscaler=feats.scale_feats_train(eeg_train,space['scalingtype'])
+                        emg_test=feats.scale_feats_test(emg_test,emgscaler)
+                        eeg_test=feats.scale_feats_test(eeg_test,eegscaler)            
+                    
+                   
                         if augment_scale == 0:
                             emg_joint = emg_train
                             eeg_joint = eeg_train
@@ -660,9 +724,12 @@ if __name__ == '__main__':
                 
                         winner_args['sel_cols_emg']=sel_cols_emg
                         winner_args['sel_cols_eeg']=sel_cols_eeg 
-                        #winner_args['plot_confmats']=True
                         winner_args['subject id']=str(int(eeg_ppt['ID_pptID'][0]))
                         winner_args['repeat']=repeat
+                        if n_repeats > 1:
+                            winner_args['plot_confmats']=False
+                        else:
+                            winner_args['plot_confmats']=True
                         
                         subject_results=fusionWarm_test(emg_joint,eeg_joint,emg_test,eeg_test,winner_args)
                         subject_results['best_loss']=best_loss
@@ -691,10 +758,10 @@ if __name__ == '__main__':
                     
                 results=results_final.join(winners_final.drop('repeat',axis=1))
                 results['opt_acc']=1-results['best_loss']
-                scores_minimal=results[['subject id','rolloff_factor','augment_scale','repeat','fusion_acc',
-                               'emg_acc','eeg_acc','elapsed_time','fusion_alg_fusion_alg_type',
-                               'eeg_eeg_model_type','emg_emg_model_type','featsel_method','train_method',
-                               'best_loss','opt_acc']]
+                scores_minimal=results[['subject id','fusion_acc','emg_acc','eeg_acc','elapsed_time',
+                                        'fusion_alg_fusion_alg_type','eeg_eeg_model_type','emg_emg_model_type',
+                                        'featsel_method','train_method','opt_method','repeat',
+                                        'rolloff_factor','augment_scale','best_loss','opt_acc']]
                 
                 currentpath=os.path.dirname(__file__)
                 result_dir=params.jeong_results_dir
@@ -730,39 +797,40 @@ if __name__ == '__main__':
     
     if plot_results:
         scores_minimal=scores_minimal.round({'augment_scale':5})
-        for ppt in scores_minimal['subject id'].unique():
-            subj= scores_minimal[scores_minimal['subject id']==ppt]
-            subjScore=subj.groupby(['augment_scale','rolloff_factor'])['fusion_acc'].agg(['mean','std']).reset_index()
-            if 0:
-                fig,ax=plt.subplots();
-                plt.rcParams['figure.dpi'] = 150 # DEFAULT IS 100
-           #     for rolloff in np.sort(subj['rolloff_factor'].unique()):
-           #             subj[subj['rolloff_factor']==rolloff].boxplot(column='fusion_acc',by='augment_scale',ax=ax)
-           #     ax.set_ylim((0,1))
-                
-          #      for key,group in subj.groupby('rolloff_factor'):
-          #          grouped=group.groupby(['augment_scale'])['fusion_acc'].agg(['mean','std']).reset_index()
-          #          plt.errorbar(x=grouped['augment_scale'],y=grouped['mean'],yerr=grouped['std'],
-          #                       marker='.',capsize=5,label=key)
-                subjScore.pivot(index='augment_scale',columns='rolloff_factor',values='mean').plot(kind='bar',ax=ax,rot=0,capsize=5,
-                                                                                                    yerr=subjScore.pivot(index='augment_scale',columns='rolloff_factor',values='std'))
-                ax.set_ylim(np.floor(subj['fusion_acc'].min()/0.05)*0.05,np.ceil(subj['fusion_acc'].max()/0.05)*0.05)
-                plt.title('Subject '+str(ppt))
-                ax.set_xlabel('Proportion of non-subject data for initial training')
-                ax.legend(title='Proportion of subject data')
-                plt.show()
-            if 1:
-                fig,ax=plt.subplots();
-                plt.rcParams['figure.dpi'] = 150 # DEFAULT IS 100
-                subjScore.pivot(index='rolloff_factor',columns='augment_scale',values='mean').plot(kind='bar',ax=ax,rot=0,capsize=5,
-                                                                                                    yerr=subjScore.pivot(index='rolloff_factor',columns='augment_scale',values='std'))
-                ax.set_ylim(np.floor(subj['fusion_acc'].min()/0.05)*0.05,np.ceil(subj['fusion_acc'].max()/0.05)*0.05)
-                plt.title('Subject '+str(ppt))
-                ax.set_xlabel('Proportion of subject data calibrating')
-                
-                plt.axhline(y=gen_dev_accs[int(ppt)],label='Generalist',linestyle='--',color='gray')
-                ax.legend(title='Proportion of non-subject data\n for initial training')
-                plt.show()
+        if 0:
+            for ppt in scores_minimal['subject id'].unique():
+                subj= scores_minimal[scores_minimal['subject id']==ppt]
+                subjScore=subj.groupby(['augment_scale','rolloff_factor'])['fusion_acc'].agg(['mean','std']).reset_index()
+                if 0:
+                    fig,ax=plt.subplots();
+                    plt.rcParams['figure.dpi'] = 150 # DEFAULT IS 100
+               #     for rolloff in np.sort(subj['rolloff_factor'].unique()):
+               #             subj[subj['rolloff_factor']==rolloff].boxplot(column='fusion_acc',by='augment_scale',ax=ax)
+               #     ax.set_ylim((0,1))
+                    
+              #      for key,group in subj.groupby('rolloff_factor'):
+              #          grouped=group.groupby(['augment_scale'])['fusion_acc'].agg(['mean','std']).reset_index()
+              #          plt.errorbar(x=grouped['augment_scale'],y=grouped['mean'],yerr=grouped['std'],
+              #                       marker='.',capsize=5,label=key)
+                    subjScore.pivot(index='augment_scale',columns='rolloff_factor',values='mean').plot(kind='bar',ax=ax,rot=0,capsize=5,
+                                                                                                        yerr=subjScore.pivot(index='augment_scale',columns='rolloff_factor',values='std'))
+                    ax.set_ylim(np.floor(subj['fusion_acc'].min()/0.05)*0.05,np.ceil(subj['fusion_acc'].max()/0.05)*0.05)
+                    plt.title('Subject '+str(ppt))
+                    ax.set_xlabel('Proportion of non-subject data for initial training')
+                    ax.legend(title='Proportion of subject data')
+                    plt.show()
+                if 1:
+                    fig,ax=plt.subplots();
+                    plt.rcParams['figure.dpi'] = 150 # DEFAULT IS 100
+                    subjScore.pivot(index='rolloff_factor',columns='augment_scale',values='mean').plot(kind='bar',ax=ax,rot=0,capsize=5,
+                                                                                                        yerr=subjScore.pivot(index='rolloff_factor',columns='augment_scale',values='std'))
+                    ax.set_ylim(np.floor(subj['fusion_acc'].min()/0.05)*0.05,np.ceil(subj['fusion_acc'].max()/0.05)*0.05)
+                    plt.title('Subject '+str(ppt))
+                    ax.set_xlabel('Proportion of subject data calibrating')
+                    
+                    plt.axhline(y=gen_dev_accs[int(ppt)],label='Generalist',linestyle='--',color='gray')
+                    ax.legend(title='Proportion of non-subject data\n for initial training')
+                    plt.show()
             
         
         
@@ -860,7 +928,8 @@ if __name__ == '__main__':
         #ignore the bits of training data that are non-subject, then learn helpful things from the subject data
     
         '''
-        
+    
+    '''    
     fig,ax=plt.subplots();
     for auglevel in np.sort(scores_minimal['augment_scale'].unique()):
         aug=scores_minimal[scores_minimal['augment_scale']==auglevel]
@@ -871,12 +940,14 @@ if __name__ == '__main__':
         pd.DataFrame(augscores.items(),columns=['Rolloff level','Accuracy']).plot(x='Rolloff level',y='Accuracy',ax=ax,marker='.')
     ax.legend(np.sort(scores_minimal['augment_scale'].unique()),title='Proportion non-subject data\nfor initial training')
     ax.set_ylim(0.5,0.9)
-    plt.axhline(y=0.723,label='Mean Generalist',linestyle='--',color='gray')
-    plt.axhline(y=0.86907,label='Mean Fully Bespoke',linestyle='--',color='pink')
+    #plt.axhline(y=0.723,label='Mean Generalist',linestyle='--',color='gray')
+    #plt.axhline(y=0.86907,label='Mean Fully Bespoke',linestyle='--',color='pink')
+    #plt.axhline(y=mean_gen_HO,label='Mean RQ1\nGeneralist',linestyle='--',color='gray')
     ax.set_xlabel('Proportion of subject data used to calibrate')
     ax.set_ylabel('Accuracy')
+    '''
     
-    
+    '''
     fig,ax=plt.subplots();
     for key,group in scores_minimal.groupby('augment_scale'):
         grouped=group.groupby(['rolloff_factor'])['fusion_acc'].agg(['mean','std']).reset_index()
@@ -886,9 +957,9 @@ if __name__ == '__main__':
     ax.set_xlabel('Proportion of subject data used to calibrate')
     ax.set_ylabel('Accuracy')
     plt.show()
+    '''
     
-    
-    
+    '''
     fig,ax=plt.subplots();
     scores_agg=scores_minimal.groupby(['augment_scale','rolloff_factor'])['fusion_acc'].agg(['mean','std']).reset_index()
     scores_agg=scores_agg.round({'augment_scale':5})
@@ -898,27 +969,102 @@ if __name__ == '__main__':
     plt.title('Means across subjects')
     ax.set_xlabel('Proportion of subject data')
     
-    plt.axhline(y=0.723,label='Mean Generalist',linestyle='--',color='gray')
-    plt.axhline(y=0.86907,label='Mean Fully Bespoke',linestyle='--',color='pink')
+    #plt.axhline(y=0.723,label='Mean Generalist',linestyle='--',color='gray')
+    #plt.axhline(y=0.86907,label='Mean Fully Bespoke',linestyle='--',color='pink')
+    #plt.axhline(y=mean_gen_HO,label='Mean RQ1\nGeneralist',linestyle='--',color='gray')
     ax.legend(title='Proportion non-subj augmenting')
     plt.show()
+    '''
+    
+    plt.rcParams['figure.dpi']=150
     
     
-    
-    nSubj=19
+    nSubj=20
     nGest=4
     nRepsPerGest=150
     nInstancePerGest=4
-    trainsplitSize=0.67
+    trainsplitSize=2/3
     scores_minimal['augscale_instances']=scores_minimal['augment_scale']*nSubj*nGest*nRepsPerGest*nInstancePerGest
-    scores_minimal['augscale_wholegests']=scores_minimal['augment_scale']*nSubj*nGest*nRepsPerGest
+    scores_minimal['augscale_wholegests']=np.around(scores_minimal['augment_scale']*nSubj*nGest*nRepsPerGest).astype(int)
     scores_minimal['augscale_pergest']=scores_minimal['augment_scale']*nSubj*nRepsPerGest
     scores_minimal['augscale_pergestpersubj']=scores_minimal['augment_scale']*nRepsPerGest
     
     scores_minimal['trainAmnt_instances']=scores_minimal['rolloff_factor']*(1-testset_size)*nGest*nRepsPerGest*nInstancePerGest
     #scores_minimal['trainAmnt_wholegests']=scores_minimal['rolloff_factor']*(1-testset_size)*nGest*nRepsPerGest
-    scores_minimal['trainAmnt_wholegests']=np.around(scores_minimal['rolloff_factor']*trainsplitSize*nGest*nRepsPerGest)
+    scores_minimal['trainAmnt_wholegests']=np.around(scores_minimal['rolloff_factor']*trainsplitSize*nGest*nRepsPerGest).astype(int)
     scores_minimal['trainAmnt_pergest']=scores_minimal['rolloff_factor']*(1-testset_size)*nRepsPerGest
+    
+    generalist_HO_featfus=[0.66333,0.74750,0.82333,0.72458,0.71208] #this was the winner Generalist
+    mean_gen_HO=np.mean(generalist_HO_featfus)
+    std_gen_HO=np.std(generalist_HO_featfus)
+    
+    
+    if 0:
+        ''' Comparing winner Xfer to no Aug at Subj Saturation'''
+        fig,ax=plt.subplots();
+        scores_agg=scores_minimal.groupby(['augscale_wholegests','trainAmnt_wholegests'])['fusion_acc'].agg(['mean','std']).reset_index()
+        scores_agg=scores_agg.round({'augscale_wholegests':0})
+        scores_agg=scores_agg.round({'trainAmnt_wholegests':0})
+        #scores_agg['augscale_wholegests']=scores_agg['augscale_wholegests'].astype(int)
+        means=scores_agg.pivot(index='trainAmnt_wholegests',
+                         columns='augscale_wholegests',
+                         values='mean')
+        stds=scores_agg.pivot(index='trainAmnt_wholegests',
+                         columns='augscale_wholegests',
+                         values='std')
+        means.plot(kind='bar',ax=ax,rot=0,capsize=2,width=0.8,
+                                             yerr=stds)
+      #  means.iloc[:,0].plot(kind='bar',ax=ax,rot=0,capsize=2,width=0.8,
+      #                                       yerr=stds.iloc[:,0],color='tab:blue',label='No Non-Subject\ndata')
+      #  means.iloc[:,1].plot(kind='bar',ax=ax,rot=0,capsize=2,width=0.8,
+      #                                       yerr=stds.iloc[:,1],color='tab:pink',label='Model transfer from\n640 Non-Subject\ngestures')
+        #ax.set_ylim(np.floor(scores_minimal['fusion_acc'].min()/0.05)*0.05,np.ceil(scores_minimal['fusion_acc'].max()/0.05)*0.05)
+        ax.set_ylim(0.25,1)
+        plt.title('Means across holdout subjects on reserved 33% (200 gests)')
+        ax.set_xlabel('# Subject gestures (max 400)')
+        ax.set_ylabel('Classification Accuracy')#' on reserved 33% (200) subject')
+        
+        #plt.axhline(y=0.723,label='Mean Generalist',linestyle='--',color='gray')
+        #plt.axhline(y=0.86907,label='Mean Fully Bespoke',linestyle='--',color='pink')
+        plt.axhline(y=mean_gen_HO,label='Mean RQ1\nGeneralist',linestyle='--',color='gray')
+        h, l = ax.get_legend_handles_labels()
+        ax.legend(h,[l[0],'No Non-Subject\ndata','Model transfer from\n2000 Non-Subject\ngestures'],
+                  title='# Non-subject gestures\n (max 12000)',loc='center left',bbox_to_anchor=(1,0.5))
+        plt.show()
+        
+    if 0:
+        ''' Comparing winner Aug to no Aug at Subj Saturation'''
+        fig,ax=plt.subplots();
+        scores_agg=scores_minimal.groupby(['augscale_wholegests','trainAmnt_wholegests'])['fusion_acc'].agg(['mean','std']).reset_index()
+        scores_agg=scores_agg.round({'augscale_wholegests':0})
+        scores_agg=scores_agg.round({'trainAmnt_wholegests':0})
+        #scores_agg['augscale_wholegests']=scores_agg['augscale_wholegests'].astype(int)
+        means=scores_agg.pivot(index='trainAmnt_wholegests',
+                         columns='augscale_wholegests',
+                         values='mean')
+        stds=scores_agg.pivot(index='trainAmnt_wholegests',
+                         columns='augscale_wholegests',
+                         values='std')
+        means.plot(kind='bar',ax=ax,rot=0,capsize=2,width=0.8,
+                                             yerr=stds)
+      #  means.iloc[:,0].plot(kind='bar',ax=ax,rot=0,capsize=2,width=0.8,
+      #                                       yerr=stds.iloc[:,0],color='tab:blue',label='No Non-Subject\ndata')
+      #  means.iloc[:,1].plot(kind='bar',ax=ax,rot=0,capsize=2,width=0.8,
+      #                                       yerr=stds.iloc[:,1],color='tab:pink',label='Model transfer from\n640 Non-Subject\ngestures')
+        #ax.set_ylim(np.floor(scores_minimal['fusion_acc'].min()/0.05)*0.05,np.ceil(scores_minimal['fusion_acc'].max()/0.05)*0.05)
+        ax.set_ylim(0.25,1)
+        plt.title('Means across holdout subjects on reserved 33% (200 gests)')
+        ax.set_xlabel('# Subject gestures (max 400)')
+        ax.set_ylabel('Classification Accuracy')#' on reserved 33% (200) subject')
+        
+        #plt.axhline(y=0.723,label='Mean Generalist',linestyle='--',color='gray')
+        #plt.axhline(y=0.86907,label='Mean Fully Bespoke',linestyle='--',color='pink')
+        plt.axhline(y=mean_gen_HO,label='Mean RQ1\nGeneralist',linestyle='--',color='gray')
+        h, l = ax.get_legend_handles_labels()
+        ax.legend(h,[l[0],'No Non-Subject\ndata','Augmentation by\n640 Non-Subject\ngestures'],
+                  title='# Non-subject gestures\n (max 12000)',loc='center left',bbox_to_anchor=(1,0.5))
+        plt.show()
+    
     
     
     fig,ax=plt.subplots();
@@ -927,21 +1073,33 @@ if __name__ == '__main__':
   #  next(ax._get_lines.prop_cycler)
     #https://stackoverflow.com/questions/46670710/is-it-possible-to-ignore-matplotlib-first-default-color-for-plotting
     scores_agg=scores_minimal.groupby(['augscale_wholegests','trainAmnt_wholegests'])['fusion_acc'].agg(['mean','std']).reset_index()
+    ''' adding dummy 0-aug rows for mpl color cycler '''
+    scores_agg.loc[-1]=[0,40,0,0]
+    scores_agg.loc[-1]=[0,40,0,0]
     scores_agg=scores_agg.round({'augscale_wholegests':0})
+    scores_agg=scores_agg.round({'trainAmnt_wholegests':0})
     #scores_agg['augscale_wholegests']=scores_agg['augscale_wholegests'].astype(int)
     scores_agg.pivot(index='trainAmnt_wholegests',
                      columns='augscale_wholegests',
                      values='mean').plot(kind='bar',ax=ax,rot=0,capsize=2,width=0.8,
                                          yerr=scores_agg.pivot(index='trainAmnt_wholegests',
                                                                columns='augscale_wholegests',values='std'))
-    ax.set_ylim(np.floor(scores_minimal['fusion_acc'].min()/0.05)*0.05,np.ceil(scores_minimal['fusion_acc'].max()/0.05)*0.05)
-    plt.title('Means across subjects on reserved 33% (200 gests)')
-    ax.set_xlabel('# Subject gestures for calib (max 400)')
+    #ax.set_ylim(np.floor(scores_minimal['fusion_acc'].min()/0.05)*0.05,np.ceil(scores_minimal['fusion_acc'].max()/0.05)*0.05)
+    ax.set_ylim(0.25,1)
+    plt.title('Means across holdout subjects on reserved 33% (200 gestures)',loc='left')
+    ax.set_xlabel('# Same-Subject gestures used to calibrate (max 400)')
     ax.set_ylabel('Classification Accuracy')#' on reserved 33% (200) subject')
     
-    plt.axhline(y=0.723,label='Mean Generalist',linestyle='--',color='gray')
-    plt.axhline(y=0.86907,label='Mean Fully Bespoke',linestyle='--',color='pink')
-    ax.legend(title='# Non-subject gests for\n train (max 11400)')
+    #plt.axhline(y=0.723,label='Mean Generalist',linestyle='--',color='gray')
+    #plt.axhline(y=0.86907,label='Mean Fully Bespoke',linestyle='--',color='pink')
+    plt.axhline(y=mean_gen_HO,label='RQ1 Generalist',linestyle='--',color='gray')
+    #plt.axhline(y=0.723-0.073289,linestyle=':',color='gray') #DEV Gen error
+    #plt.axhline(y=0.723+0.073289,linestyle=':',color='gray') #DEV Gen error
+    plt.axhline(y=mean_gen_HO+std_gen_HO,linestyle=':',color='gray')
+    plt.axhline(y=mean_gen_HO-std_gen_HO,linestyle=':',color='gray')
+    h, l = ax.get_legend_handles_labels()
+    ax.legend(h[0:1]+h[2:],l[0:1]+l[2:],
+              title='# Other-Subject gestures in\ninitial training (max 12000)',loc='center left',bbox_to_anchor=(1,0.5))
     plt.show()
     
     
@@ -959,13 +1117,48 @@ if __name__ == '__main__':
                                          yerr=scores_agg.pivot(index='augscale_wholegests',
                                                                columns='trainAmnt_wholegests',values='std'))
     ax.set_ylim(np.floor(scores_minimal['fusion_acc'].min()/0.05)*0.05,np.ceil(scores_minimal['fusion_acc'].max()/0.05)*0.05)
-    plt.title('Means across subjects on reserved 33% (200 gests)')
-    ax.set_xlabel('# Non-subject gestures for train (max 11400)')
+    plt.title('Means across holdout subjects on reserved 33% (200 gests)')
+    ax.set_xlabel('# Non-subject gestures for train (max 12000)')
     ax.set_ylabel('Classification Accuracy')#' on reserved 33% (200) subject')
     
-    plt.axhline(y=0.723,label='Mean Generalist',linestyle='--',color='gray')
-    plt.axhline(y=0.86907,label='Mean Fully Bespoke',linestyle='--',color='pink')
-    ax.legend(title='# Subject gestures for\ncalib (max 400)')
+    #plt.axhline(y=0.723,label='Mean Generalist',linestyle='--',color='gray')
+    #plt.axhline(y=0.86907,label='Mean Fully Bespoke',linestyle='--',color='pink')
+    plt.axhline(y=mean_gen_HO,label='Mean RQ1\nGeneralist',linestyle='--',color='gray')
+    ax.legend(title='# Subject gestures for\ncalib (max 400)',loc='center left',bbox_to_anchor=(1,0.5))
+    plt.show()
+    
+    
+    
+    scores_aug=pd.read_csv(load_aug_path,index_col=0)
+    scores_aug['augscale_wholegests']=np.around(scores_aug['augment_scale']*nSubj*nGest*nRepsPerGest).astype(int)
+    scores_aug['trainAmnt_wholegests']=np.around(scores_aug['rolloff_factor']*trainsplitSize*nGest*nRepsPerGest).astype(int)
+    
+    scores_aug_agg=scores_aug.groupby(['augscale_wholegests','trainAmnt_wholegests'])['fusion_acc'].agg(['mean','std']).reset_index()
+    scores_aug_agg=scores_aug_agg.round({'augscale_wholegests':0})
+    
+    
+    fig,ax=plt.subplots()
+    scores_aug_agg.pivot(index='augscale_wholegests',
+                     columns='trainAmnt_wholegests',
+                     values='mean').plot(kind='line',ax=ax,rot=0,marker='.',linestyle='-',color='tab:purple'
+                                         #yerr=scores_aug_agg.pivot(index='augscale_wholegests',columns='trainAmnt_wholegests',values='std'),
+                                         )
+    scores_agg.pivot(index='augscale_wholegests',
+                     columns='trainAmnt_wholegests',
+                     values='mean').plot(kind='line',ax=ax,rot=0,marker='x',linestyle='-.',color='tab:purple'
+                                         #yerr=scores_agg.pivot(index='augscale_wholegests',columns='trainAmnt_wholegests',values='std'),
+                                         )
+    plt.title('Means across Holdout subjects on reserved 33% (200 gestures)\n    where system has access to 301 same-subject gestures',loc='left')
+    ax.set_xlabel('# Other-Subject gestures (max 12000)')
+    ax.set_ylabel('Classification Accuracy')
+    
+    ax.set_ylim(0.455,0.88)
+    ax.set_ylim(0.43,0.93)
+    
+    plt.axhline(y=mean_gen_HO,label='RQ1 Generalist',linestyle='--',color='gray')
+    h,l=ax.get_legend_handles_labels()
+    
+    ax.legend(h,['Augmentation','Transfer Learning','RQ1 Generalist'],title='System',loc='center left',bbox_to_anchor=(1,0.5))
     plt.show()
     
     

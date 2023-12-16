@@ -269,7 +269,7 @@ if __name__ == '__main__':
     
     load_res_path=r"/home/michael/Downloads/D1d_AugWarmstart_rolloff0.1_augment0.053_resMinimal.csv"
 
-    systemUnderTest = 'D1_AugAll'
+    systemUnderTest = 'D1a_AugHighNoSVM'
     rolling_off_subj=True
     
     testset_size = 0.33
@@ -320,6 +320,15 @@ if __name__ == '__main__':
         augment_scales=[0.33, 0.1, 0.075]#, 0.45, 0.25, 0.67]
         augment_scales=[0.1, 0.075, 0.33]#, 0.45, 0.25, 0.67]
         augment_scales = np.array([round(scale/(1/150))*(1/150) for scale in augment_scales])
+        
+    elif systemUnderTest == 'D1a_AugHighNoSVM':
+        feats_method='non-subject aug'
+        opt_method='non-subject aug'
+        train_method='non-subject aug'
+        #train_sizes=np.concatenate(([0.05,0.1],np.linspace(0.01,1,5)[1:]))
+        train_sizes=np.concatenate(([0.1],np.linspace(0.01,1,5)[1:]))
+        augment_scales=[0.33]
+        augment_scales = np.array([round(scale/(1/150))*(1/150) for scale in augment_scales])
     
     if run_test:
         iters = 100
@@ -345,6 +354,10 @@ if __name__ == '__main__':
                     print('Rolloff: ',str(rolloff),' Augment: ',str(augment_scale))
                     
                     space=setup_search_space(architecture='decision',include_svm=True)
+                    
+                    if augment_scale > 0.2:
+                        print('no SVM')
+                        space=setup_search_space(architecture='decision',include_svm=False)
                     
                     space.update({'l1_sparsity':0.05})
                     space.update({'l1_maxfeats':40})

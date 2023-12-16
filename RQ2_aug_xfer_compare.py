@@ -279,6 +279,16 @@ if __name__ == '__main__':
     load_res_path=r"/home/michael/Downloads/D1_AugAllfinal_resMinimal - Copy - Copy.csv"
     
     load_res_path=r"/home/michael/Downloads/D1_AugAllfinal_resMinimal - Copy - no SVM in ANY 0333NonSubj.csv"
+    
+    load_res_warmstart=r"C:\Users\pritcham\Documents\mm-framework\multimodal-framework\lit_data_expts\jeong\results\RQ2\D1d_AugWarmstartNewfinal_resMinimal.csv"
+    
+    load_res_warmstart=r"C:\Users\pritcham\Documents\mm-framework\multimodal-framework\lit_data_expts\jeong\results\RQ2\D1d_AugWarmstartfinal_resMinimal - Copy (3).csv"
+    
+    load_res_path=r"C:\Users\pritcham\Documents\mm-framework\multimodal-framework\lit_data_expts\jeong\results\RQ2\D1_AugAllfinal_resMinimal - Copy - Copy - Copy.csv"
+    
+    load_res_path=r"C:\Users\pritcham\Documents\mm-framework\multimodal-framework\lit_data_expts\jeong\results\RQ2\D1_AugAllfinal_resMinimal - Copy - no SVM in ANY 0333NonSubj.csv"
+    
+    load_res_warmstart=r"C:\Users\pritcham\Documents\mm-framework\multimodal-framework\lit_data_expts\jeong\results\RQ2\D1d_a_Warmstart_FixRFNewfinal_resMinimal - Copy.csv"
 
     systemUnderTest = 'D1a_AugStable'
     rolling_off_subj=True
@@ -641,6 +651,34 @@ if __name__ == '__main__':
     #axL.set_ylim(0.6,0.9)
     plt.show()
     
+    
+    figL,axL=plt.subplots()
+    scores_aug_agg.pivot(index='aug_trainAmnt_wholegests',
+                     columns='aug_augscale_wholegests',
+                     values='aug_mean').plot(kind='line',marker='.',ax=axL,rot=0)
+    plt.gca().set_prop_cycle(None)
+    next(axL._get_lines.prop_cycler)
+
+    
+    scores_xfer_agg.pivot(index='xfer_trainAmnt_wholegests',
+                     columns='xfer_augscale_wholegests',
+                     values='xfer_mean').plot(kind='line',marker='x',linestyle='-.',ax=axL,rot=0)
+    plt.title('Means across ppts on reserved 33% (200 gestures)')
+    axL.set_xlabel('# Subject gestures (of 400)')
+    axL.set_ylabel('Classification Accuracy')#' on reserved 33% (200) subject')
+    
+    plt.axhline(y=0.723,label='Mean\nGeneralist',linestyle='--',color='gray')
+    plt.axhline(y=0.866105,label='Fully\nBespoke',linestyle='--',color='pink')
+    #handles,labels=axL.get_legend_handles_labels()
+    #plt.tight_layout()
+    axL.legend(title='# Non-subject gestures (of 11400)',loc='center left',bbox_to_anchor=(1,0.5),ncol=2)
+    #axL.set_ylim(np.floor(scores_agg[scores_agg['mean']>0]['mean'].min()/0.1)*0.1,np.ceil(scores_agg['mean'].max()/0.05)*0.05)
+    axL.set_ylim(0.7,0.9)
+    plt.show()
+    
+    
+    
+    
     figL,axL=plt.subplots()
     scores_aug_agg.pivot(columns='aug_trainAmnt_wholegests',
                      index='aug_augscale_wholegests',
@@ -699,6 +737,36 @@ if __name__ == '__main__':
   #  axL.set_ylim(0.43,0.9)
     #axL.set_xlim(-100,2000)
     plt.show()
+    
+    
+    
+    fig,ax=plt.subplots()
+    aug_301_dev=scores_aug_agg[scores_aug_agg['aug_trainAmnt_wholegests']==301]
+    xfer_301_dev=scores_xfer_agg[scores_xfer_agg['xfer_trainAmnt_wholegests']==301]
+    
+    aug_301_dev.pivot(index='aug_augscale_wholegests',
+                     columns='aug_trainAmnt_wholegests',
+                     values='aug_mean').plot(kind='line',ax=ax,rot=0,marker='.',linestyle='-',color='tab:purple'
+                                         #yerr=scores_aug_agg.pivot(index='augscale_wholegests',columns='trainAmnt_wholegests',values='std'),
+                                         )
+    xfer_301_dev.pivot(index='xfer_augscale_wholegests',
+                     columns='xfer_trainAmnt_wholegests',
+                     values='xfer_mean').plot(kind='line',ax=ax,rot=0,marker='x',linestyle='-.',color='tab:purple'
+                                         #yerr=scores_agg.pivot(index='augscale_wholegests',columns='trainAmnt_wholegests',values='std'),
+                                         )
+    plt.title('Means across Development subjects on reserved 33% (200 gestures)\n    where system has access to 301 same-subject gestures',loc='left')
+    ax.set_xlabel('# Other-Subject gestures (max 12000)')
+    ax.set_ylabel('Classification Accuracy')
+    
+    ax.set_ylim(0.455,0.88)
+    ax.set_ylim(0.43,0.93)
+    
+    plt.axhline(y=0.723,label='RQ1 Generalist',linestyle='--',color='gray')
+    h,l=ax.get_legend_handles_labels()
+    
+    ax.legend(h,['Augmentation','Transfer Learning','RQ1 Generalist'],title='System',loc='center left',bbox_to_anchor=(1,0.5))
+    plt.show()
+    
     
     raise
     
@@ -909,6 +977,10 @@ if __name__ == '__main__':
         axL.legend(title='# Subject gestures\ncalibrating (of 400)',loc='center left',bbox_to_anchor=(1,0.5))
         axL.set_ylim(np.floor(scores_agg[scores_agg['mean']>0]['mean'].min()/0.1)*0.1,np.ceil(scores_agg['mean'].max()/0.05)*0.05)
         plt.show()
+        
+        
+        
+        
     
 if 0:
     def load_results_obj(path):

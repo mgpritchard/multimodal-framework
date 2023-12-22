@@ -326,6 +326,16 @@ if __name__ == '__main__':
         calib_levels = [4/134,8/134,20/134,40/134,60/134,72/134,80/134,100/134,120/134,132/134]
         
         calib_levels = np.array([round(scale/(4/134))*(4/134) for scale in calib_levels])
+        
+    elif systemUnderTest=='C2_WithinSession_TopupOpt':
+        feats_method='no calib'
+        opt_method='calib'
+        train_method='no calib'
+        
+        train_session='both'
+        
+        calib_levels = [4/134,8/134,20/134,40/134,60/134,72/134,80/134,100/134,120/134,132/134]
+        calib_levels = np.array([round(scale/(4/134))*(4/134) for scale in calib_levels])
     
     testset_size = 0.33
     

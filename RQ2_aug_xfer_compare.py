@@ -670,7 +670,7 @@ if __name__ == '__main__':
     #plt.tight_layout()
     axL.legend(title='# Non-subject gestures (of 11400)',loc='center left',bbox_to_anchor=(1,0.5),ncol=2)
     #axL.set_ylim(np.floor(scores_agg[scores_agg['mean']>0]['mean'].min()/0.1)*0.1,np.ceil(scores_agg['mean'].max()/0.05)*0.05)
-    axL.set_ylim(0.7,0.9)
+    #axL.set_ylim(0.7,0.9)
     plt.show()
     
     

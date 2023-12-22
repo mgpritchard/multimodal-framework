@@ -279,6 +279,7 @@ if __name__ == '__main__':
 
         feats_method='subject'
         train_method='subject'
+        opt_method='subject'
         augment_scales=[0]
         
         if rolling_off_subj==True:

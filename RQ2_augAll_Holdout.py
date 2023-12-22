@@ -272,9 +272,14 @@ if __name__ == '__main__':
     load_res_path=None
     load_res_path=r"C:\Users\pritcham\Documents\mm-framework\multimodal-framework\lit_data_expts\jeong\results\RQ2\H1_NoAugHalfData_final_resMinimal - Copy.csv"
     
-    load_res_devset_path=r"C:\Users\pritcham\Documents\mm-framework\multimodal-framework\lit_data_expts\jeong\results\RQ2\D1_AugAllfinal_resMinimal.csv"
+    #singleshot from the main result set
+  #  load_res_devset_path=r"C:\Users\pritcham\Documents\mm-framework\multimodal-framework\lit_data_expts\jeong\results\RQ2\D1_AugAllfinal_resMinimal.csv"
     
-    load_res_devset_path=r"C:\Users\pritcham\Documents\mm-framework\multimodal-framework\lit_data_expts\jeong\results\RQ2\D1b_RolloffStable_with_noRolloff_5trials.csv"
+    #5 reps of each, but the 5 reps of no rolloff arent right (theyre from AUG stable so 33% train-test split was same)
+ #   load_res_devset_path=r"C:\Users\pritcham\Documents\mm-framework\multimodal-framework\lit_data_expts\jeong\results\RQ2\D1b_RolloffStable_with_noRolloff_5trials.csv"
+    
+    #5 reps of each, but corrected no rolloff (different 33-test-splits each time)
+    load_res_devset_path=r"C:\Users\pritcham\Documents\mm-framework\multimodal-framework\lit_data_expts\jeong\results\RQ2\D1b_RolloffStable_with_noRolloff_5trials_correctedNoRolloff.csv"
     
     load_res_path=r"C:\Users\pritcham\Documents\mm-framework\multimodal-framework\lit_data_expts\jeong\results\RQ2\H2_HalfDataAug_final_resMinimal - Copy.csv"
     
@@ -286,7 +291,9 @@ if __name__ == '__main__':
 
     load_res_path=r"C:\Users\pritcham\Documents\mm-framework\multimodal-framework\lit_data_expts\jeong\results\RQ2\H1_RolloffSaturate_5reps.csv"
     
-    load_res_path=r"C:\Users\pritcham\Documents\mm-framework\multimodal-framework\lit_data_expts\jeong\results\RQ2\H4_AugLow_final_resMinimal - Copy with Aug033.csv"
+ #   load_res_path=r"C:\Users\pritcham\Documents\mm-framework\multimodal-framework\lit_data_expts\jeong\results\RQ2\H1_RolloffSaturate_singleshot.csv"
+    
+   # load_res_path=r"C:\Users\pritcham\Documents\mm-framework\multimodal-framework\lit_data_expts\jeong\results\RQ2\H4_AugLow_final_resMinimal - Copy with Aug033.csv"
 
     systemUnderTest = 'H1a_NoAugRolloff'
     
@@ -814,7 +821,7 @@ if __name__ == '__main__':
                                            #  yerr=noAugDev.pivot(index='trainAmnt_wholegests',columns='augscale_wholegests',values='std'),
                                              marker='.',label='Development set')
                                              '''
-        noAugDev.plot(x='trainAmnt_wholegests',y='mean',kind='line',ax=ax,rot=0,marker='.',label='Subject-specific\n(Development set)')
+        noAugDev.plot(x='trainAmnt_wholegests',y='mean',kind='line',ax=ax,rot=0,marker='.',label='Subject-specific\n(Development set)')#,yerr='std',capsize=5)
         '''
         scores_agg.pivot(index='trainAmnt_wholegests',
                          columns='augscale_wholegests',
@@ -822,13 +829,14 @@ if __name__ == '__main__':
                                            #  yerr=scores_agg.pivot(index='trainAmnt_wholegests',columns='augscale_wholegests',values='std'),
                                              marker='.',label='Holdout set') 
                          '''
-        scores_agg.plot(x='trainAmnt_wholegests',y='mean',kind='line',ax=ax,rot=0,marker='.',label='Subject-specific\n(Holdout set)')
+        scores_agg.plot(x='trainAmnt_wholegests',y='mean',kind='line',ax=ax,rot=0,marker='.',label='Subject-specific\n(Holdout set)')#,yerr='std',capsize=5)
         ax.set_ylim(np.floor(scores_minimal['fusion_acc'].min()/0.05)*0.05,np.ceil(scores_minimal['fusion_acc'].max()/0.05)*0.05)
        # ax.set_ylim(0.78,0.9)
         ax.set_ylim(0.25,1)
         #ax.set_xlim(0,400)
+        #ax.grid(visible=True,axis='y',which='both');
         
-        plt.title('Means across subjects on reserved 33% (200 gestures)',loc='left')
+        plt.title('Means across Development subjects on reserved 33% (200 gestures)',loc='left')
         ax.set_xlabel('# Subject gestures utilised (max 400)')
         ax.set_ylabel('Classification Accuracy')#' on reserved 33% (200) subject')
         

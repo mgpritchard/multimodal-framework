@@ -24,6 +24,7 @@ import random
 import matplotlib.pyplot as plt
 from matplotlib.colors import LogNorm, PowerNorm
 from matplotlib.patches import Ellipse
+from functools import partial
 from hyperopt import fmin, tpe, hp, space_eval, STATUS_OK, Trials
 from hyperopt.pyll import scope, stochastic
 import time
@@ -277,6 +278,8 @@ if __name__ == '__main__':
     
     load_res_path=r"/home/michael/Downloads/D1_AugAllfinal_resMinimal - Copy - Copy.csv"
     
+    load_res_path=r"/home/michael/Downloads/D1_AugAllfinal_resMinimal - Copy - no SVM in ANY 0333NonSubj.csv"
+    
     load_res_warmstart=r"C:\Users\pritcham\Documents\mm-framework\multimodal-framework\lit_data_expts\jeong\results\RQ2\D1d_AugWarmstartNewfinal_resMinimal.csv"
     
     load_res_warmstart=r"C:\Users\pritcham\Documents\mm-framework\multimodal-framework\lit_data_expts\jeong\results\RQ2\D1d_AugWarmstartfinal_resMinimal - Copy (3).csv"
@@ -286,6 +289,9 @@ if __name__ == '__main__':
     load_res_path=r"C:\Users\pritcham\Documents\mm-framework\multimodal-framework\lit_data_expts\jeong\results\RQ2\D1_AugAllfinal_resMinimal - Copy - no SVM in ANY 0333NonSubj.csv"
     
     load_res_warmstart=r"C:\Users\pritcham\Documents\mm-framework\multimodal-framework\lit_data_expts\jeong\results\RQ2\D1d_a_Warmstart_FixRFNewfinal_resMinimal - Copy.csv"
+    
+    load_res_warmstart=r"/home/michael/Downloads/D1d_a_Warmstart_FixRFNewfinal_resMinimal - Copy.csv"
+    load_res_path=r"/home/michael/Downloads/D1_AugAllfinal_resMinimal - Copy - no SVM in ANY 0333NonSubj (1).csv"
 
     systemUnderTest = 'D1a_AugStable'
     rolling_off_subj=True
@@ -697,6 +703,95 @@ if __name__ == '__main__':
     axL.set_ylim(0.6,0.9)
     axL.set_xlim(-100,2000)
     plt.show()
+    
+    
+    
+    figL,axL=plt.subplots()
+   # scores_aug_agg=scores_aug_agg.pivot(columns='aug_trainAmnt_wholegests',
+    #                 index='aug_augscale_wholegests',
+     #                values='aug_mean')
+   # scores_aug_agg=np.log(scores_aug_agg)
+    #scores_aug_agg.plot(kind='line',marker='.',ax=axL,rot=0)
+    '''above only needed (ie assignment rather than pivot.plot)
+    if going to do something like the below'''
+    #scores_aug_agg=scores_aug_agg.add_suffix(' ')
+    scores_aug_agg.pivot(columns='aug_trainAmnt_wholegests',
+                     index='aug_augscale_wholegests',
+                     values='aug_mean').plot(kind='line',marker='.',ax=axL,rot=0)
+    
+    
+    plt.gca().set_prop_cycle(None)
+    scores_xfer_agg.pivot(columns='xfer_trainAmnt_wholegests',
+                     index='xfer_augscale_wholegests',
+                     values='xfer_mean').plot(kind='line',marker='x',linestyle='-.',ax=axL,rot=0)
+   # scores_xfer_agg=np.log(scores_xfer_agg)
+    plt.title('Means across Development subjects on reserved 33% (200 gestures)',loc='left')
+    axL.set_xlabel('# Other-Subject gestures (of 11400)')
+    axL.set_ylabel('Classification Accuracy')#' on reserved 33% (200) subject')
+    
+    plt.axhline(y=0.723,label='Generalist*',linestyle='--',color='gray')
+  #  plt.axhline(y=0.866105,label='Fully Bespoke',linestyle='--',color='pink')
+    #handles,labels=axL.get_legend_handles_labels()
+    #plt.tight_layout()
+    lines=axL.get_lines()
+    h,l=axL.get_legend_handles_labels()
+    legendColours=plt.legend(h[0:6],l[0:6],title='# Same-Subject\ngestures (of 400)',loc='upper left',bbox_to_anchor=(1,0.5))
+  #  legendSystem=plt.legend([h[i] for i in [0,6,12,13]],['Augmentation','Model Transfer']+l[12:],title='System type',loc='lower left',bbox_to_anchor=(1,0.5))
+    legendSystem=plt.legend([h[i] for i in [0,6,12]],['Augmentation','Model Transfer']+l[12:],title='System type',loc='lower left',bbox_to_anchor=(1,0.5))
+    #axL.legend(title='# Subject gestures\n (of 400)',loc='center left',bbox_to_anchor=(1,0.5))
+    axL.add_artist(legendColours)
+    axL.add_artist(legendSystem)
+    #axL.set_ylim(np.floor(scores_agg[scores_agg['mean']>0]['mean'].min()/0.1)*0.1,np.ceil(scores_agg['mean'].max()/0.05)*0.05)
+    axL.set_ylim(0.43,0.93)
+  #  axL.set_yscale('function', functions=(partial(np.power, 10.0), np.log10))
+  #  axL.set_ylim(0.43,0.9)
+    #axL.set_xlim(-100,2000)
+    plt.show()
+    
+    
+    
+    figL,axL=plt.subplots()
+    scores_aug_agg=scores_aug_agg.pivot(index='aug_trainAmnt_wholegests',
+                     columns='aug_augscale_wholegests',
+                     values='aug_mean')
+   # scores_aug_agg=np.log(scores_aug_agg)
+    scores_aug_agg.plot(kind='line',marker='.',ax=axL,rot=0)
+    #scores_aug_agg=scores_aug_agg.add_suffix(' ')
+    plt.gca().set_prop_cycle(None)
+    next(axL._get_lines.prop_cycler)
+    scores_xfer_agg=scores_xfer_agg.pivot(index='xfer_trainAmnt_wholegests',
+                     columns='xfer_augscale_wholegests',
+                     values='xfer_mean')
+   # scores_xfer_agg=np.log(scores_xfer_agg)
+    scores_xfer_agg.plot(kind='line',marker='x',linestyle='-.',ax=axL,rot=0)
+    plt.title('Means across Development subjects on reserved 33% (200 gestures)',loc='left')
+    axL.set_xlabel('# Same-Subject gestures (of 400)')
+    axL.set_ylabel('Classification Accuracy')#' on reserved 33% (200) subject')
+    
+    plt.axhline(y=0.723,label='Generalist*',linestyle='--',color='gray')
+  #  plt.axhline(y=0.866105,label='Fully Bespoke',linestyle='--',color='pink')
+    #handles,labels=axL.get_legend_handles_labels()
+    #plt.tight_layout()
+    lines=axL.get_lines()
+    h,l=axL.get_legend_handles_labels()
+    legendColours=plt.legend(h[0:8],l[0:8],title='# Other-Subject\ngestures (of 11400)',loc='upper left',bbox_to_anchor=(1,0.5))
+  #  legendSystem=plt.legend([h[i] for i in [0,6,12,13]],['Augmentation','Model Transfer']+l[12:],title='System type',loc='lower left',bbox_to_anchor=(1,0.5))
+    legendSystem=plt.legend([h[i] for i in [1,8,15]],['Augmentation','Model Transfer']+l[15:],title='System type',loc='lower left',bbox_to_anchor=(1,0.5))
+    #axL.legend(title='# Subject gestures\n (of 400)',loc='center left',bbox_to_anchor=(1,0.5))
+    axL.add_artist(legendColours)
+    axL.add_artist(legendSystem)
+    #axL.set_ylim(np.floor(scores_agg[scores_agg['mean']>0]['mean'].min()/0.1)*0.1,np.ceil(scores_agg['mean'].max()/0.05)*0.05)
+   # axL.set_ylim(0.43,0.93)
+  #  axL.set_yscale('function', functions=(partial(np.power, 10.0), np.log10))
+  #  axL.set_ylim(0.43,0.9)
+    #axL.set_xlim(-100,2000)
+    #axL.set_ylim(0.7,0.9)
+    plt.show()
+    
+    
+    raise
+    
+    
     
     
     

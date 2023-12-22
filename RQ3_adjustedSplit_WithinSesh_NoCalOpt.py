@@ -285,6 +285,8 @@ if __name__ == '__main__':
     train_both_baseline_path=r"C:\Users\pritcham\Documents\mm-framework\multimodal-framework\lit_data_expts\jeong\results\RQ3\A2_both1and2final_resMinimal.csv"
     train_2_baseline_path=r"C:\Users\pritcham\Documents\mm-framework\multimodal-framework\lit_data_expts\jeong\results\RQ3\A1b_session2final_resMinimal.csv"
     train_both_downsample_baseline_path=r"C:\Users\pritcham\Documents\mm-framework\multimodal-framework\lit_data_expts\jeong\results\RQ3\A2a_bothNoExtraData_final_resMinimal.csv"
+    
+    withinTrain_topupOpt_path=r"C:\Users\pritcham\Documents\mm-framework\multimodal-framework\lit_data_expts\jeong\results\RQ3\C2_WithinSession_TopupOptfinal_resMinimal - Copy.csv"
 
     systemUnderTest = 'B2b_WithinSession_optForHalf'
     
@@ -636,6 +638,7 @@ if __name__ == '__main__':
         train_both_baseline=pd.read_csv(train_both_baseline_path,index_col=0)
         train_2_baseline=pd.read_csv(train_2_baseline_path,index_col=0)
         train_both_downsample_baseline=pd.read_csv(train_both_downsample_baseline_path,index_col=0)
+        topupOpt=pd.read_csv(withinTrain_topupOpt_path,index_col=0)
         
         nGest=4
         nRepsPerGest=50
@@ -647,6 +650,19 @@ if __name__ == '__main__':
         train_both_baseline['calib_level_wholegests']=train_both_baseline['calib_level']*(1-testset_size)*nGest*nRepsPerGest
         train_2_baseline['calib_level_wholegests']=train_2_baseline['calib_level']*(1-testset_size)*nGest*nRepsPerGest
         train_both_downsample_baseline['calib_level_wholegests']=train_both_downsample_baseline['calib_level']*(1-testset_size)*nGest*nRepsPerGest
+        topupOpt['calib_level_wholegests']=topupOpt['calib_level']*(1-testset_size)*nGest*nRepsPerGest
+        
+        
+        
+        rq2_bespoke_ref_path=r"C:\Users\pritcham\Documents\mm-framework\multimodal-framework\lit_data_expts\jeong\results\RQ2\D1e_NoRolloff_Stablefinal_resMinimal - Copy.csv"
+        scores_rq2=pd.read_csv(rq2_bespoke_ref_path,index_col=0)  
+        scores_rq2['augscale_wholegests']=np.around(scores_rq2['augment_scale']*19*nGest*nRepsPerGest).astype(int)
+        scores_rq2['trainAmnt_wholegests']=np.around(scores_rq2['rolloff_factor']*trainsplitSize*nGest*nRepsPerGest).astype(int)
+        
+        noAugRQ2=scores_rq2[scores_rq2['augscale_wholegests']==0]
+        noAugRQ2=noAugRQ2.groupby(['trainAmnt_wholegests','augscale_wholegests'])['fusion_acc'].agg(['mean','std']).reset_index()
+        
+        
         
         
         
@@ -663,6 +679,9 @@ if __name__ == '__main__':
         within_opt_both_downsample_agg=within_opt_both_downsample.groupby(['calib_level_wholegests'])['fusion_acc'].agg(['mean','std']).reset_index()
         within_opt_both_downsample_agg.plot(y='mean',x='calib_level_wholegests',kind='line',marker='.',ax=ax,rot=0,label='Session 3 only\nOptimised for 1+2\n(downsampled to half)')
         
+        topupOpt_agg=topupOpt.groupby(['calib_level_wholegests'])['fusion_acc'].agg(['mean','std']).reset_index()
+        topupOpt_agg.plot(y='mean',x='calib_level_wholegests',kind='line',marker='.',ax=ax,rot=0,label='Session 3 train\nOptimised for 3 topped\nup by 1+2 to 200 total')
+        
         train_both_baseline_score=np.mean(train_both_baseline['fusion_acc'])
         train_2_baseline_score=np.mean(train_2_baseline['fusion_acc'])
         train_both_downsample_baseline_score=np.mean(train_both_downsample_baseline['fusion_acc'])
@@ -672,13 +691,20 @@ if __name__ == '__main__':
         ax.set_xlabel('# Session 3 gestures (max 134)')
         ax.set_ylabel('Classification Accuracy')#' on reserved 33% (200) subject')
         
+        
+        plt.axhline(y=noAugRQ2['mean'][0],label='RQ2 Bespoke\n(Not session-split)',linestyle='--',color='pink')
+        plt.axhline(y=noAugRQ2['mean'][0]+noAugRQ2['std'][0],linestyle=':',color='pink')
+        plt.axhline(y=noAugRQ2['mean'][0]-noAugRQ2['std'][0],linestyle=':',color='pink')
+        
+        
       #  plt.axhline(y=0.86907,label='RQ2 Full Besp\nNot session-split!',linestyle='--',color='pink')
+        #plt.axhline(y=0.859975,label='RQ2 Full Besp\nNot session-split!',linestyle='--',color='pink')
         plt.axhline(y=0.723,label='RQ1 Generalist\nNot session-split!',linestyle='--',color='gray')
         #plt.axhline(y=0.7475,label='Train both\n(no cal) avg',linestyle='--',color='black')
         plt.axhline(y=train_both_baseline_score,label='Train both',linestyle='--',color='tab:orange')
         plt.axhline(y=train_2_baseline_score,label='Train session 2',linestyle='--',color='tab:green')
         plt.axhline(y=train_both_downsample_baseline_score,label='Train both\n(downsampled to half)',linestyle='--',color='tab:red')
-        ax.legend(title='Subject',loc='center left',bbox_to_anchor=(1,0.5))#,ncol=2)
+        ax.legend(title='System',loc='center left',bbox_to_anchor=(1,0.5))#,ncol=2)
         plt.show()
         
         
@@ -688,19 +714,55 @@ if __name__ == '__main__':
         within_opt_both_agg.plot(y='mean',x='calib_level_wholegests',kind='line',marker='.',ax=ax,rot=0,label='Session 3 only\nOptimised for 1+2')
         within_opt_2_agg.plot(y='mean',x='calib_level_wholegests',kind='line',marker='.',ax=ax,rot=0,label='Session 3 only\nOptimised for 2')
         within_opt_both_downsample_agg.plot(y='mean',x='calib_level_wholegests',kind='line',marker='.',ax=ax,rot=0,label='Session 3 only\nOptimised for 1+2\n(downsampled to half)')
+        topupOpt_agg.plot(y='mean',x='calib_level_wholegests',kind='line',marker='.',ax=ax,rot=0,label='Session 3 train\nOptimised for 3 topped\nup by 1+2 to 200 total')
         
         ax.set_ylim(0.7,0.89)
         plt.title('Accuracy per subject on reserved 33% of session 3 (66 gests)\nNB that within-only has 2/3 of the data as a whole other session')
         ax.set_xlabel('# Session 3 gestures (max 134)')
         ax.set_ylabel('Classification Accuracy')#' on reserved 33% (200) subject')
         
+        
+        plt.axhline(y=noAugRQ2['mean'][0],label='RQ2 Bespoke\n(Not session-split)',linestyle='--',color='pink')
+        plt.axhline(y=noAugRQ2['mean'][0]+noAugRQ2['std'][0],linestyle=':',color='pink')
+        plt.axhline(y=noAugRQ2['mean'][0]-noAugRQ2['std'][0],linestyle=':',color='pink')
+        
       #  plt.axhline(y=0.86907,label='RQ2 Full Besp\nNot session-split!',linestyle='--',color='pink')
+        #plt.axhline(y=0.859975,label='RQ2 Full Besp\nNot session-split!',linestyle='--',color='pink')
         plt.axhline(y=0.723,label='RQ1 Generalist\nNot session-split!',linestyle='--',color='gray')
         #plt.axhline(y=0.7475,label='Train both\n(no cal) avg',linestyle='--',color='black')
         plt.axhline(y=train_both_baseline_score,label='Train both',linestyle='--',color='tab:orange')
         plt.axhline(y=train_2_baseline_score,label='Train session 2',linestyle='--',color='tab:green')
         plt.axhline(y=train_both_downsample_baseline_score,label='Train both\n(downsampled to half)',linestyle='--',color='tab:red')
-        ax.legend(title='Subject',loc='center left',bbox_to_anchor=(1,0.5))#,ncol=2)
+        ax.legend(title='System',loc='center left',bbox_to_anchor=(1,0.5))#,ncol=2)
+        plt.show()
+        
+        
+        fig,ax=plt.subplots();
+        fully_within_agg.plot(y='mean',x='calib_level_wholegests',kind='line',marker='.',ax=ax,rot=0,label='Session 3 only')
+        within_opt_both_agg.plot(y='mean',x='calib_level_wholegests',kind='line',marker='.',ax=ax,rot=0,label='Session 3 only\nOptimised for 1+2',c='tab:purple')
+        #next(axL._get_lines.prop_cycler) times like five
+        within_opt_2_agg.plot(y='mean',x='calib_level_wholegests',kind='line',marker='.',ax=ax,rot=0,label='Session 3 only\nOptimised for 2',c='tab:pink')
+        within_opt_both_downsample_agg.plot(y='mean',x='calib_level_wholegests',kind='line',marker='.',ax=ax,rot=0,label='Session 3 only\nOptimised for 1+2\n(downsampled to half)',c='tab:gray')
+        topupOpt_agg.plot(y='mean',x='calib_level_wholegests',kind='line',marker='.',ax=ax,rot=0,label='Session 3 train\nOptimised for 3 topped\nup by 1+2 to 200 total',c='tab:olive')
+        
+        ax.set_ylim(0.7,0.89)
+        plt.title('Accuracy per subject on reserved 33% of session 3 (66 gests)\nNB that within-only has 2/3 of the data as a whole other session')
+        ax.set_xlabel('# Session 3 gestures (max 134)')
+        ax.set_ylabel('Classification Accuracy')#' on reserved 33% (200) subject')
+        
+        
+        plt.axhline(y=noAugRQ2['mean'][0],label='RQ2 Bespoke\n(Not session-split)',linestyle='--',color='pink')
+        plt.axhline(y=noAugRQ2['mean'][0]+noAugRQ2['std'][0],linestyle=':',color='pink')
+        plt.axhline(y=noAugRQ2['mean'][0]-noAugRQ2['std'][0],linestyle=':',color='pink')
+        
+      #  plt.axhline(y=0.86907,label='RQ2 Full Besp\nNot session-split!',linestyle='--',color='pink')
+        #plt.axhline(y=0.859975,label='RQ2 Full Besp\nNot session-split!',linestyle='--',color='pink')
+        plt.axhline(y=0.723,label='RQ1 Generalist\nNot session-split!',linestyle='--',color='k')
+        #plt.axhline(y=0.7475,label='Train both\n(no cal) avg',linestyle='--',color='black')
+        plt.axhline(y=train_both_baseline_score,label='Train both',linestyle='--',color='tab:purple')
+        plt.axhline(y=train_2_baseline_score,label='Train session 2',linestyle='--',color='tab:pink')
+        plt.axhline(y=train_both_downsample_baseline_score,label='Train both\n(downsampled to half)',linestyle='--',color='tab:gray')
+        ax.legend(title='System',loc='center left',bbox_to_anchor=(1,0.5))#,ncol=2)
         plt.show()
         
         

@@ -293,7 +293,7 @@ def eegsearchspace_lowdata(include_svm=True):
 
 if __name__ == '__main__':
     
-    run_test=False
+    run_test=True
     plot_results=True
     load_res_path=None
     
@@ -302,7 +302,7 @@ if __name__ == '__main__':
     load_calib_res_path=r"C:\Users\pritcham\Documents\mm-framework\multimodal-framework\lit_data_expts\jeong\results\RQ3\B1_AugPipelinefinal_resMinimal - Copy.csv"
     #load_calib_res_path=r"/home/michael/Downloads/B1_AugPipelinefinal_resMinimal - Copy.csv"
     
-    systemUnderTest = 'C1_Session3only'
+    systemUnderTest = 'C2_WithinSession_TopupOpt'
     
     if systemUnderTest=='A1a_session1':
         train_session='first'
@@ -343,6 +343,16 @@ if __name__ == '__main__':
         
         calib_levels = [8/134,20/134,40/134,60/134,72/134,80/134,100/134,120/134,132/134]
         
+        calib_levels = np.array([round(scale/(4/134))*(4/134) for scale in calib_levels])
+        
+    elif systemUnderTest=='C2_WithinSession_TopupOpt':
+        feats_method='no calib'
+        opt_method='calib'
+        train_method='no calib'
+        
+        train_session='third'
+        
+        calib_levels = [8/134,20/134,40/134,60/134,72/134,80/134,100/134,120/134,132/134]
         calib_levels = np.array([round(scale/(4/134))*(4/134) for scale in calib_levels])
     
     testset_size = 0.33
@@ -474,6 +484,47 @@ if __name__ == '__main__':
                     sel_cols_emg=np.append(sel_cols_emg,ml.drop_ID_cols(emg_train).columns.get_loc('Label'))
                     sel_cols_eeg=feats.sel_feats_l1_df(ml.drop_ID_cols(eeg_train),sparsityC=space['l1_sparsity'],maxfeats=space['l1_maxfeats'])
                     sel_cols_eeg=np.append(sel_cols_eeg,ml.drop_ID_cols(eeg_train).columns.get_loc('Label')) 
+                    
+                    
+                    if systemUnderTest=='C2_WithinSession_TopupOpt': 
+                        emg_session1=emg_ppt[emg_ppt['ID_run']==1.0]
+                        eeg_session1=eeg_ppt[eeg_ppt['ID_run']==1.0]
+                        emg_session2=emg_ppt[emg_ppt['ID_run']==2.0]
+                        eeg_session2=eeg_ppt[eeg_ppt['ID_run']==2.0]
+                    
+                    
+                        #scalesize=((1/calib_level/(1-testset_size))-1)/((1/calib_level/(1-testset_size))*2)
+                        scalesize=(1-(calib_level*(1-testset_size)))/2
+                        
+                        gest_perfs1=emg_session1['ID_stratID'].unique()
+                        gest_strat1=pd.DataFrame([gest_perfs1,[perf.split('.')[1][-1] for perf in gest_perfs1]]).transpose()
+                        
+                        train_split1,_=train_test_split(gest_strat1,train_size=scalesize,
+                                                              random_state=random_split,stratify=gest_strat1[1])
+                        emg_session1=emg_session1[emg_session1['ID_stratID'].isin(train_split1[0])]
+                        eeg_session1=eeg_session1[eeg_session1['ID_stratID'].isin(train_split1[0])]
+                        
+                        gest_perfs2=emg_session2['ID_stratID'].unique()
+                        gest_strat2=pd.DataFrame([gest_perfs2,[perf.split('.')[1][-1] for perf in gest_perfs2]]).transpose()
+                        
+                        train_split2,_=train_test_split(gest_strat2,train_size=scalesize,
+                                                              random_state=random_split,stratify=gest_strat2[1])
+                        emg_session2=emg_session2[emg_session2['ID_stratID'].isin(train_split2[0])]
+                        eeg_session2=eeg_session2[eeg_session2['ID_stratID'].isin(train_split2[0])]
+                        
+                        emg_topup=pd.concat([emg_session1,emg_session2])
+                        eeg_topup=pd.concat([eeg_session1,eeg_session2])
+                        
+                        emg_topup=feats.scale_feats_test(emg_topup,emgscaler)
+                        eeg_topup=feats.scale_feats_test(eeg_topup,eegscaler)
+                        
+                        emg_topped_up=pd.concat([emg_train,emg_topup])
+                        eeg_topped_up=pd.concat([eeg_train,eeg_topup])
+                        
+                        space.update({'emg_set':emg_topped_up,'eeg_set':eeg_topped_up,'data_in_memory':True,'prebalanced':True})
+                        
+                    else:
+                        space.update({'emg_set':emg_train,'eeg_set':eeg_train,'data_in_memory':True,'prebalanced':True})
 
                 
  
@@ -481,7 +532,7 @@ if __name__ == '__main__':
                     space['sel_cols_eeg']=sel_cols_eeg
                     space['subject-id']=eeg_ppt['ID_pptID'][0]  
                     
-                    space.update({'emg_set':emg_train,'eeg_set':eeg_train,'data_in_memory':True,'prebalanced':True})
+                    
 
                     space.update({'featsel_method':feats_method})
                     space.update({'train_method':train_method})

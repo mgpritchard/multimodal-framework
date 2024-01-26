@@ -967,10 +967,12 @@ if __name__ == '__main__':
         ax.set_ylabel('Classification Accuracy')#' on reserved 33% (200) subject')
         
         #plt.axhline(y=0.86907,label='RQ2 Full Besp\nNot session-split!',linestyle='--',color='pink')
-        plt.axhline(y=noAugRQ2['mean'][0],label='RQ2 Bespoke\n(Not session-split)',linestyle='--',color='pink')
-        plt.axhline(y=noAugRQ2['mean'][0]+noAugRQ2['std'][0],linestyle=':',color='pink')
-        plt.axhline(y=noAugRQ2['mean'][0]-noAugRQ2['std'][0],linestyle=':',color='pink')
-        plt.axhline(y=0.723,label='RQ1 Generalist\nNot session-split!',linestyle='--',color='gray')
+#        plt.axhline(y=noAugRQ2['mean'][0],label='RQ2 Bespoke\n(Not session-split)',linestyle='--',color='pink')
+#        plt.axhline(y=noAugRQ2['mean'][0]+noAugRQ2['std'][0],linestyle=':',color='pink')
+#        plt.axhline(y=noAugRQ2['mean'][0]-noAugRQ2['std'][0],linestyle=':',color='pink')
+        
+        plt.axhline(y=0.723,label='Proxy* Generalist',linestyle='--',color='gray')
+        #plt.axhline(y=0.723,label='RQ1 Generalist\nNot session-split!',linestyle='--',color='gray')
         plt.axhline(y=0.7475,label='Train both\n(no cal) avg',linestyle='--',color='black')
         ax.legend(title='Subject',loc='center left',bbox_to_anchor=(1,0.5),ncol=2)
         plt.show()
@@ -1051,9 +1053,10 @@ if __name__ == '__main__':
         # OR 866105 if we use D1a_AugStable_with_errorCalcs
       #  plt.axhline(y=0.86907,label='RQ2 Full Besp\nNot session-split!',linestyle='--',color='pink')
         # NOW we take it from RQ2 rolloffStable5trials, but corrected (previously 5 trials werent different)
-        plt.axhline(y=noAugRQ2['mean'][0],label='RQ2 Bespoke\n(Not session-split)',linestyle='--',color='pink')
-        plt.axhline(y=noAugRQ2['mean'][0]+noAugRQ2['std'][0],linestyle=':',color='pink')
-        plt.axhline(y=noAugRQ2['mean'][0]-noAugRQ2['std'][0],linestyle=':',color='pink')
+#        plt.axhline(y=noAugRQ2['mean'][0],label='RQ2 Bespoke\n(Not session-split)',linestyle='--',color='pink')
+#        plt.axhline(y=noAugRQ2['mean'][0]+noAugRQ2['std'][0],linestyle=':',color='pink')
+#        plt.axhline(y=noAugRQ2['mean'][0]-noAugRQ2['std'][0],linestyle=':',color='pink')
+        
         #plt.axhline(y=0.723,label='RQ1 Generalist\nNot session-split!',linestyle='--',color='gray')
         #ax.legend(title='Subject',loc='center left',bbox_to_anchor=(1,0.5),ncol=2)
         #ax.set_ylim(0.3,0.95)
@@ -1130,16 +1133,65 @@ if __name__ == '__main__':
         # OR 866105 if we use D1a_AugStable_with_errorCalcs
       #  plt.axhline(y=0.86907,label='RQ2 Full Besp\nNot session-split!',linestyle='--',color='pink')
         # NOW we take it from RQ2 rolloffStable5trials, but corrected (previously 5 trials werent different)
-        plt.axhline(y=noAugRQ2['mean'][0],label='RQ2 Bespoke\n(Not session-split)',linestyle='--',color='pink')
-        plt.axhline(y=noAugRQ2['mean'][0]+noAugRQ2['std'][0],linestyle=':',color='pink')
-        plt.axhline(y=noAugRQ2['mean'][0]-noAugRQ2['std'][0],linestyle=':',color='pink')
-        plt.axhline(y=0.723,label='RQ1 Generalist\nNot session-split!',linestyle='--',color='gray')
+   #     plt.axhline(y=noAugRQ2['mean'][0],label='RQ2 Bespoke\n(Not session-split)',linestyle='--',color='pink')
+   #     plt.axhline(y=noAugRQ2['mean'][0]+noAugRQ2['std'][0],linestyle=':',color='pink')
+   #     plt.axhline(y=noAugRQ2['mean'][0]-noAugRQ2['std'][0],linestyle=':',color='pink')
+        plt.axhline(y=0.723,label='Proxy* Generalist',linestyle='--',color='gray')
         #ax.legend(title='Subject',loc='center left',bbox_to_anchor=(1,0.5),ncol=2)
         #ax.set_ylim(0.3,0.95)
         #ax.set_ylim(0.4,0.9)
        # plt.axhline(y=0.7475,label='Train 1&2\n(no cal) avg',linestyle='--',color='black')
         ax.legend(loc='center left',bbox_to_anchor=(1,0.5),ncol=2)
         plt.show()
+        
+        
+        
+        
+        '''** ALL AFTER WHITTLING PRETRAINS **'''
+        
+      #  fig,ax=plt.subplots();
+        fig=plt.figure()
+        ax=fig.add_axes((0.0,0.15,0.8,0.8))
+        
+        scores_sessiononly_agg.plot(y='mean',x='calib_level_wholegests',kind='line',marker='.',ax=ax,rot=0,label='Within-session learning')
+        scores_aug_agg.plot(y='mean',x='calib_level_wholegests',kind='line',marker='.',ax=ax,rot=0,label='Dataset augmented by\nall prior user data')
+        scores_xfer_opt_agg.plot(y='mean',x='calib_level_wholegests',kind='line',marker='.',ax=ax,rot=0,label='Transfer from prior user\ndata including optimisation')
+        scores_agg.plot(y='mean',x='calib_level_wholegests',kind='line',marker='.',ax=ax,rot=0,label='Transfer from prior user\ndata with static configuration',c='tab:red')
+        scores_xfer_gen_agg.plot(y='mean',x='calib_level_wholegests',kind='line',marker='.',ax=ax,rot=0,label='Transfer from Generalist',c='tab:brown')
+        scores_sessionNoOpt_agg.plot(y='mean',x='calib_level_wholegests',kind='line',marker='.',ax=ax,rot=0,label='Within-session training\n(system config optimised\non all prior user data)',c='tab:purple')
+        within_opt_2_agg.plot(y='mean',x='calib_level_wholegests',kind='line',marker='.',ax=ax,rot=0,label='Within-session training\n(system config optimised\non Session 2 user data)')
+        within_opt_both_downsample_agg.plot(y='mean',x='calib_level_wholegests',kind='line',marker='.',ax=ax,rot=0,label='Within-session training\n(system config optimised on\ndownsampled prior user data)',c='tab:gray')
+        topupOpt_agg.plot(y='mean',x='calib_level_wholegests',kind='line',marker='.',ax=ax,rot=0,label='Within-session training\n(system config optimised on\njoint session-specific &\nprior user data)')
+        plt.axhline(y=train_both_baseline_score,label='Optimised & pretrained \non all prior user data',linestyle='--',color='black')
+        #   plt.axhline(y=train_2_baseline_score,label='Train session 2',linestyle='--',color='tab:green')
+        #   plt.axhline(y=train_both_downsample_baseline_score,label='Train 1 + 2\n(downsampled to half)',linestyle='--',color='tab:red')
+                         
+    #    ax.set_ylim(np.floor(scores_minimal['fusion_acc'].min()/0.05)*0.05,np.ceil(scores_minimal['fusion_acc'].max()/0.05)*0.05)
+        plt.title('Mean accuracies of all approaches over Development subjects\non reserved 33% of Session 3 data (66 gestures)',loc='left')
+        ax.set_xlabel('# Session 3 gestures used for learning')
+        ax.set_ylabel('Classification Accuracy')#' on reserved 33% (200) subject')
+        
+
+        plt.axhline(y=0.723,label='Proxy* Generalist',linestyle='-.',color='gray')
+        #ax.legend(title='Subject',loc='center left',bbox_to_anchor=(1,0.5),ncol=2)
+        #ax.set_ylim(0.3,0.95)
+        ax.set_ylim(0.4,1.0)
+        ax.legend(loc='center left',bbox_to_anchor=(1,0.375),ncol=1)
+        
+        axTime=fig.add_axes((0.0,0.0,0.8,0.0))
+        axTime.yaxis.set_visible(False)
+        axTime.set_xticks(ax.get_xticks())
+        def tick_function(X):
+            #V = 1/(1+X)
+            V=(X*3)/60
+            return ["%.1f" % z for z in V]
+        axTime.set_xticklabels(tick_function(ax.get_xticks()))
+        axTime.set_xlim(ax.get_xlim())
+        axTime.set_xlabel("Minimum session-specific recording time (minutes)")
+        
+        plt.show()
+        
+        
         
         
         
@@ -1170,12 +1222,7 @@ if __name__ == '__main__':
             plt.axhline(y=train_both_baseline_score,label='Optimised & Trained \non sessions 1 + 2',linestyle='--',color='black')
          #   plt.axhline(y=train_2_baseline_score,label='Train session 2',linestyle='--',color='tab:green')
          #   plt.axhline(y=train_both_downsample_baseline_score,label='Train 1 + 2\n(downsampled to half)',linestyle='--',color='tab:red')
-                    
- #       scores_aug_unadjusted['calib_level_wholegests']=scores_aug_unadjusted['calib_level']*(1-testset_size)*nGest*nRepsPerGest
- #       aug_unadjust_agg=scores_aug_adjusted.groupby(['calib_level_wholegests'])['fusion_acc'].agg(['mean','std']).reset_index()
- #       aug_unadjust_agg=aug_adjust_agg.round({'calib_level_wholegests':5})
- #       aug_unadjust_agg.plot(y='mean',x='calib_level_wholegests',kind='line',marker='.',ax=ax,rot=0,label='Session 3 augmented\nadjusted split')
-                
+                          
         ax.set_ylim(np.floor(scores_minimal['fusion_acc'].min()/0.05)*0.05,np.ceil(scores_minimal['fusion_acc'].max()/0.05)*0.05)
         plt.title('INTERESTING Mean accuracies over Development subjects\non reserved 33% of session 3 (66 gestures)',loc='left')
         ax.set_xlabel('# Session 3 gestures (max 134)')
@@ -1186,10 +1233,10 @@ if __name__ == '__main__':
         # OR 866105 if we use D1a_AugStable_with_errorCalcs
       #  plt.axhline(y=0.86907,label='RQ2 Full Besp\nNot session-split!',linestyle='--',color='pink')
         # NOW we take it from RQ2 rolloffStable5trials, but corrected (previously 5 trials werent different)
-        plt.axhline(y=noAugRQ2['mean'][0],label='RQ2 Bespoke\n(Not session-split)',linestyle='-.',color='pink')
-        plt.axhline(y=noAugRQ2['mean'][0]+noAugRQ2['std'][0],linestyle=':',color='pink')
-        plt.axhline(y=noAugRQ2['mean'][0]-noAugRQ2['std'][0],linestyle=':',color='pink')
-        plt.axhline(y=0.723,label='RQ1 Generalist\n(Not session-split)',linestyle='-.',color='gray')
+  #      plt.axhline(y=noAugRQ2['mean'][0],label='RQ2 Bespoke\n(Not session-split)',linestyle='-.',color='pink')
+  #      plt.axhline(y=noAugRQ2['mean'][0]+noAugRQ2['std'][0],linestyle=':',color='pink')
+  #      plt.axhline(y=noAugRQ2['mean'][0]-noAugRQ2['std'][0],linestyle=':',color='pink')
+        plt.axhline(y=0.723,label='Proxy* Generalist',linestyle='-.',color='gray')
         #ax.legend(title='Subject',loc='center left',bbox_to_anchor=(1,0.5),ncol=2)
         #ax.set_ylim(0.3,0.95)
         #ax.set_ylim(0.4,0.9)
@@ -1224,12 +1271,7 @@ if __name__ == '__main__':
             plt.axhline(y=train_both_baseline_score,label='Optimised & Trained \non sessions 1 + 2',linestyle='--',color='black')
          #   plt.axhline(y=train_2_baseline_score,label='Train session 2',linestyle='--',color='tab:green')
          #   plt.axhline(y=train_both_downsample_baseline_score,label='Train 1 + 2\n(downsampled to half)',linestyle='--',color='tab:red')
-                    
- #       scores_aug_unadjusted['calib_level_wholegests']=scores_aug_unadjusted['calib_level']*(1-testset_size)*nGest*nRepsPerGest
- #       aug_unadjust_agg=scores_aug_adjusted.groupby(['calib_level_wholegests'])['fusion_acc'].agg(['mean','std']).reset_index()
- #       aug_unadjust_agg=aug_adjust_agg.round({'calib_level_wholegests':5})
- #       aug_unadjust_agg.plot(y='mean',x='calib_level_wholegests',kind='line',marker='.',ax=ax,rot=0,label='Session 3 augmented\nadjusted split')
-                
+                          
         ax.set_ylim(np.floor(scores_minimal['fusion_acc'].min()/0.05)*0.05,np.ceil(scores_minimal['fusion_acc'].max()/0.05)*0.05)
         plt.title('VIABLE Mean accuracies over Development subjects\non reserved 33% of session 3 (66 gestures)',loc='left')
         ax.set_xlabel('# Session 3 gestures (max 134)')
@@ -1240,10 +1282,10 @@ if __name__ == '__main__':
         # OR 866105 if we use D1a_AugStable_with_errorCalcs
       #  plt.axhline(y=0.86907,label='RQ2 Full Besp\nNot session-split!',linestyle='--',color='pink')
         # NOW we take it from RQ2 rolloffStable5trials, but corrected (previously 5 trials werent different)
-        plt.axhline(y=noAugRQ2['mean'][0],label='RQ2 Bespoke\n(Not session-split)',linestyle='-.',color='pink')
-        plt.axhline(y=noAugRQ2['mean'][0]+noAugRQ2['std'][0],linestyle=':',color='pink')
-        plt.axhline(y=noAugRQ2['mean'][0]-noAugRQ2['std'][0],linestyle=':',color='pink')
-        plt.axhline(y=0.723,label='RQ1 Generalist\n(Not session-split)',linestyle='-.',color='gray')
+  #      plt.axhline(y=noAugRQ2['mean'][0],label='RQ2 Bespoke\n(Not session-split)',linestyle='-.',color='pink')
+  #      plt.axhline(y=noAugRQ2['mean'][0]+noAugRQ2['std'][0],linestyle=':',color='pink')
+  #      plt.axhline(y=noAugRQ2['mean'][0]-noAugRQ2['std'][0],linestyle=':',color='pink')
+        plt.axhline(y=0.723,label='Proxy* Generalist',linestyle='-.',color='gray')
         #ax.legend(title='Subject',loc='center left',bbox_to_anchor=(1,0.5),ncol=2)
         #ax.set_ylim(0.3,0.95)
         #ax.set_ylim(0.4,0.9)
@@ -1251,6 +1293,53 @@ if __name__ == '__main__':
         ax.legend(loc='center left',bbox_to_anchor=(1,0.5),ncol=1)
         plt.show()
         
+        
+        
+        
+        
+        '''** ALL CANDIDATES **'''
+        
+      #  fig,ax=plt.subplots();
+        fig=plt.figure()
+        ax=fig.add_axes((0.0,0.15,0.8,0.8))
+        
+        scores_sessiononly_agg.plot(y='mean',x='calib_level_wholegests',kind='line',marker='.',ax=ax,rot=0,label='Within-session\nlearning')
+       # scores_aug_agg.plot(y='mean',x='calib_level_wholegests',kind='line',marker='.',ax=ax,rot=0,label='Dataset augmented by\nall prior user data')
+       # scores_xfer_opt_agg.plot(y='mean',x='calib_level_wholegests',kind='line',marker='.',ax=ax,rot=0,label='Transfer from prior user\ndata including optimisation')
+        scores_agg.plot(y='mean',x='calib_level_wholegests',kind='line',marker='.',ax=ax,rot=0,label='Transfer from\nprior user data\nwith static\nconfiguration',c='tab:red')
+        scores_xfer_gen_agg.plot(y='mean',x='calib_level_wholegests',kind='line',marker='.',ax=ax,rot=0,label='Transfer from\nGeneralist',c='tab:brown')
+      #  scores_sessionNoOpt_agg.plot(y='mean',x='calib_level_wholegests',kind='line',marker='.',ax=ax,rot=0,label='Within-session training\n(system config optimised\non all prior user data)',c='tab:purple')
+      #  within_opt_2_agg.plot(y='mean',x='calib_level_wholegests',kind='line',marker='.',ax=ax,rot=0,label='Within-session training\n(system config optimised\non Session 2 user data)')
+        within_opt_both_downsample_agg.plot(y='mean',x='calib_level_wholegests',kind='line',marker='.',ax=ax,rot=0,label='Within-session\ntraining (system\nconfig optimised\non downsampled\nprior user data)',c='tab:gray')
+      #  topupOpt_agg.plot(y='mean',x='calib_level_wholegests',kind='line',marker='.',ax=ax,rot=0,label='Within-session training\n(system config optimised on\njoint session-specific &\nprior user data)')
+        plt.axhline(y=train_both_baseline_score,label='Pretrained on\nprior user data',linestyle='--',color='black')
+        #   plt.axhline(y=train_2_baseline_score,label='Train session 2',linestyle='--',color='tab:green')
+        #   plt.axhline(y=train_both_downsample_baseline_score,label='Train 1 + 2\n(downsampled to half)',linestyle='--',color='tab:red')
+      
+    #    ax.set_ylim(np.floor(scores_minimal['fusion_acc'].min()/0.05)*0.05,np.ceil(scores_minimal['fusion_acc'].max()/0.05)*0.05)
+        plt.title('Mean accuracies of candidate approaches over Development subjects\non reserved 33% of Session 3 data (66 gestures)',loc='left')
+        ax.set_xlabel('# Session 3 gestures used for learning')
+        ax.set_ylabel('Classification Accuracy')#' on reserved 33% (200) subject')
+        
+
+        plt.axhline(y=0.723,label='Proxy* Generalist',linestyle='-.',color='gray')
+        #ax.legend(title='Subject',loc='center left',bbox_to_anchor=(1,0.5),ncol=2)
+        #ax.set_ylim(0.3,0.95)
+        ax.set_ylim(0.4,1.0)
+        ax.legend(loc='center left',bbox_to_anchor=(1,0.5),ncol=1)
+        
+        axTime=fig.add_axes((0.0,0.0,0.8,0.0))
+        axTime.yaxis.set_visible(False)
+        axTime.set_xticks(ax.get_xticks())
+        def tick_function(X):
+            #V = 1/(1+X)
+            V=(X*3)/60
+            return ["%.1f" % z for z in V]
+        axTime.set_xticklabels(tick_function(ax.get_xticks()))
+        axTime.set_xlim(ax.get_xlim())
+        axTime.set_xlabel("Minimum session-specific recording time (minutes)")
+        
+        plt.show()
         
         
         

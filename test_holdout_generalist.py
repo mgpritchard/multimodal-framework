@@ -20,6 +20,8 @@ import numpy as np
 import time
 import statsmodels.api as sm
 from statsmodels.formula.api import ols
+from sklearn.model_selection import train_test_split
+import random
 
 def update_chosen_params(space,arch):
     paramdict={
@@ -290,7 +292,102 @@ def get_confmats_eeg():
     
     return ppt_scores_just_eeg
 
+
+def rq3_HO_generalist_testSession3():
+    trainEEGpath=params.jeong_eeg_noholdout
+    trainEMGpath=params.jeong_emg_noholdout
+    
+    trainEEG=pd.read_csv(trainEEGpath)
+    trainEMG=pd.read_csv(trainEMGpath)
+    trainEMG,trainEEG=fuse.balance_set(trainEMG,trainEEG)
+    
+    
+    ppt1={'emg_path':r"H:\Jeong11tasks_data\final_dataset\holdout\emg_holdout_ppt1.csv",
+          'eeg_path':r"H:\Jeong11tasks_data\final_dataset\holdout\eeg_holdout_ppt1.csv"}
+    ppt6={'emg_path':r"H:\Jeong11tasks_data\final_dataset\holdout\emg_holdout_ppt6.csv",
+          'eeg_path':r"H:\Jeong11tasks_data\final_dataset\holdout\eeg_holdout_ppt6.csv"}
+    ppt11={'emg_path':r"H:\Jeong11tasks_data\final_dataset\holdout\emg_holdout_ppt11.csv",
+          'eeg_path':r"H:\Jeong11tasks_data\final_dataset\holdout\eeg_holdout_ppt11.csv"}
+    ppt16={'emg_path':r"H:\Jeong11tasks_data\final_dataset\holdout\emg_holdout_ppt16.csv",
+          'eeg_path':r"H:\Jeong11tasks_data\final_dataset\holdout\eeg_holdout_ppt16.csv"}
+    ppt21={'emg_path':r"H:\Jeong11tasks_data\final_dataset\holdout\emg_holdout_ppt21.csv",
+          'eeg_path':r"H:\Jeong11tasks_data\final_dataset\holdout\eeg_holdout_ppt21.csv"}
+    
+    holdout_ppts=[ppt1,ppt6,ppt11,ppt16,ppt21]
+    
+    space=fuse.setup_search_space('featlevel',include_svm=False)
+        
+    space=update_chosen_params(space,'feat_join')
+    
+    space.update({'trialmode':'LOO'})
+    
+    emg_cols=pd.read_csv(params.emgLOOfeatpath,delimiter=',',header=None)
+    eeg_cols=pd.read_csv(params.eegLOOfeatpath,delimiter=',',header=None)
+    emgeegcols=pd.read_csv(params.jointemgeegLOOfeatpath,delimiter=',',header=None)
+    space.update({'emg_feats_LOO':emg_cols,
+                  'eeg_feats_LOO':eeg_cols,
+                  'jointemgeeg_feats_LOO':emgeegcols,})
+    
+    testset_size=0.33
+    ppt_scores=[]
+    for ppt in holdout_ppts:
+        emg_ppt=pd.read_csv(ppt['emg_path'],delimiter=',')
+        eeg_ppt=pd.read_csv(ppt['eeg_path'],delimiter=',')
+        emg_ppt,eeg_ppt=fuse.balance_set(emg_ppt,eeg_ppt)
+        
+        emg_ppt.sort_values(['ID_pptID','ID_run','Label','ID_gestrep','ID_tend'],ascending=[True,True,True,True,True],inplace=True)
+        eeg_ppt.sort_values(['ID_pptID','ID_run','Label','ID_gestrep','ID_tend'],ascending=[True,True,True,True,True],inplace=True)
+        
+        index_emg=ml.pd.MultiIndex.from_arrays([emg_ppt[col] for col in ['ID_pptID','ID_run','Label','ID_gestrep','ID_tend']])
+        index_eeg=ml.pd.MultiIndex.from_arrays([eeg_ppt[col] for col in ['ID_pptID','ID_run','Label','ID_gestrep','ID_tend']])
+        emg_ppt=emg_ppt.loc[index_emg.isin(index_eeg)].reset_index(drop=True)
+        eeg_ppt=eeg_ppt.loc[index_eeg.isin(index_emg)].reset_index(drop=True)
+        
+        eeg_ppt['ID_stratID']=eeg_ppt['ID_run'].astype(str)+eeg_ppt['Label'].astype(str)+emg_ppt['ID_pptID'].astype(str)+eeg_ppt['ID_gestrep'].astype(str)
+        emg_ppt['ID_stratID']=emg_ppt['ID_run'].astype(str)+emg_ppt['Label'].astype(str)+emg_ppt['ID_pptID'].astype(str)+emg_ppt['ID_gestrep'].astype(str)
+        random_split=random.randint(0,100)
+        
+        if not emg_ppt['ID_stratID'].equals(eeg_ppt['ID_stratID']):
+            raise ValueError('EMG & EEG performances misaligned')
+        
+        print(eeg_ppt['ID_pptID'][0])
+        
+        emg_session3=emg_ppt[emg_ppt['ID_run']==3.0]
+        eeg_session3=eeg_ppt[eeg_ppt['ID_run']==3.0]
+        
+        gest_perfs=emg_session3['ID_stratID'].unique()
+        gest_strat=pd.DataFrame([gest_perfs,[perf.split('.')[1][-1] for perf in gest_perfs]]).transpose()
+        
+        random_split=random.randint(0,100)
+        
+        _,test_split=train_test_split(gest_strat,test_size=testset_size,
+                                              random_state=random_split,stratify=gest_strat[1])
+            
+        emg_test=emg_session3[emg_session3['ID_stratID'].isin(test_split[0])]
+        eeg_test=eeg_session3[eeg_session3['ID_stratID'].isin(test_split[0])]                            
+        
+        results=fuse_LOO(trainEMG,trainEEG,emg_test,eeg_test,space)
+        ppt_scores.append(results)
+        
+    ppt_scores_feat_join=pd.DataFrame(ppt_scores, index=['ppt1','ppt6','ppt11','ppt16','ppt21'])
+    
+    _,acc_feat_join=plt.subplots()
+    ppt_scores_feat_join.boxplot(column='fusion_acc',ax=acc_feat_join)
+    acc_feat_join.set(ylim=([0, 1]))
+    
+    scoremean=np.mean(ppt_scores_feat_join['fusion_acc'])
+    scorestd=np.std(ppt_scores_feat_join['fusion_acc'])
+    print('Mean feat join acc over 5 heldout: ',str(scoremean))
+    print('Std dev feat join acc over 5 heldout: ',str(scorestd))
+    
+    return ppt_scores_feat_join
+
+
 if __name__ == '__main__':
+    
+    rq3_HO_gen_scores=rq3_HO_generalist_testSession3()
+    
+    raise
     
     #eegScores = get_confmats_eeg()
     '''could do again but getting preds back for merged ConfMat?'''

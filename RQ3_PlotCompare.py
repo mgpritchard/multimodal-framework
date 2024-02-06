@@ -634,6 +634,7 @@ if __name__ == '__main__':
     within_opt_2_path=r"C:\Users\pritcham\Documents\mm-framework\multimodal-framework\lit_data_expts\jeong\results\RQ3\B2a_WithinSession_optFor2_final_resMinimal.csv"
     within_opt_both_downsample_path=r"C:\Users\pritcham\Documents\mm-framework\multimodal-framework\lit_data_expts\jeong\results\RQ3\B2b_WithinSession_optForHalf_final_resMinimal.csv"
     train_both_baseline_path=r"C:\Users\pritcham\Documents\mm-framework\multimodal-framework\lit_data_expts\jeong\results\RQ3\A2_both1and2final_resMinimal.csv"
+    train_1_baseline_path=r"C:\Users\pritcham\Documents\mm-framework\multimodal-framework\lit_data_expts\jeong\results\RQ3\A1a_session1final_resMinimal.csv"
     train_2_baseline_path=r"C:\Users\pritcham\Documents\mm-framework\multimodal-framework\lit_data_expts\jeong\results\RQ3\A1b_session2final_resMinimal.csv"
     train_both_downsample_baseline_path=r"C:\Users\pritcham\Documents\mm-framework\multimodal-framework\lit_data_expts\jeong\results\RQ3\A2a_bothNoExtraData_final_resMinimal.csv"
     withinTrain_topupOpt_path=r"C:\Users\pritcham\Documents\mm-framework\multimodal-framework\lit_data_expts\jeong\results\RQ3\C2_WithinSession_TopupOptfinal_resMinimal - Copy.csv"
@@ -1076,6 +1077,7 @@ if __name__ == '__main__':
         within_opt_both_downsample=pd.read_csv(within_opt_both_downsample_path,index_col=0)
         train_both_baseline=pd.read_csv(train_both_baseline_path,index_col=0)
         train_2_baseline=pd.read_csv(train_2_baseline_path,index_col=0)
+        train_1_baseline=pd.read_csv(train_1_baseline_path,index_col=0)
         train_both_downsample_baseline=pd.read_csv(train_both_downsample_baseline_path,index_col=0)
         topupOpt=pd.read_csv(withinTrain_topupOpt_path,index_col=0)
         
@@ -1084,6 +1086,7 @@ if __name__ == '__main__':
         within_opt_both_downsample['calib_level_wholegests']=within_opt_both_downsample['calib_level']*(1-testset_size)*nGest*nRepsPerGest
         train_both_baseline['calib_level_wholegests']=train_both_baseline['calib_level']*(1-testset_size)*nGest*nRepsPerGest
         train_2_baseline['calib_level_wholegests']=train_2_baseline['calib_level']*(1-testset_size)*nGest*nRepsPerGest
+        train_1_baseline['calib_level_wholegests']=train_1_baseline['calib_level']*(1-testset_size)*nGest*nRepsPerGest
         train_both_downsample_baseline['calib_level_wholegests']=train_both_downsample_baseline['calib_level']*(1-testset_size)*nGest*nRepsPerGest
         topupOpt['calib_level_wholegests']=topupOpt['calib_level']*(1-testset_size)*nGest*nRepsPerGest
         
@@ -1094,6 +1097,7 @@ if __name__ == '__main__':
         
         train_both_baseline_score=np.mean(train_both_baseline['fusion_acc'])
         train_2_baseline_score=np.mean(train_2_baseline['fusion_acc'])
+        train_1_baseline_score=np.mean(train_1_baseline['fusion_acc'])
         train_both_downsample_baseline_score=np.mean(train_both_downsample_baseline['fusion_acc'])
         
         
@@ -1147,6 +1151,84 @@ if __name__ == '__main__':
         
         
         
+        
+        
+        '''** JUST PRETRAINS **'''
+        
+      #  fig,ax=plt.subplots();
+        fig=plt.figure()
+        ax=fig.add_axes((0.0,0.15,0.8,0.8))
+        
+       # scores_sessiononly_agg.plot(y='mean',x='calib_level_wholegests',kind='line',marker='.',ax=ax,rot=0,label='Within-session learning')
+       # scores_aug_agg.plot(y='mean',x='calib_level_wholegests',kind='line',marker='.',ax=ax,rot=0,label='Dataset augmented by\nall prior user data')
+       # scores_xfer_opt_agg.plot(y='mean',x='calib_level_wholegests',kind='line',marker='.',ax=ax,rot=0,label='Transfer from prior user\ndata including optimisation')
+       # scores_agg.plot(y='mean',x='calib_level_wholegests',kind='line',marker='.',ax=ax,rot=0,label='Transfer from prior user\ndata with static configuration',c='tab:red')
+       # scores_xfer_gen_agg.plot(y='mean',x='calib_level_wholegests',kind='line',marker='.',ax=ax,rot=0,label='Transfer from Generalist',c='tab:brown')
+       # scores_sessionNoOpt_agg.plot(y='mean',x='calib_level_wholegests',kind='line',marker='.',ax=ax,rot=0,label='Within-session training\n(system config optimised\non all prior user data)',c='tab:purple')
+       # within_opt_2_agg.plot(y='mean',x='calib_level_wholegests',kind='line',marker='.',ax=ax,rot=0,label='Within-session training\n(system config optimised\non Session 2 user data)')
+       # within_opt_both_downsample_agg.plot(y='mean',x='calib_level_wholegests',kind='line',marker='.',ax=ax,rot=0,label='Within-session training\n(system config optimised on\ndownsampled prior user data)',c='tab:gray')
+       # topupOpt_agg.plot(y='mean',x='calib_level_wholegests',kind='line',marker='.',ax=ax,rot=0,label='Within-session training\n(system config optimised on\njoint session-specific &\nprior user data)')
+        plt.axhline(y=train_both_baseline_score,label='Optimised & pretrained \non all prior user data',linestyle='--',color='black')
+        plt.axhline(y=train_1_baseline_score,label='Optimised & pretrained \non Session 1 data',linestyle='--',color='tab:blue')
+        plt.axhline(y=train_2_baseline_score,label='Optimised & pretrained \non Session 2 data',linestyle='--',color='tab:orange')
+        plt.axhline(y=train_both_downsample_baseline_score,label='Optimised & pretrained \non all prior user data\n(downsampled to half)',linestyle='--',color='tab:green')
+                         
+    #    ax.set_ylim(np.floor(scores_minimal['fusion_acc'].min()/0.05)*0.05,np.ceil(scores_minimal['fusion_acc'].max()/0.05)*0.05)
+        plt.title('Mean accuracies of pretrained systems over Development subjects\non reserved 33% of Session 3 data (66 gestures)',loc='left')
+        ax.set_xlabel('# Session 3 gestures used for learning')
+        ax.set_ylabel('Classification Accuracy')#' on reserved 33% (200) subject')
+        
+
+        plt.axhline(y=0.723,label='Proxy* Generalist',linestyle='-.',color='gray')
+        #ax.legend(title='Subject',loc='center left',bbox_to_anchor=(1,0.5),ncol=2)
+        #ax.set_ylim(0.3,0.95)
+        ax.set_ylim(0.4,1.0)
+        ax.legend(loc='center left',bbox_to_anchor=(1,0.375),ncol=1)
+        
+        '''
+        axTime=fig.add_axes((0.0,0.0,0.8,0.0))
+        axTime.yaxis.set_visible(False)
+        axTime.set_xticks(ax.get_xticks())
+        def tick_function(X):
+            #V = 1/(1+X)
+            V=(X*3)/60
+            return ["%.1f" % z for z in V]
+        axTime.set_xticklabels(tick_function(ax.get_xticks()))
+        axTime.set_xlim(ax.get_xlim())
+        axTime.set_xlabel("Minimum session-specific recording time (minutes)")
+        '''
+        plt.show()
+        
+        
+        
+        fig,ax=plt.subplots()
+        train_both_downsample_baseline_comp=train_both_downsample_baseline[train_both_downsample_baseline['repeat']==0].reset_index(drop=True)
+        x=[train_both_baseline['fusion_acc'], train_1_baseline['fusion_acc'], train_2_baseline['fusion_acc'], train_both_downsample_baseline_comp['fusion_acc']]
+        
+        baselines=pd.concat(x,axis=1).set_axis(['Both prior sessions','Session 1','Session 2','Both sessions\n(downsampled to half)'],axis=1)
+        basestack=baselines.stack().rename('fusion_acc')
+        basestack=basestack.rename_axis(['devsubj','Baseline']).reset_index()
+        basestack.boxplot(column='fusion_acc',by='Baseline',ax=ax,showmeans=True,positions=[0,3,1,2])
+        #https://stackoverflow.com/questions/21508420/is-there-a-way-to-set-the-order-in-pandas-group-boxplots
+        # default sort is alphabetical. could reverse map is but not worth effort
+        #https://stackoverflow.com/questions/15541440/how-to-apply-custom-column-order-on-categorical-to-pandas-boxplot
+        #https://stackoverflow.com/questions/70929624/pandas-get-first-occurrence-of-a-given-column-value
+        
+        ax.set_title('')
+        ax.set_ylim(0.2,1)
+        ax.set_xlabel('Prior subject data used to model baseline system')
+        ax.set_ylabel('Accuracy')
+        plt.suptitle('Accuracies of pretrained baseline system over Development\nsubjects on reserved 33% of Session 3 data (66 gestures)',y=1.0)
+        plt.show()
+        
+        
+        
+        
+        
+        
+        
+        
+        
         '''** ALL AFTER WHITTLING PRETRAINS **'''
         
       #  fig,ax=plt.subplots();
@@ -1188,9 +1270,58 @@ if __name__ == '__main__':
         axTime.set_xticklabels(tick_function(ax.get_xticks()))
         axTime.set_xlim(ax.get_xlim())
         axTime.set_xlabel("Minimum session-specific recording time (minutes)")
+        #https://stackoverflow.com/questions/31803817/how-to-add-second-x-axis-at-the-bottom-of-the-first-one-in-matplotlib
         
         plt.show()
         
+        
+        
+        
+        
+        '''** CAN HALVE THE PRIOR FOR CONFIG PORT **'''
+        
+      #  fig,ax=plt.subplots();
+        fig=plt.figure()
+        ax=fig.add_axes((0.0,0.15,0.8,0.8))
+        
+      #  scores_sessiononly_agg.plot(y='mean',x='calib_level_wholegests',kind='line',marker='.',ax=ax,rot=0,label='Within-session learning')
+   #     scores_aug_agg.plot(y='mean',x='calib_level_wholegests',kind='line',marker='.',ax=ax,rot=0,label='Dataset augmented by\nall prior user data')
+   #    scores_xfer_opt_agg.plot(y='mean',x='calib_level_wholegests',kind='line',marker='.',ax=ax,rot=0,label='Transfer from prior user\ndata including optimisation')
+   #     scores_agg.plot(y='mean',x='calib_level_wholegests',kind='line',marker='.',ax=ax,rot=0,label='Transfer from prior user\ndata with static configuration',c='tab:red')
+   #     scores_xfer_gen_agg.plot(y='mean',x='calib_level_wholegests',kind='line',marker='.',ax=ax,rot=0,label='Transfer from Generalist',c='tab:brown')
+        scores_sessionNoOpt_agg.plot(y='mean',x='calib_level_wholegests',kind='line',marker='.',ax=ax,rot=0,label='Within-session training\n(system config optimised\non all prior user data)',c='tab:purple')
+        within_opt_2_agg.plot(y='mean',x='calib_level_wholegests',kind='line',marker='.',ax=ax,rot=0,label='Within-session training\n(system config optimised\non Session 2 user data)')
+        within_opt_both_downsample_agg.plot(y='mean',x='calib_level_wholegests',kind='line',marker='.',ax=ax,rot=0,label='Within-session training\n(system config optimised on\ndownsampled prior user data)',c='tab:gray')
+        topupOpt_agg.plot(y='mean',x='calib_level_wholegests',kind='line',marker='.',ax=ax,rot=0,label='Within-session training\n(system config optimised on\njoint session-specific &\nprior user data)')
+  #      plt.axhline(y=train_both_baseline_score,label='Optimised & pretrained \non all prior user data',linestyle='--',color='black')
+        #   plt.axhline(y=train_2_baseline_score,label='Train session 2',linestyle='--',color='tab:green')
+        #   plt.axhline(y=train_both_downsample_baseline_score,label='Train 1 + 2\n(downsampled to half)',linestyle='--',color='tab:red')
+                         
+    #    ax.set_ylim(np.floor(scores_minimal['fusion_acc'].min()/0.05)*0.05,np.ceil(scores_minimal['fusion_acc'].max()/0.05)*0.05)
+        plt.title('Mean accuracies of WITHIN-SESSION approaches over Development subjects\non reserved 33% of Session 3 data (66 gestures)',loc='left')
+        ax.set_xlabel('# Session 3 gestures used for learning')
+        ax.set_ylabel('Classification Accuracy')#' on reserved 33% (200) subject')
+        
+
+       # plt.axhline(y=0.723,label='Proxy* Generalist',linestyle='-.',color='gray')
+        #ax.legend(title='Subject',loc='center left',bbox_to_anchor=(1,0.5),ncol=2)
+        #ax.set_ylim(0.3,0.95)
+        ax.set_ylim(0.4,1.0)
+        ax.legend(loc='center left',bbox_to_anchor=(1,0.375),ncol=1)
+        
+        axTime=fig.add_axes((0.0,0.0,0.8,0.0))
+        axTime.yaxis.set_visible(False)
+        axTime.set_xticks(ax.get_xticks())
+        def tick_function(X):
+            #V = 1/(1+X)
+            V=(X*3)/60
+            return ["%.1f" % z for z in V]
+        axTime.set_xticklabels(tick_function(ax.get_xticks()))
+        axTime.set_xlim(ax.get_xlim())
+        axTime.set_xlabel("Minimum session-specific recording time (minutes)")
+        #https://stackoverflow.com/questions/31803817/how-to-add-second-x-axis-at-the-bottom-of-the-first-one-in-matplotlib
+        
+        plt.show()
         
         
         
@@ -1338,6 +1469,7 @@ if __name__ == '__main__':
         axTime.set_xticklabels(tick_function(ax.get_xticks()))
         axTime.set_xlim(ax.get_xlim())
         axTime.set_xlabel("Minimum session-specific recording time (minutes)")
+        #https://stackoverflow.com/questions/31803817/how-to-add-second-x-axis-at-the-bottom-of-the-first-one-in-matplotlib
         
         plt.show()
         

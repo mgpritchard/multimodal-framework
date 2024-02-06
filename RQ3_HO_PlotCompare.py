@@ -124,6 +124,7 @@ if __name__ == '__main__':
     axTime.set_xticklabels(tick_function(ax.get_xticks()))
     axTime.set_xlim(ax.get_xlim())
     axTime.set_xlabel("Minimum session-specific recording time (minutes)")
+    #https://stackoverflow.com/questions/31803817/how-to-add-second-x-axis-at-the-bottom-of-the-first-one-in-matplotlib
     
     plt.show()
     

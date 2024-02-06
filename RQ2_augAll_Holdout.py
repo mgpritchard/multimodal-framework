@@ -836,7 +836,7 @@ if __name__ == '__main__':
         #ax.set_xlim(0,400)
         #ax.grid(visible=True,axis='y',which='both');
         
-        plt.title('Means across Development subjects on reserved 33% (200 gestures)',loc='left')
+        plt.title('Means across subjects on reserved 33% of subject data (200 gestures)',loc='left')
         ax.set_xlabel('# Subject gestures utilised (max 400)')
         ax.set_ylabel('Classification Accuracy')#' on reserved 33% (200) subject')
         

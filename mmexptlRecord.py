@@ -230,6 +230,8 @@ if __name__ == '__main__':
         try:
             record_exptl(pptid,path,duration,numreps,resttime)
         except Exception as e:
+            #maybe just quit as auto auto resume never seems to work
+            #or to actually fix it: increment the letter at end of pptid
             print("\nattempting to auto-resume\n")
             try:
                 pptid=input('participant id: ')
@@ -242,7 +244,7 @@ if __name__ == '__main__':
                 resume_exptl(pptid,path,duration,numreps,resttime,idx=lastind+1)#,m=m)
     elif resuming is "y" or resuming is "Y":
         lastind=int(input("last successful gesture #: "))
-        resume_exptl(pptid,path,duration,numreps,resttime,idx=lastind+1)
+        resume_exptl(pptid,path,duration,numreps,resttime,idx=lastind)#+1)
 
     #for i in range(3):
      #   record_gesture(path, gesture, duration, pptid, (i+1))

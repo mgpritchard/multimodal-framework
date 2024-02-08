@@ -1241,9 +1241,9 @@ if __name__ == '__main__':
         scores_agg.plot(y='mean',x='calib_level_wholegests',kind='line',marker='.',ax=ax,rot=0,label='Transfer from prior user\ndata with static configuration',c='tab:red')
         scores_xfer_gen_agg.plot(y='mean',x='calib_level_wholegests',kind='line',marker='.',ax=ax,rot=0,label='Transfer from Generalist',c='tab:brown')
         scores_sessionNoOpt_agg.plot(y='mean',x='calib_level_wholegests',kind='line',marker='.',ax=ax,rot=0,label='Within-session training\n(system config optimised\non all prior user data)',c='tab:purple')
-        within_opt_2_agg.plot(y='mean',x='calib_level_wholegests',kind='line',marker='.',ax=ax,rot=0,label='Within-session training\n(system config optimised\non Session 2 user data)')
-        within_opt_both_downsample_agg.plot(y='mean',x='calib_level_wholegests',kind='line',marker='.',ax=ax,rot=0,label='Within-session training\n(system config optimised on\ndownsampled prior user data)',c='tab:gray')
-        topupOpt_agg.plot(y='mean',x='calib_level_wholegests',kind='line',marker='.',ax=ax,rot=0,label='Within-session training\n(system config optimised on\njoint session-specific &\nprior user data)')
+        within_opt_2_agg.plot(y='mean',x='calib_level_wholegests',kind='line',marker='.',ax=ax,rot=0,label='Within-session training\n(system config optimised\non Session 2 user data)',c='tab:pink')
+        within_opt_both_downsample_agg.plot(y='mean',x='calib_level_wholegests',kind='line',marker='.',ax=ax,rot=0,label='Within-session training\n(system config optimised on\ndownsampled prior user data)',c='tab:olive')
+        topupOpt_agg.plot(y='mean',x='calib_level_wholegests',kind='line',marker='.',ax=ax,rot=0,label='Within-session training\n(system config optimised on\njoint session-specific &\nprior user data)',c='tab:cyan')
         plt.axhline(y=train_both_baseline_score,label='Optimised & pretrained \non all prior user data',linestyle='--',color='black')
         #   plt.axhline(y=train_2_baseline_score,label='Train session 2',linestyle='--',color='tab:green')
         #   plt.axhline(y=train_both_downsample_baseline_score,label='Train 1 + 2\n(downsampled to half)',linestyle='--',color='tab:red')
@@ -1258,7 +1258,7 @@ if __name__ == '__main__':
         #ax.legend(title='Subject',loc='center left',bbox_to_anchor=(1,0.5),ncol=2)
         #ax.set_ylim(0.3,0.95)
         ax.set_ylim(0.4,1.0)
-        ax.legend(loc='center left',bbox_to_anchor=(1,0.375),ncol=1)
+        ax.legend(title='Approach',loc='center left',bbox_to_anchor=(1,0.36),ncol=1)
         
         axTime=fig.add_axes((0.0,0.0,0.8,0.0))
         axTime.yaxis.set_visible(False)
@@ -1277,28 +1277,28 @@ if __name__ == '__main__':
         
         
         
-        
+        ''' SESSION SPECIFIC TRAINNG, ie: '''
         '''** CAN HALVE THE PRIOR FOR CONFIG PORT **'''
         
       #  fig,ax=plt.subplots();
         fig=plt.figure()
         ax=fig.add_axes((0.0,0.15,0.8,0.8))
         
-      #  scores_sessiononly_agg.plot(y='mean',x='calib_level_wholegests',kind='line',marker='.',ax=ax,rot=0,label='Within-session learning')
+        scores_sessiononly_agg.plot(y='mean',x='calib_level_wholegests',kind='line',marker='.',ax=ax,rot=0,label='Within-session learning')
    #     scores_aug_agg.plot(y='mean',x='calib_level_wholegests',kind='line',marker='.',ax=ax,rot=0,label='Dataset augmented by\nall prior user data')
    #    scores_xfer_opt_agg.plot(y='mean',x='calib_level_wholegests',kind='line',marker='.',ax=ax,rot=0,label='Transfer from prior user\ndata including optimisation')
    #     scores_agg.plot(y='mean',x='calib_level_wholegests',kind='line',marker='.',ax=ax,rot=0,label='Transfer from prior user\ndata with static configuration',c='tab:red')
    #     scores_xfer_gen_agg.plot(y='mean',x='calib_level_wholegests',kind='line',marker='.',ax=ax,rot=0,label='Transfer from Generalist',c='tab:brown')
         scores_sessionNoOpt_agg.plot(y='mean',x='calib_level_wholegests',kind='line',marker='.',ax=ax,rot=0,label='Within-session training\n(system config optimised\non all prior user data)',c='tab:purple')
-        within_opt_2_agg.plot(y='mean',x='calib_level_wholegests',kind='line',marker='.',ax=ax,rot=0,label='Within-session training\n(system config optimised\non Session 2 user data)')
-        within_opt_both_downsample_agg.plot(y='mean',x='calib_level_wholegests',kind='line',marker='.',ax=ax,rot=0,label='Within-session training\n(system config optimised on\ndownsampled prior user data)',c='tab:gray')
-        topupOpt_agg.plot(y='mean',x='calib_level_wholegests',kind='line',marker='.',ax=ax,rot=0,label='Within-session training\n(system config optimised on\njoint session-specific &\nprior user data)')
+        within_opt_2_agg.plot(y='mean',x='calib_level_wholegests',kind='line',marker='.',ax=ax,rot=0,label='Within-session training\n(system config optimised\non Session 2 user data)',c='tab:pink')
+        within_opt_both_downsample_agg.plot(y='mean',x='calib_level_wholegests',kind='line',marker='.',ax=ax,rot=0,label='Within-session training\n(system config optimised on\ndownsampled prior user data)',c='tab:olive')
+        topupOpt_agg.plot(y='mean',x='calib_level_wholegests',kind='line',marker='.',ax=ax,rot=0,label='Within-session training\n(system config optimised on\njoint session-specific &\nprior user data)',c='tab:cyan')
   #      plt.axhline(y=train_both_baseline_score,label='Optimised & pretrained \non all prior user data',linestyle='--',color='black')
         #   plt.axhline(y=train_2_baseline_score,label='Train session 2',linestyle='--',color='tab:green')
         #   plt.axhline(y=train_both_downsample_baseline_score,label='Train 1 + 2\n(downsampled to half)',linestyle='--',color='tab:red')
                          
     #    ax.set_ylim(np.floor(scores_minimal['fusion_acc'].min()/0.05)*0.05,np.ceil(scores_minimal['fusion_acc'].max()/0.05)*0.05)
-        plt.title('Mean accuracies of WITHIN-SESSION approaches over Development subjects\non reserved 33% of Session 3 data (66 gestures)',loc='left')
+        plt.title('Mean accuracies of Session-Specific Training approaches over\nDevelopment subjects on reserved 33% of Session 3 data (66 gestures)',loc='left')
         ax.set_xlabel('# Session 3 gestures used for learning')
         ax.set_ylabel('Classification Accuracy')#' on reserved 33% (200) subject')
         
@@ -1307,7 +1307,9 @@ if __name__ == '__main__':
         #ax.legend(title='Subject',loc='center left',bbox_to_anchor=(1,0.5),ncol=2)
         #ax.set_ylim(0.3,0.95)
         ax.set_ylim(0.4,1.0)
-        ax.legend(loc='center left',bbox_to_anchor=(1,0.375),ncol=1)
+        ax.legend(title='Approach',loc='center left',bbox_to_anchor=(1,0.425),ncol=1)
+        
+        ax.set_xlim(-6.6,138.6)
         
         axTime=fig.add_axes((0.0,0.0,0.8,0.0))
         axTime.yaxis.set_visible(False)
@@ -1323,6 +1325,54 @@ if __name__ == '__main__':
         
         plt.show()
         
+        
+        
+        ''' CROSS SESSION LEARNING '''
+        
+      #  fig,ax=plt.subplots();
+        fig=plt.figure()
+        ax=fig.add_axes((0.0,0.15,0.8,0.8))
+        
+    #    scores_sessiononly_agg.plot(y='mean',x='calib_level_wholegests',kind='line',marker='.',ax=ax,rot=0,label='Within-session learning')
+        scores_aug_agg.plot(y='mean',x='calib_level_wholegests',kind='line',marker='.',ax=ax,rot=0,label='Dataset augmented by\nall prior user data',c='tab:orange')
+        scores_xfer_opt_agg.plot(y='mean',x='calib_level_wholegests',kind='line',marker='.',ax=ax,rot=0,label='Transfer from prior user\ndata including optimisation',c='tab:green')
+        scores_agg.plot(y='mean',x='calib_level_wholegests',kind='line',marker='.',ax=ax,rot=0,label='Transfer from prior user\ndata with static configuration',c='tab:red')
+        scores_xfer_gen_agg.plot(y='mean',x='calib_level_wholegests',kind='line',marker='.',ax=ax,rot=0,label='Transfer from Generalist',c='tab:brown')
+    #    scores_sessionNoOpt_agg.plot(y='mean',x='calib_level_wholegests',kind='line',marker='.',ax=ax,rot=0,label='Within-session training\n(system config optimised\non all prior user data)',c='tab:purple')
+    #    within_opt_2_agg.plot(y='mean',x='calib_level_wholegests',kind='line',marker='.',ax=ax,rot=0,label='Within-session training\n(system config optimised\non Session 2 user data)',c='tab:pink')
+    #    within_opt_both_downsample_agg.plot(y='mean',x='calib_level_wholegests',kind='line',marker='.',ax=ax,rot=0,label='Within-session training\n(system config optimised on\ndownsampled prior user data)',c='tab:olive')
+    #    topupOpt_agg.plot(y='mean',x='calib_level_wholegests',kind='line',marker='.',ax=ax,rot=0,label='Within-session training\n(system config optimised on\njoint session-specific &\nprior user data)',c='tab:cyan')
+        plt.axhline(y=train_both_baseline_score,label='Optimised & pretrained \non all prior user data',linestyle='--',color='black')
+        #   plt.axhline(y=train_2_baseline_score,label='Train session 2',linestyle='--',color='tab:green')
+        #   plt.axhline(y=train_both_downsample_baseline_score,label='Train 1 + 2\n(downsampled to half)',linestyle='--',color='tab:red')
+                         
+    #    ax.set_ylim(np.floor(scores_minimal['fusion_acc'].min()/0.05)*0.05,np.ceil(scores_minimal['fusion_acc'].max()/0.05)*0.05)
+        plt.title('Mean accuracies of Cross-Session Learning approaches over\nDevelopment subjects on reserved 33% of Session 3 data (66 gestures)',loc='left')
+        ax.set_xlabel('# Session 3 gestures used for learning')
+        ax.set_ylabel('Classification Accuracy')#' on reserved 33% (200) subject')
+        
+
+       # plt.axhline(y=0.723,label='Proxy* Generalist',linestyle='-.',color='gray')
+        #ax.legend(title='Subject',loc='center left',bbox_to_anchor=(1,0.5),ncol=2)
+        #ax.set_ylim(0.3,0.95)
+        ax.set_ylim(0.4,1.0)
+        ax.legend(title='Approach',loc='center left',bbox_to_anchor=(1,0.45),ncol=1)
+        
+        ax.set_xlim(-6.6,138.6)
+        
+        axTime=fig.add_axes((0.0,0.0,0.8,0.0))
+        axTime.yaxis.set_visible(False)
+        axTime.set_xticks(ax.get_xticks())
+        def tick_function(X):
+            #V = 1/(1+X)
+            V=(X*3)/60
+            return ["%.1f" % z for z in V]
+        axTime.set_xticklabels(tick_function(ax.get_xticks()))
+        axTime.set_xlim(ax.get_xlim())
+        axTime.set_xlabel("Minimum session-specific recording time (minutes)")
+        #https://stackoverflow.com/questions/31803817/how-to-add-second-x-axis-at-the-bottom-of-the-first-one-in-matplotlib
+        
+        plt.show()
         
         
         
@@ -1377,8 +1427,11 @@ if __name__ == '__main__':
         
         
         
+        
+        
         '''** VIABLE **'''
         
+        '''
         fig,ax=plt.subplots();
         
         
@@ -1424,7 +1477,7 @@ if __name__ == '__main__':
         ax.legend(loc='center left',bbox_to_anchor=(1,0.5),ncol=1)
         plt.show()
         
-        
+        '''
         
         
         
@@ -1441,7 +1494,7 @@ if __name__ == '__main__':
         scores_xfer_gen_agg.plot(y='mean',x='calib_level_wholegests',kind='line',marker='.',ax=ax,rot=0,label='Transfer from\nGeneralist',c='tab:brown')
       #  scores_sessionNoOpt_agg.plot(y='mean',x='calib_level_wholegests',kind='line',marker='.',ax=ax,rot=0,label='Within-session training\n(system config optimised\non all prior user data)',c='tab:purple')
       #  within_opt_2_agg.plot(y='mean',x='calib_level_wholegests',kind='line',marker='.',ax=ax,rot=0,label='Within-session training\n(system config optimised\non Session 2 user data)')
-        within_opt_both_downsample_agg.plot(y='mean',x='calib_level_wholegests',kind='line',marker='.',ax=ax,rot=0,label='Within-session\ntraining (system\nconfig optimised\non downsampled\nprior user data)',c='tab:gray')
+        within_opt_both_downsample_agg.plot(y='mean',x='calib_level_wholegests',kind='line',marker='.',ax=ax,rot=0,label='Within-session\ntraining (system\nconfig optimised\non downsampled\nprior user data)',c='tab:olive')
       #  topupOpt_agg.plot(y='mean',x='calib_level_wholegests',kind='line',marker='.',ax=ax,rot=0,label='Within-session training\n(system config optimised on\njoint session-specific &\nprior user data)')
         plt.axhline(y=train_both_baseline_score,label='Pretrained on\nprior user data',linestyle='--',color='black')
         #   plt.axhline(y=train_2_baseline_score,label='Train session 2',linestyle='--',color='tab:green')
@@ -1457,7 +1510,7 @@ if __name__ == '__main__':
         #ax.legend(title='Subject',loc='center left',bbox_to_anchor=(1,0.5),ncol=2)
         #ax.set_ylim(0.3,0.95)
         ax.set_ylim(0.4,1.0)
-        ax.legend(loc='center left',bbox_to_anchor=(1,0.5),ncol=1)
+        ax.legend(title='Approach',loc='center left',bbox_to_anchor=(1,0.5),ncol=1)
         
         axTime=fig.add_axes((0.0,0.0,0.8,0.0))
         axTime.yaxis.set_visible(False)
@@ -1590,6 +1643,88 @@ if __name__ == '__main__':
                 f"Desired time reduction: {t_save_mins} mins", ha="center", va="center",size='small')#, bbox=bbox)
         plt.show()
         
+        
+        
+        
+        ''' REAL ONE'''
+        
+        
+        fig=plt.figure()
+        ax=fig.add_axes((0.0,0.15,0.8,0.8))
+        
+        scores_sessiononly_agg.plot(y='mean',x='calib_level_wholegests',kind='line',marker='.',ax=ax,rot=0,label='Within-session\nlearning')
+        scores_agg.plot(y='mean',x='calib_level_wholegests',kind='line',marker='.',ax=ax,rot=0,label='Transfer from\nprior user data\nwith static\nconfiguration',c='tab:red')
+        scores_xfer_gen_agg.plot(y='mean',x='calib_level_wholegests',kind='line',marker='.',ax=ax,rot=0,label='Transfer from\nGeneralist',c='tab:brown')
+        within_opt_both_downsample_agg.plot(y='mean',x='calib_level_wholegests',kind='line',marker='.',ax=ax,rot=0,label='Within-session\ntraining (system\nconfig optimised\non downsampled\nprior user data)',c='tab:olive')
+ 
+        plt.axhline(y=train_both_baseline_score,label='Pretrained on\nprior user data',linestyle='--',color='black')
+
+        plt.title('Mean accuracies of candidate approaches over Development subjects\non reserved 33% of Session 3 data (66 gestures)',loc='left')
+        
+        ax.set_xlabel('# Session 3 gestures used for learning')
+        ax.set_ylabel('Classification Accuracy')#' on reserved 33% (200) subject')
+        
+        plt.axhline(y=0.723,label='Proxy* Generalist',linestyle='-.',color='gray')
+        #ax.legend(title='Subject',loc='center left',bbox_to_anchor=(1,0.5),ncol=2)
+        #ax.set_ylim(0.3,0.95)
+        ax.set_ylim(0.6,0.9)
+        ax.legend(title='Approach',loc='center left',bbox_to_anchor=(1,0.5),ncol=1)
+        
+        
+        
+        tPerGest=3
+        nCalibTotal=134
+        tTotal=nCalibTotal*tPerGest
+        tTotal_mins = tTotal/60
+        t_save_mins = 2.5
+        t_save=t_save_mins*60
+        nCalibSave=np.floor((t_save/tPerGest)/4)*4
+        #https://stackoverflow.com/questions/14892619/annotating-dimensions-in-matplotlib
+        #https://matplotlib.org/stable/api/_as_gen/matplotlib.pyplot.axvspan.html
+        #https://stackoverflow.com/questions/36423221/matplotlib-axvspan-solid-fill
+        
+        #plt.axhspan(ymin=np.max(scores_sessiononly_agg)['mean']-0.03,ymax=np.max(scores_sessiononly_agg)['mean'],
+        accept_loss = 1
+        '''maxacc=0.8532196970500001'''
+        maxacc=0.859280
+        min_acceptable=0.859280-(accept_loss/100)
+        plt.axhspan(ymin=min_acceptable,ymax=0.859280*0.999, #ymin=0.8232196970500001
+                    xmin=0.175,xmax=132/138,linestyle=':',lw=0.5,alpha=0.5,color='gray')
+        ax.annotate("",xy=(138*0.1375,min_acceptable*0.995),#could do just 0.125 with xycoords=('axes fraction','data'))
+                    xytext=(138*0.1375,0.859280/0.999),
+                    arrowprops=dict(arrowstyle='->'))
+    #    ax.annotate("",xy=(138*0.125,0.8232196970500001),xytext=(138*0.125,0.8532196970500001),
+    #                arrowprops=dict(arrowstyle='|-|'))
+       # bbox=dict(fc="white", ec="none")
+        ax.text(138*0.05,(min_acceptable+0.859280)/2,
+                f"Acceptable\naccuracy\nloss: {accept_loss}%", ha="center", va="center",size='small')#, bbox=bbox)
+        
+        
+        plt.axvspan(132-nCalibSave,132,ymin=0.15,ymax=np.max(scores_sessionNoOpt_agg)['mean']*0.999,
+                    linestyle=':',lw=0.5,alpha=0.5,color='gray')
+        
+        ax.annotate("",xy=(132/0.995,0.15),xycoords=('data','axes fraction'),
+                    xytext=((132-nCalibSave)*0.985,0.15),textcoords=('data','axes fraction'),
+                    arrowprops=dict(arrowstyle='<-'))
+       # bbox=dict(fc="white", ec="none")
+        ax.text(132-(nCalibSave*0.5),0.625,
+                f"Desired time reduction: {t_save_mins} mins", ha="center", va="center",size='small')#, bbox=bbox)
+        
+        
+        axTime=fig.add_axes((0.0,0.0,0.8,0.0))
+        axTime.yaxis.set_visible(False)
+        axTime.set_xticks(ax.get_xticks())
+        def tick_function(X):
+            #V = 1/(1+X)
+            V=(X*3)/60
+            return ["%.1f" % z for z in V]
+        axTime.set_xticklabels(tick_function(ax.get_xticks()))
+        axTime.set_xlim(ax.get_xlim())
+        axTime.set_xlabel("Minimum session-specific recording time (minutes)")
+        
+        
+        
+        plt.show()
     
 
 

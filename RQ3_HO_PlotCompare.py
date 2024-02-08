@@ -80,6 +80,17 @@ if __name__ == '__main__':
     fig=plt.figure()
     ax=fig.add_axes((0.0,0.25,0.8,0.6))   
     
+    
+    within_session_agg=within_session.groupby(['calib_level_wholegests'])['acc'].agg(['mean','std']).reset_index()
+    within_session_agg=within_session_agg.round({'calib_level_wholegests':5})
+    within_session_agg.plot(y='mean',x='calib_level_wholegests',kind='line',marker='.',ax=ax,rot=0,label='Within-session\nlearning',color='tab:blue')#,yerr='std',capsize=2)
+    
+    
+    xfer_prior_agg=xfer_prior.groupby(['calib_level_wholegests'])['acc'].agg(['mean','std']).reset_index()
+    xfer_prior_agg=xfer_prior_agg.round({'calib_level_wholegests':5})
+    xfer_prior_agg.plot(y='mean',x='calib_level_wholegests',kind='line',marker='.',ax=ax,rot=0,label='Transfer from\nprior user data\nwith static\nconfiguration',color='tab:red')#,yerr='std',capsize=2)
+    
+    
     xfer_gen_agg=xfer_gen.groupby(['calib_level_wholegests'])['acc'].agg(['mean','std']).reset_index()
     xfer_gen_agg=xfer_gen_agg.round({'calib_level_wholegests':5})
   #  xfer_gen_agg.pivot(index='calib_level',
@@ -88,17 +99,12 @@ if __name__ == '__main__':
     xfer_gen_agg.plot(y='mean',x='calib_level_wholegests',kind='line',marker='.',ax=ax,rot=0,label='Transfer from\nGeneralist',color='tab:brown')#,yerr='std',capsize=2)
                                         # yerr=scores_agg.pivot(index='calib_level_wholegests',
                                         #                       columns='subject id',values='std'))
-    xfer_prior_agg=xfer_prior.groupby(['calib_level_wholegests'])['acc'].agg(['mean','std']).reset_index()
-    xfer_prior_agg=xfer_prior_agg.round({'calib_level_wholegests':5})
-    xfer_prior_agg.plot(y='mean',x='calib_level_wholegests',kind='line',marker='.',ax=ax,rot=0,label='Transfer from\nprior user data',color='tab:red')#,yerr='std',capsize=2)
     
-    within_session_agg=within_session.groupby(['calib_level_wholegests'])['acc'].agg(['mean','std']).reset_index()
-    within_session_agg=within_session_agg.round({'calib_level_wholegests':5})
-    within_session_agg.plot(y='mean',x='calib_level_wholegests',kind='line',marker='.',ax=ax,rot=0,label='Within-session\nlearning',color='tab:blue')#,yerr='std',capsize=2)
+    
     
     within_opt_prior_agg=within_opt_prior.groupby(['calib_level_wholegests'])['acc'].agg(['mean','std']).reset_index()
     within_opt_prior_agg=within_opt_prior_agg.round({'calib_level_wholegests':5})
-    within_opt_prior_agg.plot(y='mean',x='calib_level_wholegests',kind='line',marker='.',ax=ax,rot=0,label='Within-session\ntraining (system\nconfig optimised\non downsampled\nprior user data)',color='grey')#,yerr='std',capsize=2)
+    within_opt_prior_agg.plot(y='mean',x='calib_level_wholegests',kind='line',marker='.',ax=ax,rot=0,label='Within-session\ntraining (system\nconfig optimised\non downsampled\nprior user data)',color='tab:olive')#,yerr='std',capsize=2)
     
     plt.title('Mean accuracies over Holdout subjects\non reserved 33% of Session 3 data (66 gestures)',loc='left')
     ax.set_xlabel('# Session 3 gestures used for learning')
@@ -127,6 +133,51 @@ if __name__ == '__main__':
     #https://stackoverflow.com/questions/31803817/how-to-add-second-x-axis-at-the-bottom-of-the-first-one-in-matplotlib
     
     plt.show()
+    
+    
+    
+    
+    fig=plt.figure()
+    ax=fig.add_axes((0.0,0.15,0.8,0.8))   
+    
+    
+    within_session_agg.plot(y='mean',x='calib_level_wholegests',kind='line',marker='.',ax=ax,rot=0,label='Within-session\nlearning',color='tab:blue')#,yerr='std',capsize=2)
+    
+    xfer_prior_agg.plot(y='mean',x='calib_level_wholegests',kind='line',marker='.',ax=ax,rot=0,label='Transfer from\nprior user data\nwith static\nconfiguration',color='tab:red')#,yerr='std',capsize=2)
+    
+    xfer_gen_agg.plot(y='mean',x='calib_level_wholegests',kind='line',marker='.',ax=ax,rot=0,label='Transfer from\nGeneralist',color='tab:brown')#,yerr='std',capsize=2)
+    
+    within_opt_prior_agg.plot(y='mean',x='calib_level_wholegests',kind='line',marker='.',ax=ax,rot=0,label='Within-session\ntraining (system\nconfig optimised\non downsampled\nprior user data)',color='tab:olive')#,yerr='std',capsize=2)
+    
+    plt.title('Mean accuracies of trialled systems over Holdout subjects\non reserved 33% of Session 3 data (66 gestures)',loc='left')
+    ax.set_xlabel('# Session 3 gestures used for learning')
+    ax.set_ylabel('Classification Accuracy')#' on reserved 33% (200) subject')
+    
+    plt.axhline(y=prior_pretrain['acc'].agg('mean'),label='Pretrained on\nprior user data',linestyle='--',color='black')
+#    plt.axhline(y=0.841465,label='RQ2 HO Besp\nNot session-split',linestyle='-.',color='pink')
+    #std dev for RQ2 Besp is 0.0643496, not sure if thats Dev or HO
+    plt.axhline(y=mean_gen_HO,label='Generalist',linestyle='-.',color='gray')
+   # plt.axhline(y=mean_gen_HO+std_gen_HO,linestyle=':',color='gray')
+   # plt.axhline(y=mean_gen_HO-std_gen_HO,linestyle=':',color='gray')
+    
+    ax.legend(title='Approach',loc='center left',bbox_to_anchor=(1,0.5))
+    ax.set_ylim(0.4,1.0)    
+     
+    axTime=fig.add_axes((0.0,0.0,0.8,0.0))
+    axTime.yaxis.set_visible(False)
+    axTime.set_xticks(ax.get_xticks())
+    def tick_function(X):
+        #V = 1/(1+X)
+        V=(X*3)/60
+        return ["%.1f" % z for z in V]
+    axTime.set_xticklabels(tick_function(ax.get_xticks()))
+    axTime.set_xlim(ax.get_xlim())
+    axTime.set_xlabel("Minimum session-specific recording time (minutes)")
+    #https://stackoverflow.com/questions/31803817/how-to-add-second-x-axis-at-the-bottom-of-the-first-one-in-matplotlib
+    
+    plt.show()
+    
+      
     
     raise
     

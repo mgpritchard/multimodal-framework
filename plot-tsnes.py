@@ -15,6 +15,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.cm as cm
 import handleFeats as feats
+import pickle as pickle
 
 
 def plot_tsne(tsne_result,y,title,cmap='viridis'): #cmap jet or Dark2_r
@@ -27,10 +28,10 @@ def plot_tsne(tsne_result,y,title,cmap='viridis'): #cmap jet or Dark2_r
     ax.set_ylim(lim)
     ax.set_aspect('equal')
     ax.set_title(title)
-    leg=ax.legend(*scatter.legend_elements(),bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0.0)
-    leg.texts[0].set_text('cyl')
-    leg.texts[1].set_text('sph')
-    leg.texts[2].set_text('lumb')
+    leg=ax.legend(*scatter.legend_elements(),bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0.0,title='Gesture')
+    leg.texts[0].set_text('cylindrical')
+    leg.texts[1].set_text('spherical')
+    leg.texts[2].set_text('lumbrical')
     leg.texts[3].set_text('rest')
     plt.show()
     return tsne_df
@@ -66,6 +67,54 @@ n_components = 2
 plt.rcParams['figure.dpi']=150
 
 
+'''development set only, arbitrary pick of 8 15 and 23'''
+eegCSP_set_path=params.eeg_jeongSyncCSP_feats
+eegCSP=ml.pd.read_csv(eegCSP_set_path,delimiter=',')
+
+ppts_to_process = [8,15,23]
+
+for ppt in ppts_to_process:
+    eegCSP_ppt=eegCSP[eegCSP['ID_pptID'].isin([ppt])]
+    
+    y_eeg=eegCSP_ppt.pop('Label')
+    X_eeg=eegCSP_ppt
+    X_eeg=ml.drop_ID_cols(X_eeg)
+    tsne_eeg = TSNE(n_components)
+       
+    print('starting csp eeg tsne')
+    tsne_result_eeg = tsne_eeg.fit_transform(X_eeg)
+    print(tsne_result_eeg.shape)
+    #plot_tsne(tsne_result_eeg,y_eeg,'csp eeg')
+    
+    cspEEGtsne=(tsne_result_eeg,y_eeg)
+    plot_tsne(cspEEGtsne[0],cspEEGtsne[1],f'Ppt {ppt} EEG with CSP')
+    pickle.dump(cspEEGtsne,open(r"C:\Users\pritcham\Documents\RQ1_plots_stats\newTSNEsNoHoldout\CSP_EEG_ppt"+f"{ppt}.pkl",'wb'))
+
+    
+    
+    eegraw_ppt=eeg_set[eeg_set['ID_pptID'].isin([ppt])]
+    
+    y_eeg=eegraw_ppt.pop('Label')
+    X_eeg=eegraw_ppt
+    X_eeg=ml.drop_ID_cols(X_eeg)
+    tsne_eeg = TSNE(n_components)
+       
+    print('starting raw eeg tsne')
+    tsne_result_eeg = tsne_eeg.fit_transform(X_eeg)
+    print(tsne_result_eeg.shape)
+    #plot_tsne(tsne_result_eeg,y_eeg,'csp eeg')
+    
+    nocspEEGtsne=(tsne_result_eeg,y_eeg)
+    plot_tsne(nocspEEGtsne[0],nocspEEGtsne[1],f'Ppt {ppt} EEG without CSP')
+    pickle.dump(nocspEEGtsne,open(r"C:\Users\pritcham\Documents\RQ1_plots_stats\newTSNEsNoHoldout\noCSP_rawEEG_ppt"+f"{ppt}.pkl",'wb'))
+
+
+raise
+
+
+
+
+''' development set only, done across all ppts'''
 
 
 eegCSP_set_path=params.eeg_jeongSyncCSP_feats
@@ -90,7 +139,11 @@ cspEEGtsne=(tsne_result_eeg,y_eeg)
 plot_tsne(cspEEGtsne[0],cspEEGtsne[1],'Dev set EEG with CSP, no feat reduction')
 pickle.dump(cspEEGtsne,open(r"C:\Users\pritcham\Documents\RQ1_plots_stats\newTSNEsNoHoldout\CSP_EEGnoHO.pkl",'wb'))
 
+raise
 
+
+
+'''original flexible version'''
 
 
 if per_ppt:
@@ -224,8 +277,8 @@ else:
             plot_tsne(tsne_result_eeg,y_eeg,'eeg L1 40')
             plot_mass_tsne_per_ppt()
 
-'''
-rawEEGtsne=(tsne_result_eeg,y_eeg)
-plot_tsne(rawEEGtsne[0],rawEEGtsne[1],'Dev set EEG without CSP, all features')
-pickle.dump(rawEEGtsne,open(r"C:\Users\pritcham\Documents\RQ1_plots_stats\newTSNEsNoHoldout\rawEEGnoCSPnoHO.pkl",'wb'))
-'''
+#'''
+#rawEEGtsne=(tsne_result_eeg,y_eeg)
+#plot_tsne(rawEEGtsne[0],rawEEGtsne[1],'Dev set EEG without CSP, all features')
+#pickle.dump(rawEEGtsne,open(r"C:\Users\pritcham\Documents\RQ1_plots_stats\newTSNEsNoHoldout\rawEEGnoCSPnoHO.pkl",'wb'))
+#'''

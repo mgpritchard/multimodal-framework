@@ -837,7 +837,7 @@ if __name__ == '__main__':
         #ax.grid(visible=True,axis='y',which='both');
         
         plt.title('Means across subjects on reserved 33% of subject data (200 gestures)',loc='left')
-        ax.set_xlabel('# Subject gestures utilised (max 400)')
+        ax.set_xlabel('# Same-Subject gestures utilised (max 400)')
         ax.set_ylabel('Classification Accuracy')#' on reserved 33% (200) subject')
         
         plt.axhline(y=0.723,label='RQ1 Generalist\n(Development set)',linestyle='--',color='steelblue')

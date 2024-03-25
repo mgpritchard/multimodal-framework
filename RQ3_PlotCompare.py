@@ -1096,6 +1096,7 @@ if __name__ == '__main__':
         topupOpt_agg=topupOpt.groupby(['calib_level_wholegests'])['fusion_acc'].agg(['mean','std']).reset_index()
         
         train_both_baseline_score=np.mean(train_both_baseline['fusion_acc'])
+        train_both_baseline_stddev=np.std(train_both_baseline['fusion_acc'])
         train_2_baseline_score=np.mean(train_2_baseline['fusion_acc'])
         train_1_baseline_score=np.mean(train_1_baseline['fusion_acc'])
         train_both_downsample_baseline_score=np.mean(train_both_downsample_baseline['fusion_acc'])
@@ -1725,6 +1726,197 @@ if __name__ == '__main__':
         
         
         plt.show()
+        
+        
+        
+        
+        
+        
+        
+        
+        ''' Generous tradeoff '''
+        
+        fig=plt.figure()
+        ax=fig.add_axes((0.0,0.15,0.8,0.8))
+        
+        scores_sessiononly_agg.plot(y='mean',x='calib_level_wholegests',kind='line',marker='.',ax=ax,rot=0,label='Within-session\nlearning')
+        scores_agg.plot(y='mean',x='calib_level_wholegests',kind='line',marker='.',ax=ax,rot=0,label='Transfer from\nprior user data\nwith static\nconfiguration',c='tab:red')
+        scores_xfer_gen_agg.plot(y='mean',x='calib_level_wholegests',kind='line',marker='.',ax=ax,rot=0,label='Transfer from\nGeneralist',c='tab:brown')
+        within_opt_both_downsample_agg.plot(y='mean',x='calib_level_wholegests',kind='line',marker='.',ax=ax,rot=0,label='Within-session\ntraining (system\nconfig optimised\non downsampled\nprior user data)',c='tab:olive')
+        plt.axhline(y=train_both_baseline_score,label='Pretrained on\nprior user data',linestyle='--',color='black')
+
+        plt.title('Mean accuracies of candidate approaches over Development subjects\non reserved 33% of Session 3 data (66 gestures)',loc='left')
+        ax.set_xlabel('# Session 3 gestures used for learning')
+        ax.set_ylabel('Classification Accuracy')#' on reserved 33% (200) subject')
+
+        plt.axhline(y=0.723,label='Proxy* Generalist',linestyle='-.',color='gray')
+        ax.set_ylim(0.6,0.9)
+        ax.legend(title='Approach',loc='center left',bbox_to_anchor=(1,0.5),ncol=1)      
+        
+        tPerGest=3
+        nCalibTotal=134
+        tTotal=nCalibTotal*tPerGest
+        tTotal_mins = tTotal/60
+        t_save_mins = 4 ############
+        t_save=t_save_mins*60
+        nCalibSave=np.floor((t_save/tPerGest)/4)*4
+
+        accept_loss = 7.5 #############
+        '''maxacc=0.8532196970500001'''
+        maxacc=0.859280
+        min_acceptable=0.859280-(accept_loss/100)
+        plt.axhspan(ymin=min_acceptable,ymax=0.859280*0.999, #ymin=0.8232196970500001
+                    xmin=0.175,xmax=132/138,linestyle=':',lw=0.5,alpha=0.5,color='gray')
+        ax.annotate("",xy=(138*0.1375,min_acceptable*0.995),#could do just 0.125 with xycoords=('axes fraction','data'))
+                    xytext=(138*0.1375,0.859280/0.999),
+                    arrowprops=dict(arrowstyle='->'))
+        ax.text(138*0.05,(min_acceptable+0.859280)/2,
+                f"Acceptable\naccuracy\nloss: {accept_loss}%", ha="center", va="center",size='small')#, bbox=bbox)              
+        plt.axvspan(132-nCalibSave,132,ymin=0.15,ymax=np.max(scores_sessionNoOpt_agg)['mean']*0.999,
+                    linestyle=':',lw=0.5,alpha=0.5,color='gray')        
+        ax.annotate("",xy=(132/0.995,0.15),xycoords=('data','axes fraction'),
+                    xytext=((132-nCalibSave)*0.985,0.15),textcoords=('data','axes fraction'),
+                    arrowprops=dict(arrowstyle='<-'))
+        ax.text(132-(nCalibSave*0.5),0.625,
+                f"Desired time reduction: {t_save_mins} mins", ha="center", va="center",size='small')#, bbox=bbox)
+                
+        axTime=fig.add_axes((0.0,0.0,0.8,0.0))
+        axTime.yaxis.set_visible(False)
+        axTime.set_xticks(ax.get_xticks())
+        axTime.set_xticklabels(tick_function(ax.get_xticks()))
+        axTime.set_xlim(ax.get_xlim())
+        axTime.set_xlabel("Minimum session-specific recording time (minutes)")
+        
+        plt.show()
+        
+        
+        
+        ''' Prioritise time '''
+        
+        fig=plt.figure()
+        ax=fig.add_axes((0.0,0.15,0.8,0.8))
+        
+        scores_sessiononly_agg.plot(y='mean',x='calib_level_wholegests',kind='line',marker='.',ax=ax,rot=0,label='Within-session\nlearning')
+        scores_agg.plot(y='mean',x='calib_level_wholegests',kind='line',marker='.',ax=ax,rot=0,label='Transfer from\nprior user data\nwith static\nconfiguration',c='tab:red')
+        scores_xfer_gen_agg.plot(y='mean',x='calib_level_wholegests',kind='line',marker='.',ax=ax,rot=0,label='Transfer from\nGeneralist',c='tab:brown')
+        within_opt_both_downsample_agg.plot(y='mean',x='calib_level_wholegests',kind='line',marker='.',ax=ax,rot=0,label='Within-session\ntraining (system\nconfig optimised\non downsampled\nprior user data)',c='tab:olive')
+        plt.axhline(y=train_both_baseline_score,label='Pretrained on\nprior user data',linestyle='--',color='black')
+
+        plt.title('Mean accuracies of candidate approaches over Development\nsubjects on reserved 33% of Session 3 data (66 gestures)',loc='left')
+        ax.set_xlabel('# Session 3 gestures used for learning')
+        ax.set_ylabel('Classification Accuracy')#' on reserved 33% (200) subject')
+
+        plt.axhline(y=0.723,label='Proxy* Generalist',linestyle='-.',color='gray')
+        ax.set_ylim(0.6,0.9)
+        #ax.legend(title='Approach',loc='center left',bbox_to_anchor=(1,0.5),ncol=1)
+        ax.legend().set_visible(False)
+        
+        tPerGest=3
+        nCalibTotal=134
+        tTotal=nCalibTotal*tPerGest
+        tTotal_mins = tTotal/60
+        t_save_mins = 5 ############
+        t_save=t_save_mins*60
+        nCalibSave=np.floor((t_save/tPerGest)/4)*4
+
+        accept_loss = 5 #############
+        '''maxacc=0.8532196970500001'''
+        maxacc=0.859280
+        min_acceptable=0.859280-(accept_loss/100)
+        plt.axhspan(ymin=min_acceptable,ymax=0.859280*0.999, #ymin=0.8232196970500001
+                    xmin=0.175,xmax=132/138,linestyle=':',lw=0.5,alpha=0.5,color='gray')
+        ax.annotate("",xy=(138*0.1375,min_acceptable*0.995),#could do just 0.125 with xycoords=('axes fraction','data'))
+                    xytext=(138*0.1375,0.859280/0.999),
+                    arrowprops=dict(arrowstyle='->'))
+        ax.text(138*0.05,(min_acceptable+0.859280)/2,
+                f"Resultant\naccuracy\nloss: {accept_loss}%", ha="center", va="center",size='small')#, bbox=bbox)              
+        plt.axvspan(132-nCalibSave,132,ymin=0.15,ymax=np.max(scores_sessionNoOpt_agg)['mean']*0.999,
+                    linestyle=':',lw=0.5,alpha=0.5,color='gray')        
+        ax.annotate("",xy=(132/0.995,0.15),xycoords=('data','axes fraction'),
+                    xytext=((132-nCalibSave)*0.985,0.15),textcoords=('data','axes fraction'),
+                    arrowprops=dict(arrowstyle='<-'))
+        ax.text(132-(nCalibSave*0.5),0.625,
+                f"Desired time reduction: {t_save_mins} mins", ha="center", va="center",size='small')#, bbox=bbox)
+                
+        axTime=fig.add_axes((0.0,0.0,0.8,0.0))
+        axTime.yaxis.set_visible(False)
+        axTime.set_xticks(ax.get_xticks())
+        axTime.set_xticklabels(tick_function(ax.get_xticks()))
+        axTime.set_xlim(ax.get_xlim())
+        axTime.set_xlabel("Minimum session-specific recording time (minutes)")
+        
+        plt.show()
+        
+        
+        
+        
+        ''' Prioritise acc '''
+        
+        fig=plt.figure()
+        ax=fig.add_axes((0.0,0.15,0.8,0.8))
+        
+        scores_sessiononly_agg.plot(y='mean',x='calib_level_wholegests',kind='line',marker='.',ax=ax,rot=0,label='Within-session\nlearning')
+        scores_agg.plot(y='mean',x='calib_level_wholegests',kind='line',marker='.',ax=ax,rot=0,label='Transfer from\nprior user data\nwith static\nconfiguration',c='tab:red')
+        scores_xfer_gen_agg.plot(y='mean',x='calib_level_wholegests',kind='line',marker='.',ax=ax,rot=0,label='Transfer from\nGeneralist',c='tab:brown')
+        within_opt_both_downsample_agg.plot(y='mean',x='calib_level_wholegests',kind='line',marker='.',ax=ax,rot=0,label='Within-session\ntraining (system\nconfig optimised\non downsampled\nprior user data)',c='tab:olive')
+        plt.axhline(y=train_both_baseline_score,label='Pretrained on\nprior user data',linestyle='--',color='black')
+
+        plt.title('Mean accuracies of candidate approaches over Development\nsubjects on reserved 33% of Session 3 data (66 gestures)',loc='left')
+        ax.set_xlabel('# Session 3 gestures used for learning')
+        ax.set_ylabel('Classification Accuracy')#' on reserved 33% (200) subject')
+
+        plt.axhline(y=0.723,label='Proxy* Generalist',linestyle='-.',color='gray')
+        ax.set_ylim(0.6,0.9)
+       # ax.legend(title='Approach',loc='center left',bbox_to_anchor=(1,0.5),ncol=1)
+        ax.legend().set_visible(False)
+        
+        tPerGest=3
+        nCalibTotal=134
+        tTotal=nCalibTotal*tPerGest
+        tTotal_mins = tTotal/60
+        t_save_mins = 3.75 ############
+        t_save=t_save_mins*60
+        nCalibSave=np.floor((t_save/tPerGest)/4)*4
+
+        accept_loss = 2.5 #############
+        '''maxacc=0.8532196970500001'''
+        maxacc=0.859280
+        min_acceptable=0.859280-(accept_loss/100)
+        plt.axhspan(ymin=min_acceptable,ymax=0.859280*0.999, #ymin=0.8232196970500001
+                    xmin=0.175,xmax=132/138,linestyle=':',lw=0.5,alpha=0.5,color='gray')
+        ax.annotate("",xy=(138*0.1375,min_acceptable*0.995),#could do just 0.125 with xycoords=('axes fraction','data'))
+                    xytext=(138*0.1375,0.859280/0.999),
+                    arrowprops=dict(arrowstyle='->'))
+        ax.text(138*0.05,(min_acceptable+0.859280)/2,
+                f"Acceptable\naccuracy\nloss: {accept_loss}%", ha="center", va="center",size='small')#, bbox=bbox)              
+        plt.axvspan(132-nCalibSave,132,ymin=0.15,ymax=np.max(scores_sessionNoOpt_agg)['mean']*0.999,
+                    linestyle=':',lw=0.5,alpha=0.5,color='gray')        
+        ax.annotate("",xy=(132/0.995,0.15),xycoords=('data','axes fraction'),
+                    xytext=((132-nCalibSave)*0.985,0.15),textcoords=('data','axes fraction'),
+                    arrowprops=dict(arrowstyle='<-'))
+        ax.text(132-(nCalibSave*0.5),0.625,
+                f"Achievable time reduction: {t_save_mins} mins", ha="center", va="center",size='small')#, bbox=bbox)
+                
+        axTime=fig.add_axes((0.0,0.0,0.8,0.0))
+        axTime.yaxis.set_visible(False)
+        axTime.set_xticks(ax.get_xticks())
+        axTime.set_xticklabels(tick_function(ax.get_xticks()))
+        axTime.set_xlim(ax.get_xlim())
+        axTime.set_xlabel("Minimum session-specific recording time (minutes)")
+        
+        plt.show()
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
     
 
 

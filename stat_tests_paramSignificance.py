@@ -170,9 +170,12 @@ def LDA_solver_significance(df,modelparam,resultparam,solverparam,shrinkageparam
     #                    title='Accuracy vs LDA shrinkage, pearson coefficient = '+str((round(pearsonR[0],4),round(pearsonR[1],4))))
    # df_subset_noSVD.plot(x=shrinkageparam,y=resultparam,kind='scatter',
     #                    title='Accuracy vs LDA shrinkage, spearman rho = '+str((round(spearmanR[0],4),round(spearmanR[1],4))))
+  #  df_subset_noSVD.plot(x=shrinkageparam,y=resultparam,kind='scatter',
+  #                      title=trial+'\nAccuracy vs LDA shrinkage, Pearson coefficient = '+str(round(pearsonR[0],4))+' ('+(('p='+str(round(pearsonR[1],4)) if round(pearsonR[1],4)!=0 else 'p'+'<0.0001')+')')
+  #                      +'\n(Bonferroni correction used)'+f"{' '*3}"+' Spearman\'s rho = '+str(round(spearmanR[0],4))+' ('+(('p='+str(round(spearmanR[1],4)) if round(spearmanR[1],4)!=0 else 'p'+'<0.0001')+')'))
     df_subset_noSVD.plot(x=shrinkageparam,y=resultparam,kind='scatter',
-                        title=trial+'\nAccuracy vs LDA shrinkage, Pearson coefficient = '+str(round(pearsonR[0],4))+' ('+(('p='+str(round(pearsonR[1],4)) if round(pearsonR[1],4)!=0 else 'p'+'<0.0001')+')')
-                        +'\n'+f"{' '*36}"+' Spearman\'s rho = '+str(round(spearmanR[0],4))+' ('+(('p='+str(round(spearmanR[1],4)) if round(spearmanR[1],4)!=0 else 'p'+'<0.0001')+')'))
+                        title=trial+'\nAccuracy vs LDA shrinkage, Pearson coefficient = '+str(round(pearsonR[0],4))+' ('+(('p='+str(round(pearsonR[1]*2,4)) if round(pearsonR[1]*2,4)!=0 else 'p'+'<0.0001')+')')
+                        +'\n'+f"{' '*36}"+' Spearman\'s rho = '+str(round(spearmanR[0],4))+' ('+(('p='+str(round(spearmanR[1]*2,4)) if round(spearmanR[1]*2,4)!=0 else 'p'+'<0.0001')+')'))
     plt.xlabel('Shrinkage')
     plt.ylabel('Mean classification accuracy')
     
@@ -205,18 +208,22 @@ def SVM_params_significance(df,modelparam,resultparam,Cparam,Gammaparam,trial=''
     df_subset[Gammaparam]=[x[0] for x in df_subset[Gammaparam]]
     
     pearsonR=stats.pearsonr(df_subset[Cparam],df_subset[resultparam])
+    spearmanR=stats.spearmanr(df_subset[Cparam],df_subset[resultparam])
     df_subset.plot(x=Cparam,y=resultparam,kind='scatter')#,logx=True)#ylim=(0.8,1),
-    title=trial+'\nAccuracy vs C, Pearson coefficient = '+str(round(pearsonR[0],4))+' ('+(('p='+str(round(pearsonR[1],4)) if round(pearsonR[1],4)!=0 else 'p'+'<0.0001')+')')
-    plt.gcf().suptitle(title,y=0.995)
+    title=(trial+'\nAccuracy vs C, Pearson coefficient = '+str(round(pearsonR[0],4))+' ('+('p='+str(round(pearsonR[1]*2,4)) if round(pearsonR[1]*2,4)!=0 else 'p'+'<0.0001')+')'
+           +'\n'+f"{' '*36}"+' Spearman\'s rho = '+str(round(spearmanR[0],4))+' ('+('p='+str(round(spearmanR[1]*2,4)) if round(spearmanR[1]*2,4)!=0 else 'p'+'<0.0001')+')')
+    plt.gcf().suptitle(title,y=1.025) #0.995 for two-line
     plt.xlabel('C')
     plt.ylabel('Mean classification accuracy')
     
     pearsonR=stats.pearsonr(df_subset[Gammaparam],df_subset[resultparam])
+    spearmanR=stats.spearmanr(df_subset[Gammaparam],df_subset[resultparam])
     df_subset.plot(x=Gammaparam,y=resultparam,kind='scatter')#,logx=True)
     #title=trial+'\nAccuracy vs Gamma, pearson coefficient = '+str((round(pearsonR[0],4),round(pearsonR[1],4)))
     #title=trial+'\nAccuracy vs Gamma: (Pearson coefficient, p) = '+(str((round(pearsonR[0],4),round(pearsonR[1],4))) if round(pearsonR[1],4)!=0 else '('+str(round(pearsonR[0],4))+', <0.0001)')
-    title=trial+'\nAccuracy vs Gamma, Pearson coefficient = '+str(round(pearsonR[0],4))+' ('+('p='+str(round(pearsonR[1],4)) if round(pearsonR[1],4)!=0 else 'p'+'<0.0001')+')'
-    plt.gcf().suptitle(title,y=0.995)
+    title=(trial+'\nAccuracy vs Gamma, Pearson coefficient = '+str(round(pearsonR[0],4))+' ('+('p='+str(round(pearsonR[1]*2,4)) if round(pearsonR[1]*2,4)!=0 else 'p'+'<0.0001')+')'
+           +'\n'+f"{' '*36}"+' Spearman\'s rho = '+str(round(spearmanR[0],4))+' ('+('p='+str(round(spearmanR[1]*2,4)) if round(spearmanR[1]*2,4)!=0 else 'p'+'<0.0001')+')')
+    plt.gcf().suptitle(title,y=1.025)
     plt.xlabel('Gamma')
     plt.ylabel('Mean classification accuracy')
     
@@ -231,14 +238,17 @@ def GNB_smoothing_significance(df,modelparam,resultparam,Smoothparam,trial=None)
     df_subset[Smoothparam]=[x[0] for x in df_subset[Smoothparam]]
     
     pearsonR=stats.pearsonr(df_subset[Smoothparam],df_subset[resultparam])
+    spearmanR=stats.spearmanr(df_subset[Smoothparam],df_subset[resultparam])
     
     if round(pearsonR[1],4)==0:
         title=trial+'\nAccuracy vs Smoothing, Pearson coefficient = '+str(round(pearsonR[0],4))+' (p<0.0001)'
     else:
         title=trial+'\nAccuracy vs Smoothing, Pearson coefficient = ('+str(round(pearsonR[0],4))+' (p='+str(round(pearsonR[1],4))+')'
+    title=(trial+'\nAccuracy vs Smoothing, Pearson coefficient = '+str(round(pearsonR[0],4))+' ('+('p='+str(round(pearsonR[1]*2,4)) if round(pearsonR[1]*2,4)!=0 else 'p'+'<0.0001')+')'
+           +'\n'+f"{' '*36}"+' Spearman\'s rho = '+str(round(spearmanR[0],4))+' ('+('p='+str(round(spearmanR[1]*2,4)) if round(spearmanR[1]*2,4)!=0 else 'p'+'<0.0001')+')')
     df_subset.plot(x=Smoothparam,y=resultparam,kind='scatter',logx=True,#ylim=(0.8,1),
                         )#title=title,titleheight=0.995)
-    plt.gcf().suptitle(title,y=0.995)
+    plt.gcf().suptitle(title,y=1.025)
     plt.xlabel('Smoothing')
     plt.ylabel('Mean classification accuracy')
 
@@ -248,11 +258,13 @@ def kNN_k_significance(df,modelparam,resultparam,Kparam,trial=None):
     df_subset=df_subset.loc[df_subset[modelparam]==1].reset_index(drop=True)
     df_subset[Kparam]=[x[0] for x in df_subset[Kparam]]
     
+    pearsonR=stats.pearsonr(df_subset[Kparam],df_subset[resultparam])
     spearmanR=stats.spearmanr(df_subset[Kparam],df_subset[resultparam])
     
-    title=trial+'\nAccuracy vs k, Spearman\'s rho = '+str(round(spearmanR[0],4))+' ('+(('p='+str(round(spearmanR[1],4)) if round(spearmanR[1],4)!=0 else 'p'+'<0.0001')+')')
+    title=(trial+'\nAccuracy vs k, Pearson coefficient = '+str(round(pearsonR[0],4))+' ('+('p='+str(round(pearsonR[1]*2,4)) if round(pearsonR[1]*2,4)!=0 else 'p'+'<0.0001')+')'
+           +'\n'+f"{' '*36}"+' Spearman\'s rho = '+str(round(spearmanR[0],4))+' ('+('p='+str(round(spearmanR[1]*2,4)) if round(spearmanR[1]*2,4)!=0 else 'p'+'<0.0001')+')')
     df_subset.plot(x=Kparam,y=resultparam,kind='scatter')
-    plt.gcf().suptitle(title,y=0.995)
+    plt.gcf().suptitle(title,y=1.025)
     plt.xlabel('k (neighbourhood size)')
     plt.ylabel('Mean classification accuracy')
     
@@ -263,10 +275,15 @@ def QDA_reg_significance(df,modelparam,resultparam,Regparam,trial=None):
     df_subset[Regparam]=[x[0] for x in df_subset[Regparam]]
     
     pearsonR=stats.pearsonr(df_subset[Regparam],df_subset[resultparam])
+    spearmanR=stats.spearmanr(df_subset[Regparam],df_subset[resultparam])
     
-    title=trial+'\nAccuracy vs Regularisation, Pearson coefficient = '+str(round(pearsonR[0],4))+' ('+(('p='+str(round(pearsonR[1],4)) if round(pearsonR[1],4)!=0 else 'p'+'<0.0001')+')')
+    title=(trial+'\nAccuracy vs Regularisation, Pearson coefficient = '+str(round(pearsonR[0],4))+' ('+('p='+str(round(pearsonR[1]*2,4)) if round(pearsonR[1]*2,4)!=0 else 'p'+'<0.0001')+')'
+           +'\n'+f"{' '*36}"+' Spearman\'s rho = '+str(round(spearmanR[0],4))+' ('+('p='+str(round(spearmanR[1]*2,4)) if round(spearmanR[1]*2,4)!=0 else 'p'+'<0.0001')+')')
+    '''TECHNICALLY p has max of 1.0 so we should do the below. BUT for better transparency, dont want to lose the information, so report the adjusted p'''
+  #  title=(trial+'\nAccuracy vs Regularisation, Pearson coefficient = '+str(round(pearsonR[0],4))+' ('+('p='+str(min(1.0,round(pearsonR[1]*2,4))) if round(pearsonR[1]*2,4)!=0 else 'p'+'<0.0001')+')'
+   #        +'\n'+f"{' '*36}"+' Spearman\'s rho = '+str(round(spearmanR[0],4))+' ('+('p='+str(min(1.0,round(spearmanR[1]*2,4)) if round(spearmanR[1]*2,4)!=0 else 'p'+'<0.0001')+')')
     df_subset.plot(x=Regparam,y=resultparam,kind='scatter')
-    plt.gcf().suptitle(title,y=0.995)
+    plt.gcf().suptitle(title,y=1.025)
     plt.xlabel('Regularisation strength')
     plt.ylabel('Mean classification accuracy')
     
@@ -276,11 +293,14 @@ def RF_trees_significance(df,modelparam,resultparam,Treesparam,trial=None):
     df_subset=df_subset.loc[df_subset[modelparam]==0].reset_index(drop=True)
     df_subset[Treesparam]=[x[0] for x in df_subset[Treesparam]]
     
+    pearsonR=stats.pearsonr(df_subset[Treesparam],df_subset[resultparam])
+    #arguably just monotonic because its technically categorical?? but no.
     spearmanR=stats.spearmanr(df_subset[Treesparam],df_subset[resultparam])
     
-    title=trial+'\nAccuracy vs # of trees, Spearman\'s rho = '+str(round(spearmanR[0],4))+' ('+(('p='+str(round(spearmanR[1],4)) if round(spearmanR[1],4)!=0 else 'p'+'<0.0001')+')')
+    title=(trial+'\nAccuracy vs # of trees, Pearson coefficient = '+str(round(pearsonR[0],4))+' ('+('p='+str(round(pearsonR[1]*2,4)) if round(pearsonR[1]*2,4)!=0 else 'p'+'<0.0001')+')'
+           +'\n'+f"{' '*36}"+' Spearman\'s rho = '+str(round(spearmanR[0],4))+' ('+('p='+str(round(spearmanR[1]*2,4)) if round(spearmanR[1]*2,4)!=0 else 'p'+'<0.0001')+')')
     df_subset.plot(x=Treesparam,y=resultparam,kind='scatter')
-    plt.gcf().suptitle(title,y=0.995)
+    plt.gcf().suptitle(title,y=1.025)
     plt.xlabel('Number of trees')
     plt.ylabel('Mean classification accuracy')
 
@@ -297,34 +317,40 @@ if __name__=='__main__':
     test_QDAs=True
     test_RFs=True
     
+    print('BONFERRONI FOR ALL CASES WHERE BOTH R AND RHO, P IS DOUBLED')
+    
     pathBespokeEEG=r"/home/michael/Documents/Aston/MultimodalFW/rq1-unimodal-opt-forGNB/bespoke_just_eeg/trials_obj.p"
-    pathBespokeEEG=r"C:\Users\pritcham\Documents\mm-framework\multimodal-framework\lit_data_expts\jeong\results\Bespoke_20DevSet\just_eeg\trials_obj.p"
+   # pathBespokeEEG=r"C:\Users\pritcham\Documents\mm-framework\multimodal-framework\lit_data_expts\jeong\results\Bespoke_20DevSet\just_eeg\trials_obj.p"
     _,_,eegBespoke=fuse.load_results_obj(pathBespokeEEG)
 
     pathBespokeEMG=r"/home/michael/Documents/Aston/MultimodalFW/rq1-unimodal-opt-forGNB/bespoke_just_emg/trials_obj.p"
-    pathBespokeEMG=r"C:\Users\pritcham\Documents\mm-framework\multimodal-framework\lit_data_expts\jeong\results\Bespoke_20DevSet\just_emg\trials_obj.p"
+   # pathBespokeEMG=r"C:\Users\pritcham\Documents\mm-framework\multimodal-framework\lit_data_expts\jeong\results\Bespoke_20DevSet\just_emg\trials_obj.p"
     _,_,emgBespoke=fuse.load_results_obj(pathBespokeEMG)
 
     pathGenEEG=r"/home/michael/Documents/Aston/MultimodalFW/rq1-unimodal-opt-forGNB/Gen_EEG/trials_obj.p"
-    pathGenEEG=r"C:\Users\pritcham\Documents\mm-framework\multimodal-framework\lit_data_expts\jeong\results\Generalist_20DevSet\Gen_EEG\trials_obj.p"
+    #pathGenEEG=r"C:\Users\pritcham\Documents\mm-framework\multimodal-framework\lit_data_expts\jeong\results\Generalist_20DevSet\Gen_EEG\trials_obj.p"
     _,_,eegGen=fuse.load_results_obj(pathGenEEG)
 
     pathGenEMG=r"/home/michael/Documents/Aston/MultimodalFW/rq1-unimodal-opt-forGNB/Gen_EMG/trials_obj.p"
-    pathGenEMG=r"C:\Users\pritcham\Documents\mm-framework\multimodal-framework\lit_data_expts\jeong\results\Generalist_20DevSet\Gen_EMG\trials_obj.p"
+    #pathGenEMG=r"C:\Users\pritcham\Documents\mm-framework\multimodal-framework\lit_data_expts\jeong\results\Generalist_20DevSet\Gen_EMG\trials_obj.p"
     _,_,emgGen=fuse.load_results_obj(pathGenEMG)
     
     pathBespokeFeatSep=r"/home/michael/Documents/Aston/MultimodalFW/rq1-featfuse-opt-res/featlevel (sep)/trials_obj.p"
-    pathBespokeFeatSep=r"C:\Users\pritcham\Documents\mm-framework\multimodal-framework\lit_data_expts\jeong\results\Bespoke_20DevSet\featlevel\trials_obj.p"
+    #pathBespokeFeatSep=r"C:\Users\pritcham\Documents\mm-framework\multimodal-framework\lit_data_expts\jeong\results\Bespoke_20DevSet\featlevel\trials_obj.p"
     _,_,bespokeFeatSep=fuse.load_results_obj(pathBespokeFeatSep)
     
     pathBespokeFeatJoin=r"/home/michael/Documents/Aston/MultimodalFW/rq1-featfuse-opt-res/featlevel_joint/trials_obj.p"
-    pathBespokeFeatJoin=r"C:\Users\pritcham\Documents\mm-framework\multimodal-framework\lit_data_expts\jeong\results\Bespoke_20DevSet\featlevel_joint\trials_obj.p"
+    #pathBespokeFeatJoin=r"C:\Users\pritcham\Documents\mm-framework\multimodal-framework\lit_data_expts\jeong\results\Bespoke_20DevSet\featlevel_joint\trials_obj.p"
     _,_,bespokeFeatJoin=fuse.load_results_obj(pathBespokeFeatJoin)
     
     pathGenFeatSep=r"C:\Users\pritcham\Documents\mm-framework\multimodal-framework\lit_data_expts\jeong\results\Generalist_20DevSet\Gen_feat_sep\trials_obj.p"
+    '''WRONG'''
+    pathGenFeatSep=r"/home/michael/Documents/Aston/MultimodalFW/rq1-featfuse-opt-res/featlevel (sep)/trials_obj.p"
     _,_,genFeatSep=fuse.load_results_obj(pathGenFeatSep)
     
     pathGenFeatJoin=r"C:\Users\pritcham\Documents\mm-framework\multimodal-framework\lit_data_expts\jeong\results\Generalist_20DevSet\Gen_feat_joint\trials_obj.p"
+    '''WRONG'''
+    pathGenFeatJoin=r"/home/michael/Documents/Aston/MultimodalFW/rq1-featfuse-opt-res/featlevel_joint/trials_obj.p"
     _,_,genFeatJoin=fuse.load_results_obj(pathGenFeatJoin)
     
     if test_knns:
@@ -332,7 +358,7 @@ if __name__=='__main__':
         kNN_k_significance(emgBespoke,'emg model','emg_mean_acc','emg.knn.k',trial='kNNs in Bespoke Unimodal EMG System Optimisation')
         kNN_k_significance(eegGen,'eeg model','eeg_mean_acc','eeg.knn.k',trial='kNNs in Generalist Unimodal EEG System Optimisation')
         kNN_k_significance(emgGen,'emg model','emg_mean_acc','emg.knn.k',trial='kNNs in Generalist Unimodal EMG System Optimisation')
-    
+        
     if test_QDAs:
        QDA_reg_significance(eegBespoke,'eeg model','eeg_mean_acc','eeg.qda.regularisation',trial='QDAs in Bespoke Unimodal EEG System Optimisation')
        QDA_reg_significance(emgBespoke,'emg model','emg_mean_acc','emg.qda.regularisation',trial='QDAs in Bespoke Unimodal EMG System Optimisation')

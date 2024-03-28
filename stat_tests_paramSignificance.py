@@ -287,6 +287,8 @@ def QDA_reg_significance(df,modelparam,resultparam,Regparam,trial=None):
     '''TECHNICALLY p has max of 1.0 so we should do the below. BUT for better transparency, dont want to lose the information, so report the adjusted p'''
   #  title=(trial+'\nAccuracy vs Regularisation, Pearson coefficient = '+str(round(pearsonR[0],4))+' ('+('p='+str(min(1.0,round(pearsonR[1]*2,4))) if round(pearsonR[1]*2,4)!=0 else 'p'+'<0.0001')+')'
    #        +'\n'+f"{' '*36}"+' Spearman\'s rho = '+str(round(spearmanR[0],4))+' ('+('p='+str(min(1.0,round(spearmanR[1]*2,4)) if round(spearmanR[1]*2,4)!=0 else 'p'+'<0.0001')+')')
+   #https://stats.stackexchange.com/questions/263733/many-p-values-are-equal-to-1-after-bonferroni-correction-is-it-normal
+    #https://stats.stackexchange.com/questions/225937/linear-mixed-effects-model-and-multiplicity-issue-and-adjusting-for-p-values/226215#226215
     df_subset.plot(x=Regparam,y=resultparam,kind='scatter')
     plt.gcf().suptitle(title,y=1.025)
     plt.xlabel('Regularisation strength')

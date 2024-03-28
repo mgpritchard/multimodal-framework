@@ -36,10 +36,10 @@ def boxplot_param(df_in,param,target,ylower=0,yupper=1,showplot=True,xlabs=None,
         plt.show()
     return fig
 
-def model_significance(df,target,param,winner,title='Mean accuracy per classifier in Bespoke EEG-Only optimisation'):
+def model_significance(df,target,param,winner,title='Mean accuracy per classifier in Bespoke EEG-Only optimisation',titleheight=0.98):
     
     per_param=boxplot_param(df,param,target,xlabs=models,
-                               title=title)
+                               title=title,titleheight=titleheight)
     
     stat_test=df[[param,target]]
     stat_test[param]=[x[0] for x in stat_test[param]]
@@ -110,10 +110,10 @@ def hierarch_lowmodel(df,target,param,title='Mean accuracy per classifier in Bes
     '''COPY DATA FROM STAT_TEST FOR R SCRIPT'''
     return per_param#, stat_test
 
-def fusalg_significance(df,target,param,winner,title='Mean accuracy per fusion alg in Bespoke Decision-fusion optimisation'):
+def fusalg_significance(df,target,param,winner,title='Mean accuracy per fusion alg in Bespoke Decision-fusion optimisation',titleheight=0.98):
     labels=['Mean','3:1 EMG','3:1 EEG','Opt\nweighted','Max','SVM','LDA','RF']
     per_param=boxplot_param(df,param,target,xlabs=labels,
-                               title=title)
+                               title=title,titleheight=titleheight)
     
     stat_test=df[[param,target]]
     blocks=df[[param,'emg model','eeg model',target]]
@@ -159,7 +159,7 @@ def LDA_solver_significance(df,modelparam,resultparam,solverparam,shrinkageparam
     print('anova on all ',fstat, pvalue)
     per_LDAsolver=boxplot_param(df_subset,solverparam,resultparam,xlabs=solvers,titleheight=0.995,
                                 xlabel='Solver',ylabel='Mean classification accuracy',
-                               title=trial+'\nMean accuracy per LDA solver, ANOVA: f='+str(round(fstat,4))+', p='+str(round(pvalue,4)))
+                               title=trial+'\nMean accuracy per LDA solver, ANOVA: f='+str(round(fstat,4))+', p'+(('='+str(round(pvalue,4))) if round(pvalue,4)!=0 else '<0.0001'))
     
     print('below only looks for linear correlation, optimiser looks for local minimum')
     LDAs_perSolver=[df_subset[df_subset[solverparam]==group].reset_index(drop=True) for group in [0,1,2]]#df_subset[solverparam].unique()]
@@ -174,21 +174,24 @@ def LDA_solver_significance(df,modelparam,resultparam,solverparam,shrinkageparam
   #                      title=trial+'\nAccuracy vs LDA shrinkage, Pearson coefficient = '+str(round(pearsonR[0],4))+' ('+(('p='+str(round(pearsonR[1],4)) if round(pearsonR[1],4)!=0 else 'p'+'<0.0001')+')')
   #                      +'\n(Bonferroni correction used)'+f"{' '*3}"+' Spearman\'s rho = '+str(round(spearmanR[0],4))+' ('+(('p='+str(round(spearmanR[1],4)) if round(spearmanR[1],4)!=0 else 'p'+'<0.0001')+')'))
     df_subset_noSVD.plot(x=shrinkageparam,y=resultparam,kind='scatter',
-                        title=trial+'\nAccuracy vs LDA shrinkage, Pearson coefficient = '+str(round(pearsonR[0],4))+' ('+(('p='+str(round(pearsonR[1]*2,4)) if round(pearsonR[1]*2,4)!=0 else 'p'+'<0.0001')+')')
-                        +'\n'+f"{' '*36}"+' Spearman\'s rho = '+str(round(spearmanR[0],4))+' ('+(('p='+str(round(spearmanR[1]*2,4)) if round(spearmanR[1]*2,4)!=0 else 'p'+'<0.0001')+')'))
+                        title=trial+'\nAccuracy vs LDA shrinkage, Pearson coefficient = '+str(round(pearsonR[0],4))+' ('+(('p='+str(min(1.0,round(pearsonR[1]*2,4))) if round(pearsonR[1]*2,4)!=0 else 'p'+'<0.0001')+')')
+                        +'\n'+f"{' '*36}"+' Spearman\'s rho = '+str(round(spearmanR[0],4))+' ('+(('p='+str(min(1.0,round(spearmanR[1]*2,4))) if round(spearmanR[1]*2,4)!=0 else 'p'+'<0.0001')+')'))
     plt.xlabel('Shrinkage')
     plt.ylabel('Mean classification accuracy')
     
     splitPerSolver = 0
     if splitPerSolver:
+        print ('Per-Solver Correlations ARE NOW Bonferroni corrected here!')
         pearsonR=stats.pearsonr(LDAs_perSolver[1][shrinkageparam],LDAs_perSolver[1][resultparam])
         spearmanR=stats.spearmanr(LDAs_perSolver[1][shrinkageparam],LDAs_perSolver[1][resultparam])
       #  LDAs_perSolver[1].plot(x=shrinkageparam,y=resultparam,kind='scatter',
        #                     title='Accuracy vs shrinkage, solver: '+str(solver_dict[1])+', pearson coefficient = '+str((round(pearsonR[0],4),round(pearsonR[1],4))))
         LDAs_perSolver[1].plot(x=shrinkageparam,y=resultparam,kind='scatter',
                             title=trial+'\nAccuracy vs shrinkage, solver: '+str(solver_dict[1])
-                            +'\npearson coefficient = '+str((round(pearsonR[0],4),round(pearsonR[1],4)))
-                            +'\nspearman rho = '+str((round(spearmanR[0],4),round(spearmanR[1],4))))
+                            #+'\npearson coefficient = '+str((round(pearsonR[0],4),round(pearsonR[1],4)))
+                            +'\npearson coefficient = '+str(round(pearsonR[0],4))+' ('+(('p='+str(round(pearsonR[1]*2,4)) if round(pearsonR[1]*2,4)!=0 else 'p'+'<0.0001')+')')
+                            #+'\nspearman rho = '+str((round(spearmanR[0],4),round(spearmanR[1],4))))
+                            +'\nspearman rho = '+str(round(spearmanR[0],4))+' ('+(('p='+str(round(spearmanR[1]*2,4)) if round(spearmanR[1]*2,4)!=0 else 'p'+'<0.0001')+')'))
         
         pearsonR=stats.pearsonr(LDAs_perSolver[2][shrinkageparam],LDAs_perSolver[2][resultparam])
         spearmanR=stats.spearmanr(LDAs_perSolver[2][shrinkageparam],LDAs_perSolver[2][resultparam])
@@ -196,8 +199,10 @@ def LDA_solver_significance(df,modelparam,resultparam,solverparam,shrinkageparam
          #                   title='Accuracy vs shrinkage, solver: '+str(solver_dict[2])+', pearson coefficient = '+str((round(pearsonR[0],4),round(pearsonR[1],4))))
         LDAs_perSolver[2].plot(x=shrinkageparam,y=resultparam,kind='scatter',
                             title=trial+'\nAccuracy vs shrinkage, solver: '+str(solver_dict[2])
-                            +'\npearson coefficient = '+str((round(pearsonR[0],4),round(pearsonR[1],4)))
-                            +'\nspearman rho = '+str((round(spearmanR[0],4),round(spearmanR[1],4))))
+                            #+'\npearson coefficient = '+str((round(pearsonR[0],4),round(pearsonR[1],4)))
+                            +'\npearson coefficient = '+str(round(pearsonR[0],4))+' ('+(('p='+str(round(pearsonR[1]*2,4)) if round(pearsonR[1]*2,4)!=0 else 'p'+'<0.0001')+')')
+                            #+'\nspearman rho = '+str((round(spearmanR[0],4),round(spearmanR[1],4))))
+                            +'\nspearman rho = '+str(round(spearmanR[0],4))+' ('+(('p='+str(round(spearmanR[1]*2,4)) if round(spearmanR[1]*2,4)!=0 else 'p'+'<0.0001')+')'))
 
 
 def SVM_params_significance(df,modelparam,resultparam,Cparam,Gammaparam,trial=''):
@@ -210,8 +215,8 @@ def SVM_params_significance(df,modelparam,resultparam,Cparam,Gammaparam,trial=''
     pearsonR=stats.pearsonr(df_subset[Cparam],df_subset[resultparam])
     spearmanR=stats.spearmanr(df_subset[Cparam],df_subset[resultparam])
     df_subset.plot(x=Cparam,y=resultparam,kind='scatter')#,logx=True)#ylim=(0.8,1),
-    title=(trial+'\nAccuracy vs C, Pearson coefficient = '+str(round(pearsonR[0],4))+' ('+('p='+str(round(pearsonR[1]*2,4)) if round(pearsonR[1]*2,4)!=0 else 'p'+'<0.0001')+')'
-           +'\n'+f"{' '*36}"+' Spearman\'s rho = '+str(round(spearmanR[0],4))+' ('+('p='+str(round(spearmanR[1]*2,4)) if round(spearmanR[1]*2,4)!=0 else 'p'+'<0.0001')+')')
+    title=(trial+'\nAccuracy vs C, Pearson coefficient = '+str(round(pearsonR[0],4))+' ('+('p='+str(min(1.0,round(pearsonR[1]*2,4))) if round(pearsonR[1]*2,4)!=0 else 'p'+'<0.0001')+')'
+           +'\n'+f"{' '*32}"+' Spearman\'s rho = '+str(round(spearmanR[0],4))+' ('+('p='+str(min(1.0,round(spearmanR[1]*2,4))) if round(spearmanR[1]*2,4)!=0 else 'p'+'<0.0001')+')')
     plt.gcf().suptitle(title,y=1.025) #0.995 for two-line
     plt.xlabel('C')
     plt.ylabel('Mean classification accuracy')
@@ -221,8 +226,8 @@ def SVM_params_significance(df,modelparam,resultparam,Cparam,Gammaparam,trial=''
     df_subset.plot(x=Gammaparam,y=resultparam,kind='scatter')#,logx=True)
     #title=trial+'\nAccuracy vs Gamma, pearson coefficient = '+str((round(pearsonR[0],4),round(pearsonR[1],4)))
     #title=trial+'\nAccuracy vs Gamma: (Pearson coefficient, p) = '+(str((round(pearsonR[0],4),round(pearsonR[1],4))) if round(pearsonR[1],4)!=0 else '('+str(round(pearsonR[0],4))+', <0.0001)')
-    title=(trial+'\nAccuracy vs Gamma, Pearson coefficient = '+str(round(pearsonR[0],4))+' ('+('p='+str(round(pearsonR[1]*2,4)) if round(pearsonR[1]*2,4)!=0 else 'p'+'<0.0001')+')'
-           +'\n'+f"{' '*36}"+' Spearman\'s rho = '+str(round(spearmanR[0],4))+' ('+('p='+str(round(spearmanR[1]*2,4)) if round(spearmanR[1]*2,4)!=0 else 'p'+'<0.0001')+')')
+    title=(trial+'\nAccuracy vs Gamma, Pearson coefficient = '+str(round(pearsonR[0],4))+' ('+('p='+str(min(1.0,round(pearsonR[1]*2,4))) if round(pearsonR[1]*2,4)!=0 else 'p'+'<0.0001')+')'
+           +'\n'+f"{' '*36}"+' Spearman\'s rho = '+str(round(spearmanR[0],4))+' ('+('p='+str(min(1.0,round(spearmanR[1]*2,4))) if round(spearmanR[1]*2,4)!=0 else 'p'+'<0.0001')+')')
     plt.gcf().suptitle(title,y=1.025)
     plt.xlabel('Gamma')
     plt.ylabel('Mean classification accuracy')
@@ -240,12 +245,12 @@ def GNB_smoothing_significance(df,modelparam,resultparam,Smoothparam,trial=None)
     pearsonR=stats.pearsonr(df_subset[Smoothparam],df_subset[resultparam])
     spearmanR=stats.spearmanr(df_subset[Smoothparam],df_subset[resultparam])
     
-    if round(pearsonR[1],4)==0:
-        title=trial+'\nAccuracy vs Smoothing, Pearson coefficient = '+str(round(pearsonR[0],4))+' (p<0.0001)'
-    else:
-        title=trial+'\nAccuracy vs Smoothing, Pearson coefficient = ('+str(round(pearsonR[0],4))+' (p='+str(round(pearsonR[1],4))+')'
-    title=(trial+'\nAccuracy vs Smoothing, Pearson coefficient = '+str(round(pearsonR[0],4))+' ('+('p='+str(round(pearsonR[1]*2,4)) if round(pearsonR[1]*2,4)!=0 else 'p'+'<0.0001')+')'
-           +'\n'+f"{' '*36}"+' Spearman\'s rho = '+str(round(spearmanR[0],4))+' ('+('p='+str(round(spearmanR[1]*2,4)) if round(spearmanR[1]*2,4)!=0 else 'p'+'<0.0001')+')')
+    #if round(pearsonR[1],4)==0:
+    #    title=trial+'\nAccuracy vs Smoothing, Pearson coefficient = '+str(round(pearsonR[0],4))+' (p<0.0001)'
+    #else:
+    #    title=trial+'\nAccuracy vs Smoothing, Pearson coefficient = ('+str(round(pearsonR[0],4))+' (p='+str(round(pearsonR[1],4))+')'
+    title=(trial+'\nAccuracy vs Smoothing, Pearson coefficient = '+str(round(pearsonR[0],4))+' ('+('p='+str(min(1.0,round(pearsonR[1]*2,4))) if round(pearsonR[1]*2,4)!=0 else 'p'+'<0.0001')+')'
+           +'\n'+f"{' '*36}"+' Spearman\'s rho = '+str(round(spearmanR[0],4))+' ('+('p='+str(min(1.0,round(spearmanR[1]*2,4))) if round(spearmanR[1]*2,4)!=0 else 'p'+'<0.0001')+')')
     df_subset.plot(x=Smoothparam,y=resultparam,kind='scatter',logx=True,#ylim=(0.8,1),
                         )#title=title,titleheight=0.995)
     plt.gcf().suptitle(title,y=1.025)
@@ -261,8 +266,8 @@ def kNN_k_significance(df,modelparam,resultparam,Kparam,trial=None):
     pearsonR=stats.pearsonr(df_subset[Kparam],df_subset[resultparam])
     spearmanR=stats.spearmanr(df_subset[Kparam],df_subset[resultparam])
     
-    title=(trial+'\nAccuracy vs k, Pearson coefficient = '+str(round(pearsonR[0],4))+' ('+('p='+str(round(pearsonR[1]*2,4)) if round(pearsonR[1]*2,4)!=0 else 'p'+'<0.0001')+')'
-           +'\n'+f"{' '*36}"+' Spearman\'s rho = '+str(round(spearmanR[0],4))+' ('+('p='+str(round(spearmanR[1]*2,4)) if round(spearmanR[1]*2,4)!=0 else 'p'+'<0.0001')+')')
+    title=(trial+'\nAccuracy vs k, Pearson coefficient = '+str(round(pearsonR[0],4))+' ('+('p='+str(min(1.0,round(pearsonR[1]*2,4))) if round(pearsonR[1]*2,4)!=0 else 'p'+'<0.0001')+')'
+           +'\n'+f"{' '*32}"+' Spearman\'s rho = '+str(round(spearmanR[0],4))+' ('+('p='+str(min(1.0,round(spearmanR[1]*2,4))) if round(spearmanR[1]*2,4)!=0 else 'p'+'<0.0001')+')')
     df_subset.plot(x=Kparam,y=resultparam,kind='scatter')
     plt.gcf().suptitle(title,y=1.025)
     plt.xlabel('k (neighbourhood size)')
@@ -306,59 +311,65 @@ def RF_trees_significance(df,modelparam,resultparam,Treesparam,trial=None):
 
 if __name__=='__main__':
     test_LDAs=True
-    test_decisions=False
+    test_decisions=True
     test_hierarch = False
     plt.rcParams['figure.dpi']=150
-    testGNB=True
+    testGNB=False
     
-    test_featfuse_SVMs=True
-    test_eeg_SVMs=True
-    test_knns=True
-    test_QDAs=True
-    test_RFs=True
+    test_featfuse_SVMs=False
+    test_eeg_SVMs=False
+    test_knns=False
+    test_QDAs=False
+    test_RFs=False
     
     print('BONFERRONI FOR ALL CASES WHERE BOTH R AND RHO, P IS DOUBLED')
     
     pathBespokeEEG=r"/home/michael/Documents/Aston/MultimodalFW/rq1-unimodal-opt-forGNB/bespoke_just_eeg/trials_obj.p"
-   # pathBespokeEEG=r"C:\Users\pritcham\Documents\mm-framework\multimodal-framework\lit_data_expts\jeong\results\Bespoke_20DevSet\just_eeg\trials_obj.p"
+    pathBespokeEEG=r"C:\Users\pritcham\Documents\mm-framework\multimodal-framework\lit_data_expts\jeong\results\Bespoke_20DevSet\just_eeg\trials_obj.p"
     _,_,eegBespoke=fuse.load_results_obj(pathBespokeEEG)
 
     pathBespokeEMG=r"/home/michael/Documents/Aston/MultimodalFW/rq1-unimodal-opt-forGNB/bespoke_just_emg/trials_obj.p"
-   # pathBespokeEMG=r"C:\Users\pritcham\Documents\mm-framework\multimodal-framework\lit_data_expts\jeong\results\Bespoke_20DevSet\just_emg\trials_obj.p"
+    pathBespokeEMG=r"C:\Users\pritcham\Documents\mm-framework\multimodal-framework\lit_data_expts\jeong\results\Bespoke_20DevSet\just_emg\trials_obj.p"
     _,_,emgBespoke=fuse.load_results_obj(pathBespokeEMG)
 
     pathGenEEG=r"/home/michael/Documents/Aston/MultimodalFW/rq1-unimodal-opt-forGNB/Gen_EEG/trials_obj.p"
-    #pathGenEEG=r"C:\Users\pritcham\Documents\mm-framework\multimodal-framework\lit_data_expts\jeong\results\Generalist_20DevSet\Gen_EEG\trials_obj.p"
+    pathGenEEG=r"C:\Users\pritcham\Documents\mm-framework\multimodal-framework\lit_data_expts\jeong\results\Generalist_20DevSet\Gen_EEG\trials_obj.p"
     _,_,eegGen=fuse.load_results_obj(pathGenEEG)
 
     pathGenEMG=r"/home/michael/Documents/Aston/MultimodalFW/rq1-unimodal-opt-forGNB/Gen_EMG/trials_obj.p"
-    #pathGenEMG=r"C:\Users\pritcham\Documents\mm-framework\multimodal-framework\lit_data_expts\jeong\results\Generalist_20DevSet\Gen_EMG\trials_obj.p"
+    pathGenEMG=r"C:\Users\pritcham\Documents\mm-framework\multimodal-framework\lit_data_expts\jeong\results\Generalist_20DevSet\Gen_EMG\trials_obj.p"
     _,_,emgGen=fuse.load_results_obj(pathGenEMG)
     
     pathBespokeFeatSep=r"/home/michael/Documents/Aston/MultimodalFW/rq1-featfuse-opt-res/featlevel (sep)/trials_obj.p"
-    #pathBespokeFeatSep=r"C:\Users\pritcham\Documents\mm-framework\multimodal-framework\lit_data_expts\jeong\results\Bespoke_20DevSet\featlevel\trials_obj.p"
+    pathBespokeFeatSep=r"C:\Users\pritcham\Documents\mm-framework\multimodal-framework\lit_data_expts\jeong\results\Bespoke_20DevSet\featlevel\trials_obj.p"
     _,_,bespokeFeatSep=fuse.load_results_obj(pathBespokeFeatSep)
     
     pathBespokeFeatJoin=r"/home/michael/Documents/Aston/MultimodalFW/rq1-featfuse-opt-res/featlevel_joint/trials_obj.p"
-    #pathBespokeFeatJoin=r"C:\Users\pritcham\Documents\mm-framework\multimodal-framework\lit_data_expts\jeong\results\Bespoke_20DevSet\featlevel_joint\trials_obj.p"
+    pathBespokeFeatJoin=r"C:\Users\pritcham\Documents\mm-framework\multimodal-framework\lit_data_expts\jeong\results\Bespoke_20DevSet\featlevel_joint\trials_obj.p"
     _,_,bespokeFeatJoin=fuse.load_results_obj(pathBespokeFeatJoin)
     
     pathGenFeatSep=r"C:\Users\pritcham\Documents\mm-framework\multimodal-framework\lit_data_expts\jeong\results\Generalist_20DevSet\Gen_feat_sep\trials_obj.p"
-    '''WRONG'''
-    pathGenFeatSep=r"/home/michael/Documents/Aston/MultimodalFW/rq1-featfuse-opt-res/featlevel (sep)/trials_obj.p"
+    #'''WRONG'''
+    #pathGenFeatSep=r"/home/michael/Documents/Aston/MultimodalFW/rq1-featfuse-opt-res/featlevel (sep)/trials_obj.p"
     _,_,genFeatSep=fuse.load_results_obj(pathGenFeatSep)
     
     pathGenFeatJoin=r"C:\Users\pritcham\Documents\mm-framework\multimodal-framework\lit_data_expts\jeong\results\Generalist_20DevSet\Gen_feat_joint\trials_obj.p"
-    '''WRONG'''
-    pathGenFeatJoin=r"/home/michael/Documents/Aston/MultimodalFW/rq1-featfuse-opt-res/featlevel_joint/trials_obj.p"
+    #'''WRONG'''
+    #pathGenFeatJoin=r"/home/michael/Documents/Aston/MultimodalFW/rq1-featfuse-opt-res/featlevel_joint/trials_obj.p"
     _,_,genFeatJoin=fuse.load_results_obj(pathGenFeatJoin)
+    
+    pathBespokeDec=r"C:\Users\pritcham\Documents\mm-framework\multimodal-framework\lit_data_expts\jeong\results\Bespoke_20DevSet\decision\trials_obj.p"
+    _,_,decBespoke=fuse.load_results_obj(pathBespokeDec)
+    
+    pathGenDec=r"C:\Users\pritcham\Documents\mm-framework\multimodal-framework\lit_data_expts\jeong\results\Generalist_20DevSet\Gen_Decision\trials_obj.p"
+    _,_,decGeneralist=fuse.load_results_obj(pathGenDec)
     
     if test_knns:
         kNN_k_significance(eegBespoke,'eeg model','eeg_mean_acc','eeg.knn.k',trial='kNNs in Bespoke Unimodal EEG System Optimisation')
         kNN_k_significance(emgBespoke,'emg model','emg_mean_acc','emg.knn.k',trial='kNNs in Bespoke Unimodal EMG System Optimisation')
         kNN_k_significance(eegGen,'eeg model','eeg_mean_acc','eeg.knn.k',trial='kNNs in Generalist Unimodal EEG System Optimisation')
         kNN_k_significance(emgGen,'emg model','emg_mean_acc','emg.knn.k',trial='kNNs in Generalist Unimodal EMG System Optimisation')
-        
+        #raise
     if test_QDAs:
        QDA_reg_significance(eegBespoke,'eeg model','eeg_mean_acc','eeg.qda.regularisation',trial='QDAs in Bespoke Unimodal EEG System Optimisation')
        QDA_reg_significance(emgBespoke,'emg model','emg_mean_acc','emg.qda.regularisation',trial='QDAs in Bespoke Unimodal EMG System Optimisation')
@@ -427,8 +438,8 @@ if __name__=='__main__':
         
       #  figBespHier.savefig('/home/michael/Documents/Aston/MultimodalFW/rq1-hierarch-opt-results/hierarch-bespoke-topmodel-box.png')
       #  figBespInvHier.savefig('/home/michael/Documents/Aston/MultimodalFW/rq1-hierarch-opt-results/invhierarch-bespoke-topmodel-box.png')
-        figBespHierLow.savefig('/home/michael/Documents/Aston/MultimodalFW/rq1-hierarch-opt-results/hierarch-bespoke-lowmodel-box.png')
-        figBespInvHierLow.savefig('/home/michael/Documents/Aston/MultimodalFW/rq1-hierarch-opt-results/invhierarch-bespoke-lowmodel-box.png')
+  #      figBespHierLow.savefig('/home/michael/Documents/Aston/MultimodalFW/rq1-hierarch-opt-results/hierarch-bespoke-lowmodel-box.png')
+  #      figBespInvHierLow.savefig('/home/michael/Documents/Aston/MultimodalFW/rq1-hierarch-opt-results/invhierarch-bespoke-lowmodel-box.png')
         
         models=['RF','KNN','LDA','QDA','GNB']
         model_dict=dict(zip(range(0,len(models)+1),models))
@@ -445,38 +456,37 @@ if __name__=='__main__':
         
       #  figGenHier.savefig('/home/michael/Documents/Aston/MultimodalFW/rq1-hierarch-opt-results/hierarch-gen-topmodel-box.png')
       #  figGenInvHier.savefig('/home/michael/Documents/Aston/MultimodalFW/rq1-hierarch-opt-results/invhierarch-gen-topmodel-box.png')
-        figGenHierLow.savefig('/home/michael/Documents/Aston/MultimodalFW/rq1-hierarch-opt-results/hierarch-gen-lowmodel-box.png')
-        figGenInvHierLow.savefig('/home/michael/Documents/Aston/MultimodalFW/rq1-hierarch-opt-results/invhierarch-gen-lowmodel-box.png')
+  #      figGenHierLow.savefig('/home/michael/Documents/Aston/MultimodalFW/rq1-hierarch-opt-results/hierarch-gen-lowmodel-box.png')
+  #      figGenInvHierLow.savefig('/home/michael/Documents/Aston/MultimodalFW/rq1-hierarch-opt-results/invhierarch-gen-lowmodel-box.png')
         
         raise
     if test_decisions:
         algs=['mean','3_1_emg','3_1_eeg','opt_weight','highest_conf','svm','lda','rf']
+        #algs=['mean','75:25\nemg:eeg','75:25\neeg:emg','tunable\nweight','max','svm','lda','rf']
         alg_dict=dict(zip(range(0,len(algs)+1),algs))
         models=['RF','KNN','LDA','QDA','GNB','SVM']
         model_dict=dict(zip(range(0,len(models)+1),models))
         
-        pathBespokeDec=r"C:\Users\pritcham\Documents\mm-framework\multimodal-framework\lit_data_expts\jeong\results\Bespoke_20DevSet\decision\trials_obj.p"
-        _,_,decBespoke=fuse.load_results_obj(pathBespokeDec)
+        
         print('\n Bespoke Decision-Level:')
-        fig=fusalg_significance(decBespoke,'fusion_mean_acc','fusion algorithm','highest_conf',title='Mean accuracy per fusion alg in Bespoke Decision fusion optimisation')
-        fig.savefig(r"C:\Users\pritcham\Documents\RQ1_plots_stats\bespoke_DecAlgs_box.png")
-        fig=model_significance(decBespoke, 'fusion_mean_acc', 'emg model', 'SVM',title='Mean accuracy per EMG classifier in Bespoke Decision fusion optimisation')
-        fig.savefig(r"C:\Users\pritcham\Documents\RQ1_plots_stats\bespoke_Decision_EMG_box.png")
-        fig=model_significance(decBespoke, 'fusion_mean_acc', 'eeg model', 'RF',title='Mean accuracy per EEG classifier in Bespoke Decision fusion optimisation')
-        fig.savefig(r"C:\Users\pritcham\Documents\RQ1_plots_stats\bespoke_Decision_EEG_box.png")
+        fig=fusalg_significance(decBespoke,'fusion_mean_acc','fusion algorithm','highest_conf',title='Mean accuracy per fusion algorithm in\nBespoke Decision-Level fusion optimisation',titleheight=0.995)
+        fig.savefig(r"C:\Users\pritcham\Documents\RQ1_plots_stats\reformat\bespoke_DecAlgs_box.png")
+        fig=model_significance(decBespoke, 'fusion_mean_acc', 'emg model', 'SVM',title='Mean accuracy per EMG classifier in\nBespoke Decision-Level fusion optimisation',titleheight=0.995)
+        fig.savefig(r"C:\Users\pritcham\Documents\RQ1_plots_stats\reformat\bespoke_Decision_EMG_box.png")
+        fig=model_significance(decBespoke, 'fusion_mean_acc', 'eeg model', 'RF',title='Mean accuracy per EEG classifier in\nBespoke Decision-Level fusion optimisation',titleheight=0.995)
+        fig.savefig(r"C:\Users\pritcham\Documents\RQ1_plots_stats\reformat\bespoke_Decision_EEG_box.png")
     
         
         models=['RF','KNN','LDA','QDA','GNB']
         model_dict=dict(zip(range(0,len(models)+1),models))
-        pathGenDec=r"C:\Users\pritcham\Documents\mm-framework\multimodal-framework\lit_data_expts\jeong\results\Generalist_20DevSet\Gen_Decision\trials_obj.p"
-        _,_,decGeneralist=fuse.load_results_obj(pathGenDec)
+        
         print('\n Generalist Decision-Level:')
-        fig=fusalg_significance(decGeneralist,'fusion_mean_acc','fusion algorithm','highest_conf',title='Mean accuracy per fusion alg in Generalist Decision fusion optimisation')
-        fig.savefig(r"C:\Users\pritcham\Documents\RQ1_plots_stats\gen_DecAlgs_box.png")
-        fig=model_significance(decGeneralist, 'fusion_mean_acc', 'emg model', 'LDA',title='Mean accuracy per EMG classifier in Generalist Decision fusion optimisation')
-        fig.savefig(r"C:\Users\pritcham\Documents\RQ1_plots_stats\gen_Decision_EMG_box.png")
-        fig=model_significance(decGeneralist, 'fusion_mean_acc', 'eeg model', 'LDA',title='Mean accuracy per EEG classifier in Generalist Decision fusion optimisation')
-        fig.savefig(r"C:\Users\pritcham\Documents\RQ1_plots_stats\gen_Decision_EEG_box.png")
+        fig=fusalg_significance(decGeneralist,'fusion_mean_acc','fusion algorithm','highest_conf',title='Mean accuracy per fusion algorithm in\nGeneralist Decision-Level fusion optimisation',titleheight=0.995)
+        fig.savefig(r"C:\Users\pritcham\Documents\RQ1_plots_stats\reformat\gen_DecAlgs_box.png")
+        fig=model_significance(decGeneralist, 'fusion_mean_acc', 'emg model', 'LDA',title='Mean accuracy per EMG classifier in\nGeneralist Decision-Level fusion optimisation',titleheight=0.995)
+        fig.savefig(r"C:\Users\pritcham\Documents\RQ1_plots_stats\reformat\gen_Decision_EMG_box.png")
+        fig=model_significance(decGeneralist, 'fusion_mean_acc', 'eeg model', 'LDA',title='Mean accuracy per EEG classifier in\nGeneralist Decision-Level fusion optimisation',titleheight=0.995)
+        fig.savefig(r"C:\Users\pritcham\Documents\RQ1_plots_stats\reformat\gen_Decision_EEG_box.png")
     
     if test_LDAs:
         models=['RF','KNN','LDA','QDA','GNB','SVM']
@@ -488,7 +498,7 @@ if __name__=='__main__':
         #_,_,eegBespoke=fuse.load_results_obj(pathBespokeEEG)
         print('\n Bespoke EEG-Only:')
         fig=model_significance(eegBespoke,'eeg_mean_acc','eeg model','LDA',title='Mean accuracy per classifier in Bespoke EEG-Only optimisation')
-        #fig.savefig(r"C:\Users\pritcham\Documents\RQ1_plots_stats\bespoke_eegOnly_box.png")
+        fig.savefig(r"C:\Users\pritcham\Documents\RQ1_plots_stats\reformat\bespoke_eegOnly_box.png")
         LDA_solver_significance(eegBespoke,'eeg model','eeg_mean_acc','eeg.LDA_solver','eeg.lda.shrinkage',trial='LDAs in Bespoke Unimodal EEG System Optimisation')
         
         
@@ -497,6 +507,7 @@ if __name__=='__main__':
         #_,_,emgBespoke=fuse.load_results_obj(pathBespokeEMG)
         print('\n Bespoke EMG-Only:')
         fig=model_significance(emgBespoke,'emg_mean_acc','emg model','LDA',title='Mean accuracy per classifier in Bespoke EMG-Only optimisation')
+        fig.savefig(r"C:\Users\pritcham\Documents\RQ1_plots_stats\reformat\bespoke_emgOnly_box.png")
         LDA_solver_significance(emgBespoke,'emg model','emg_mean_acc','emg.LDA_solver','emg.lda.shrinkage',trial='LDAs in Bespoke Unimodal EMG System Optimisation')
         
         
@@ -514,7 +525,7 @@ if __name__=='__main__':
         #_,_,bespokeFeatSep=fuse.load_results_obj(pathBespokeFeatSep)
         print('\n Bespoke Feature-Level (separate selection):')
         fig=model_significance(bespokeFeatSep,'fusion_mean_acc','featfuse model','LDA',title='Mean accuracy per classifier in Bespoke Feature-level (separate) optimisation')
-        #fig.savefig(r"C:\Users\pritcham\Documents\RQ1_plots_stats\bespoke_featsep_box.png")
+        fig.savefig(r"C:\Users\pritcham\Documents\RQ1_plots_stats\reformat\bespoke_featsep_box.png")
         LDA_solver_significance(bespokeFeatSep,'featfuse model','fusion_mean_acc','featfuse.LDA_solver','featfuse.lda.shrinkage',trial='LDAs in Bespoke Feature-Fusion (Separate Sel) Optimisation')
         
         
@@ -522,7 +533,7 @@ if __name__=='__main__':
         #_,_,bespokeFeatJoin=fuse.load_results_obj(pathBespokeFeatJoin)
         print('\n Bespoke Feature-Level (joint selection):')
         fig=model_significance(bespokeFeatJoin,'fusion_mean_acc','featfuse model','LDA',title='Mean accuracy per classifier in Bespoke Feature-level (joint) optimisation')
-        #fig.savefig(r"C:\Users\pritcham\Documents\RQ1_plots_stats\bespoke_featjoin_box.png")
+        fig.savefig(r"C:\Users\pritcham\Documents\RQ1_plots_stats\reformat\bespoke_featjoin_box.png")
         LDA_solver_significance(bespokeFeatJoin,'featfuse model','fusion_mean_acc','featfuse.LDA_solver','featfuse.lda.shrinkage',trial='LDAs in Bespoke Feature-Fusion (Joint Sel) Optimisation')
     
     
@@ -535,7 +546,7 @@ if __name__=='__main__':
         #_,_,eegGen=fuse.load_results_obj(pathGenEEG)
         print('\n Generalist EEG-Only:')
         fig=model_significance(eegGen,'eeg_mean_acc','eeg model','LDA',title='Mean accuracy per classifier in Generalist EEG-Only optimisation')
-        #fig.savefig(r"C:\Users\pritcham\Documents\RQ1_plots_stats\gen_eegOnly_box.png")
+        fig.savefig(r"C:\Users\pritcham\Documents\RQ1_plots_stats\reformat\gen_eegOnly_box.png")
         LDA_solver_significance(eegGen,'eeg model','eeg_mean_acc','eeg.LDA_solver','eeg.lda.shrinkage',trial='LDAs in Generalist Unimodal EEG System Optimisation')
         
         
@@ -543,7 +554,7 @@ if __name__=='__main__':
         #_,_,emgGen=fuse.load_results_obj(pathGenEMG)
         print('\n Generalist EMG-Only:')
         fig=model_significance(emgGen,'emg_mean_acc','emg model','LDA',title='Mean accuracy per classifier in Generalist EMG-Only optimisation')
-        #fig.savefig(r"C:\Users\pritcham\Documents\RQ1_plots_stats\gen_emgOnly_box.png")
+        fig.savefig(r"C:\Users\pritcham\Documents\RQ1_plots_stats\reformat\gen_emgOnly_box.png")
         LDA_solver_significance(emgGen,'emg model','emg_mean_acc','emg.LDA_solver','emg.lda.shrinkage',trial='LDAs in Generalist Unimodal EMG System Optimisation')
         
         
@@ -551,7 +562,7 @@ if __name__=='__main__':
         #_,_,genFeatSep=fuse.load_results_obj(pathGenFeatSep)
         print('\n Generalist Feature-Level (separate selection):')
         fig=model_significance(genFeatSep,'fusion_mean_acc','featfuse model','LDA',title='Mean accuracy per classifier in Generalist Feature-level (separate) optimisation')
-        #fig.savefig(r"C:\Users\pritcham\Documents\RQ1_plots_stats\gen_featsep_box.png")
+        fig.savefig(r"C:\Users\pritcham\Documents\RQ1_plots_stats\reformat\gen_featsep_box.png")
         LDA_solver_significance(genFeatSep,'featfuse model','fusion_mean_acc','featfuse.LDA_solver','featfuse.lda.shrinkage',trial='LDAs in Generalist Feature-Fusion (Separate Sel) Optimisation')
         
         
@@ -559,7 +570,7 @@ if __name__=='__main__':
         #_,_,genFeatJoin=fuse.load_results_obj(pathGenFeatJoin)
         print('\n Generalist Feature-Level (joint selection):')
         fig=model_significance(genFeatJoin,'fusion_mean_acc','featfuse model','LDA',title='Mean accuracy per classifier in Generalist Feature-level (joint) optimisation')
-        #fig.savefig(r"C:\Users\pritcham\Documents\RQ1_plots_stats\gen_featjoin_box.png")
+        fig.savefig(r"C:\Users\pritcham\Documents\RQ1_plots_stats\reformat\gen_featjoin_box.png")
         LDA_solver_significance(genFeatJoin,'featfuse model','fusion_mean_acc','featfuse.LDA_solver','featfuse.lda.shrinkage',trial='LDAs in Generalist Feature-Fusion (Joint Sel) Optimisation')
     
 

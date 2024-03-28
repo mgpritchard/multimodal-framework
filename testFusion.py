@@ -2293,7 +2293,8 @@ def function_fuse_withinppt(args):
         eeg_ppt=eeg_ppt.loc[index_eeg.isin(index_emg)].reset_index(drop=True)
         
         eeg_ppt['ID_stratID']=eeg_ppt['ID_run'].astype(str)+eeg_ppt['Label'].astype(str)+eeg_ppt['ID_gestrep'].astype(str)
-        emg_ppt['ID_stratID']=emg_ppt['ID_run'].astype(str)+eeg_ppt['Label'].astype(str)+eeg_ppt['ID_gestrep'].astype(str)
+        emg_ppt['ID_stratID']=emg_ppt['ID_run'].astype(str)+emg_ppt['Label'].astype(str)+emg_ppt['ID_gestrep'].astype(str)
+
         random_split=random.randint(0,100)
         #below doesnt work, stratified by performance ie ensures theyre split
         #emg_train,emg_test=train_test_split(emg_ppt,test_size=0.33,random_state=random_split,stratify=emg_ppt[['ID_stratID']])

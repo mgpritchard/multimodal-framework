@@ -22,6 +22,9 @@ attemptOnehot.py
 callGraph_attempt.py
 hyperopt_playground.py
 
+#Ignore ipython log
+ipython_history.md
+
 #Ignore anything in WAYGAL results dir, except a dummy to keep the dir itself tracked
 lit_data_expts/waygal/results/*
 !lit_data_expts/waygal/results/EEGOnly/

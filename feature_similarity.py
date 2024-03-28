@@ -84,7 +84,41 @@ bespoke_populars=bespoke_populars.rename(columns={0:'occurence'})
 bespoke_populars['electrode']=[int(x.split('_')[-1]) if not ('covM' in x or 'eigen' in x) else None for x in bespoke_populars['feat']]
 print('0 - 5 and 7,8,9 = LHS, 11 - 19 = RHS, 6 & 10 = central')
 bespoke_populars['hemisphere']=['central' if (x==6 or x==10) else 'left' if x<10 else 'right' if x>10 else None for x in bespoke_populars['electrode']]
+'''maybe to sort by hemisphere?'''
+#bespoke_populars=bespoke_populars.sort_values('hemisphere')
+'''maybe to sort by broadcat?'''
+bespoke_populars['broad_category']=[broad_cats[x] for x in bespoke_populars['category']]
+bespoke_populars=bespoke_populars.sort_values('broad_category')
 bespoke_populars['rank']=len(bespoke_populars)-bespoke_populars['occurence'].rank(method='first')
+
+plt.figure()
+bespoke_populars=bespoke_populars.sort_values('category')
+bespoke_populars['rank']=len(bespoke_populars)-bespoke_populars['occurence'].rank(method='first')
+cats=sns.scatterplot(x='rank', y='occurence', data=bespoke_populars[bespoke_populars['occurence']>4], hue='category', ec=None,palette='muted')
+cats.set_ylim(4.25,20.5)
+
+plt.figure()
+individualfeats=sns.scatterplot(x='rank', y='occurence', data=bespoke_populars[bespoke_populars['occurence']>6], hue='feat', ec=None,palette='muted')
+individualfeats.legend(loc='center left',bbox_to_anchor=(1,0.5))
+individualfeats.set_ylim(6.5,20.5)
+
+plt.figure()
+bespoke_populars=bespoke_populars.sort_values('broad_category')
+bespoke_populars['rank']=len(bespoke_populars)-bespoke_populars['occurence'].rank(method='first')
+broads=sns.scatterplot(x='rank', y='occurence', data=bespoke_populars[bespoke_populars['occurence']>1], hue='broad_category', ec=None,palette='muted')
+broads.set_ylim(1.25,21)
+
+plt.figure()
+#populars=populars.sort_values('category')
+
+sns.scatterplot(x='rank', y='occurence', data=bespoke_populars[bespoke_populars['occurence']>1], hue='hemisphere', ec=None,palette='muted')
+print(bespoke_populars['hemisphere'].value_counts())
+raise
+
+
+
+
+
 
 
 generalist_choices_unique=generalistFeats.T.copy().applymap(lambda x: x.replace('lag1_',''))
@@ -102,10 +136,7 @@ generalist_populars['rank']=len(generalist_populars)-generalist_populars['occure
 
 generalist_populars['broad_category']=[broad_cats[x] for x in generalist_populars['category']]
 
-plt.figure()
-#populars=populars.sort_values('category')
-sns.scatterplot(x='rank', y='occurence', data=bespoke_populars[bespoke_populars['occurence']>1], hue='hemisphere', ec=None,palette='muted')
-print(bespoke_populars['hemisphere'].value_counts())
+
 
 plt.figure()
 #populars=populars.sort_values('category')
@@ -118,17 +149,20 @@ generalist_populars=generalist_populars.sort_values('broad_category')
 sns.scatterplot(x='rank', y='occurence', data=generalist_populars[generalist_populars['occurence']>9], hue='category', ec=None,palette='muted')
 print(generalist_populars['category'].value_counts())
 plt.figure()
-sns.scatterplot(x='rank', y='occurence', data=generalist_populars[generalist_populars['occurence']>5], hue='broad_category', ec=None,palette='muted')
+#generalist_populars=generalist_populars.sort_values('broad_category')
+#generalist_populars['rank']=len(generalist_populars)-generalist_populars['occurence'].rank(method='first')
+sns.scatterplot(x='rank', y='occurence', data=generalist_populars[generalist_populars['occurence']>4], hue='broad_category', ec=None,palette='muted')
 print(generalist_populars['broad_category'].value_counts())
 plt.figure()
 sns.scatterplot(x='rank', y='occurence', data=generalist_populars[generalist_populars['occurence']>14], hue='feat', ec=None,palette='Set2')
 #plt.figure()
 #sns.scatterplot(x='rank', y='occurence', data=generalist_populars[generalist_populars['occurence']>19], hue='feat', ec=None,palette='Set2')
 
-plt.scatter(generalist_populars['rank'],generalist_populars['occurence'],c=pd.factorize(generalist_populars['category'])[0],cmap='Dark2',label=generalist_populars['category'].unique())
-plt.legend(pd.factorize(generalist_populars['category'])[0]) 
+#plt.figure()
+#plt.scatter(generalist_populars['rank'],generalist_populars['occurence'],c=pd.factorize(generalist_populars['category'])[0],cmap='Dark2',label=generalist_populars['category'].unique())
+#plt.legend(pd.factorize(generalist_populars['category'])[0]) 
 
-
+raise
 
 bespoke_quarterplus=bespoke_populars.loc[bespoke_populars['occurence']>5]
 bespoke_qplus_list=bespoke_quarterplus['feat'].tolist()
@@ -141,7 +175,7 @@ generalist_3qplus_list=generalist_3quarterplus['feat'].tolist()
 print('Overlap between popular (more than quarter chosen) Bespoke & Generalist EEG features: ',overlap(bespoke_qplus_list,generalist_qplus_list))
 print('Overlap between quaterplus-Bespoke & 3quartsplus-Generalist EEG features: ',overlap(bespoke_qplus_list,generalist_3qplus_list))
 print('Overlap between 3qplus-Bespoke & 3quartsplus-Generalist EEG features: ',overlap(bespoke_3qplus_list,generalist_3qplus_list))
-raise
+#raise
 
 popular_generalist=generalist_choices_unique.stack().value_counts().drop(index='')
 generalist_overhalf=popular_generalist[popular_generalist>10]
@@ -164,11 +198,14 @@ featJoin_generalist_populars['category']=featJoin_generalist_populars['feat'].co
 featJoin_generalist_populars=featJoin_generalist_populars.loc[featJoin_generalist_populars['category']!='Label']
 featJoin_generalist_populars['category']=featJoin_generalist_populars['category'].apply(lambda x: x[:min([i for i, c in enumerate(x) if c=='_' and not any(char.isalpha() for char in x[i+1:])])])
 featJoin_generalist_populars=featJoin_generalist_populars.rename(columns={0:'occurence'})
+featJoin_generalist_populars=featJoin_generalist_populars.sort_values('category')
 
 featJoin_generalist_populars['EEGfeats']=[x[4:] if 'EEG_' in x else None for x in featJoin_generalist_populars['feat']]
 featJoin_generalist_populars['rank']=len(featJoin_generalist_populars)-featJoin_generalist_populars['occurence'].rank(method='first')
 
 plt.figure()
+#
+#generalist_populars['rank']=len(generalist_populars)-generalist_populars['occurence'].rank(method='first')
 sns.scatterplot(x='rank', y='occurence', data=featJoin_generalist_populars.loc[(featJoin_generalist_populars['EEGfeats'].notna()) & (featJoin_generalist_populars['occurence']>9)], hue='category', ec=None,palette='muted')
 print((featJoin_generalist_populars.loc[featJoin_generalist_populars['EEGfeats'].notna()])['category'].value_counts())
 plt.figure()
@@ -186,7 +223,7 @@ overlap_coef=overlap(generalist_EEG_list,featJoin_gen_EEG_list)
 print('Overlap coefficient between halfplus generalist and halfplus featJoin generalist: ',overlap_coef)
 
 
-
+raise
 
 
 generalistEMGpath=r"C:\Users\pritcham\Documents\mm-framework\multimodal-framework\lit_data_expts\jeong\datasets\shared_feat_analysis\emg-Generalist-devsetOnly-feats.csv"

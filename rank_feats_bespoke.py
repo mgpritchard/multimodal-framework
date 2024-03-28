@@ -103,7 +103,7 @@ eeg_set=ml.pd.read_csv(eeg_set_path[0],delimiter=',')
 per_ppt = True
 plotemg=False
 ploteeg=True
-n_components = 2
+#n_components = 2
 if per_ppt:
     emg_masks=fuse.get_ppt_split_flexi(emg_set)
     eeg_masks=fuse.get_ppt_split_flexi(eeg_set)

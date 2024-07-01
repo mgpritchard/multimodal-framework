@@ -401,7 +401,7 @@ def deep_bespoke(args):
             y_true=np.argmax(y_test, axis=1)
             #Create confusion matrix and normalizes it over predicted (columns)
             #result = confusion_matrix(y_testLabs, y_predLabs , normalize='pred')
-            labels=['Cyl','Lat','Sph','Rest']
+            labels=['Cyl','Lat','Rest','Sph']
             labels=[0,1,2,3]
             confmat(y_true,y_pred,labels,modelname="",testset="",title="")
             

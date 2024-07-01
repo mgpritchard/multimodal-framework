@@ -170,6 +170,13 @@ def gen_training_matrix(directory_path, output_file, cols_to_ignore, period=1000
     return FINAL_MATRIX
 
 
+def split_holdout(fullset,HOnums,savepath):
+    for HO in HOnums:
+        HOset = fullset[fullset['ID_pptID']==HO]
+        HOset.to_pickle(savepath+'/ppt'+str(HO)+'_RawEMG.pkl')
+    devset = fullset[~fullset['ID_pptID'].isin(HOnums)]
+    devset.to_pickle(savepath+'/noHoldout_RawEMG.pkl')
+        
 
 if __name__ == '__main__':
     """
@@ -195,4 +202,8 @@ if __name__ == '__main__':
         output_file=r"H:\Jeong11tasks_data\deepLcompare\all_raw_EMG.pkl"
         
     gen_training_matrix(directory_path, output_file, cols_to_ignore = None)
+    
+    fullset=pd.read_pickle(r"H:\Jeong11tasks_data\deepLcompare\all_raw_EMG_Labelled.pkl")
+    HOnums=[1,6,11,16,21]
+    split_holdout(fullset,HOnums,savepath=r"H:\Jeong11tasks_data\deepLcompare\final_set")
 

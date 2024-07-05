@@ -218,7 +218,10 @@ def deep_bespoke(args):
         deep_model=build_model()
         
         
-        early_stopping = tf.keras.callbacks.EarlyStopping(monitor='val_accuracy', 
+        # their code monitors val_accuracy, but my TF version does not match names to the declared 'accuracy' metric
+        # and instead creates a metric called val_acc. if i try to monitor val_accuracy, it cannot.
+        # based on their stated TF version, i *believe* their code did indeed stop early, and so mine should too (also because its their stated method in the paper).
+        early_stopping = tf.keras.callbacks.EarlyStopping(monitor='val_acc', 
                                                       patience=10, 
                                                       min_delta=0.001,
                                                       mode='auto',
@@ -228,7 +231,7 @@ def deep_bespoke(args):
         # both as per their github repo and paper section 3.3.4
         
         epochs = 150
-        #epochs = 10 #temp, for code testing
+        #epochs = 15 #temp, for code testing
         
         history = deep_model.fit(X_train, y_train, epochs=epochs ,validation_split=0.1,batch_size=batchsize, callbacks=[early_stopping])
         
@@ -260,13 +263,15 @@ def deep_bespoke(args):
         if args['plot_confmats']:
             y_pred = deep_model.predict(X_test)
             y_pred = np.argmax (y_pred, axis = 1)
-            y_true=np.argmax(y_test, axis=1)
+            y_pred = [params.idx_to_gestures_deeplearn[pred] for pred in y_pred]
+            y_true = np.argmax(y_test, axis=1)
+            y_true = [params.idx_to_gestures_deeplearn[targ] for targ in y_true]
             #Create confusion matrix and normalizes it over predicted (columns)
             #result = confusion_matrix(y_testLabs, y_predLabs , normalize='pred')
             labels=['Cyl','Lat','Rest','Sph']
             labels=[0,1,2,3]
-            confmat(y_true,y_pred,labels,modelname="",testset="",title="")
-            
+            labels=['cylindrical','spherical','lumbrical','rest']
+            confmat(y_true,y_pred,labels,modelname="",testset="",title="")     
         foldername=r"H:\Jeong11tasks_data\deepLcompare/"
         deep_model.save_weights(foldername+"model_ppt{}".format(subject))
         

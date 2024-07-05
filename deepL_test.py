@@ -390,6 +390,46 @@ def function_fuse_withinppt(args):
     trainEMGpath=r"H:\Jeong11tasks_data\deepLcompare\final_set\noHoldout_RawEMG.pkl"
     
     
+###########################################
+
+
+def test_deep_repeats(emg,args,repcount=100):
+    results=[]
+    for n in range(repcount):
+        #'''this doesnt work for some reason, issue with multindex'''
+        args.update({'emg_set':emg,'data_in_memory':True,'prebalanced':True,'trialmode':'WithinPpt'})
+        resultsdict, deep_model, history = deep_bespoke(args)
+        resultsdict.update({'arch':'lit_default_deep'})
+        result=pd.DataFrame([resultsdict])
+        results.append(result)
+    results=pd.concat(results).set_index('arch')
+    return results
+
+
+def deep_holdouts(repcount=100):
+    # adapted from test_on_holdout.py
+    ppt1={'emg_path':r"H:\Jeong11tasks_data\deepLcompare\final_set\ppt1_RawEMG.pkl",}
+    ppt6={'emg_path':r"H:\Jeong11tasks_data\deepLcompare\final_set\ppt6_RawEMG.pkl",}
+    ppt11={'emg_path':r"H:\Jeong11tasks_data\deepLcompare\final_set\ppt11_RawEMG.pkl",}
+    ppt16={'emg_path':r"H:\Jeong11tasks_data\deepLcompare\final_set\ppt16_RawEMG.pkl",}
+    ppt21={'emg_path':r"H:\Jeong11tasks_data\deepLcompare\final_set\ppt21_RawEMG.pkl",}
+    
+    holdout_ppts=[ppt1,ppt6,ppt11,ppt16,ppt21]
+    
+    ppt_scores_list=[]
+    for ppt in holdout_ppts:
+        args={'emg_set_path':ppt['emg_path'],
+              'data_in_memory':False,
+              'plot_confmats':False}
+        emg=ml.pd.read_pickle(ppt['emg_path'])
+        results=test_deep_repeats(emg,args,repcount)
+        ppt_scores_list.append(results)
+        
+    ppt_scores=pd.concat(ppt_scores_list, axis=0, keys=['ppt1','ppt6','ppt11','ppt16','ppt21'])
+    ppt_scores=ppt_scores.swaplevel(-2,-1)
+    ppt_scores.index.names=['arch','ppt']
+    
+    return ppt_scores
 def test_deep_once_devppt():
     trial_set_path=r"H:\Jeong11tasks_data\deepLcompare\final_set\dev_ppt_4_RawEMG.pkl"
         

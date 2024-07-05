@@ -272,23 +272,23 @@ def deep_bespoke(args):
             labels=[0,1,2,3]
             labels=['cylindrical','spherical','lumbrical','rest']
             confmat(y_true,y_pred,labels,modelname="",testset="",title="")     
-        foldername=r"H:\Jeong11tasks_data\deepLcompare/"
-        deep_model.save_weights(foldername+"model_ppt{}".format(subject))
         
         
-        #write results
-        with open(foldername+"results_ppt{}.csv".format(subject),"w") as wf:
-             wf.write("subject,train_epochs,train_loss,val_loss,train_accuracy,val_accuracy,test_accuracy,elapsed_time,training_time")
-             wf.write("\n")
+        resultsdict={
+            'subject':subject,
+            'train_epochs':nb_train_epochs,
+            'train_loss':train_loss,
+            'val_loss':val_loss,
+            'train_accuracy':train_accuracy,
+            'val_accuracy':val_accuracy,
+            'test_accuracy':test_accuracy,
+            'elapsed_time':end-start,
+            'training_time':traintime-start,
+            }
         
-        variable_list = [subject,nb_train_epochs,train_loss,val_loss,train_accuracy,val_accuracy,test_accuracy,end-start,traintime-start]
-        with open(foldername+"results_ppt{}.csv".format(subject),"a") as wf:
-            wf.write(', '.join([str(measure) for measure in variable_list ]))
-            wf.write("\n")
-            
-        with open(foldername+"history_ppt{}.pkl".format(subject),"wb") as logfile:
-            pickle.dump(history.history,logfile)
-            #logs=pickle.load(open(r"H:\Jeong11tasks_data\deepLcompare\history_ppt4.pkl",'rb'))
+        
+        return resultsdict, deep_model, history.history
+        
 
 
 def function_fuse_withinppt(args):
@@ -387,15 +387,51 @@ def function_fuse_withinppt(args):
 
         
 
-if __name__ == '__main__':
+    trainEMGpath=r"H:\Jeong11tasks_data\deepLcompare\final_set\noHoldout_RawEMG.pkl"
     
     
+def test_deep_once_devppt():
     trial_set_path=r"H:\Jeong11tasks_data\deepLcompare\final_set\dev_ppt_4_RawEMG.pkl"
-    
+        
     args={'emg_set_path':trial_set_path,
           'data_in_memory':False,
           'plot_confmats':True}
     
-    deep_bespoke(args)
+    resultsdict, deep_model, history = deep_bespoke(args)
     
-   
+
+    #write results
+    subject=resultsdict['subject']
+    foldername=r"H:\Jeong11tasks_data\deepLcompare/"
+    deep_model.save_weights(foldername+"model_ppt{}".format(subject))
+    
+    with open(foldername+"results_ppt{}.csv".format(subject),"w") as wf:
+         #wf.write("subject,train_epochs,train_loss,val_loss,train_accuracy,val_accuracy,test_accuracy,elapsed_time,training_time")
+         wf.write(','.join(list(resultsdict.keys())))
+         wf.write("\n")
+    
+    #variable_list = [subject,nb_train_epochs,train_loss,val_loss,train_accuracy,val_accuracy,test_accuracy,end-start,traintime-start]
+    with open(foldername+"results_ppt{}.csv".format(subject),"a") as wf:
+        #wf.write(', '.join([str(measure) for measure in variable_list ]))
+        wf.write(', '.join([str(measure) for measure in resultsdict.values() ]))
+        wf.write("\n")
+        
+    with open(foldername+"history_ppt{}.pkl".format(subject),"wb") as logfile:
+        pickle.dump(history,logfile)
+    
+    logs=pickle.load(open(r"H:\Jeong11tasks_data\deepLcompare\history_ppt4.pkl",'rb'))
+    plt.plot(logs['acc'])
+    plt.plot(logs['val_acc'])
+
+
+    
+if __name__ == '__main__':
+    
+
+    ppt_scores = deep_holdouts()
+    
+    ppt_scores.reset_index(drop=False)
+    ppt_scores.to_csv(r"H:\Jeong11tasks_data\deepLcompare\bespoke_litDeep_100_repeats.csv")
+    
+    
+  

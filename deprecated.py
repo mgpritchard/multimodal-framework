@@ -6,6 +6,247 @@ Created on Wed Feb 22 20:25:38 2023
 @author: michael
 """
 
+''' THE FOLLOWING ARE DEPRECATED FROM deepL_test.py'''
+''' they are all ~example~ versions of EEG-purged bespoke & generalist experiment flows/frameworks'''
+''' they are neither working nor ever intended to work'''
+
+def refactor_synced_predict(test_set_emg,model_emg,classlabels,args, get_distros=False):
+
+    predlist_emg=[]
+    targets=[]
+   
+        
+    '''Get values from instances'''
+    IDs=list(test_set_emg.filter(regex='^ID_').keys())
+    emg=test_set_emg.drop(IDs,axis='columns')
+    
+
+    emgvals=emg.drop(['Label'],axis='columns').values
+
+    '''Pass values to models'''
+    
+    distros_emg=ml.prob_dist(model_emg,emgvals)
+    predlist_emg=ml.predlist_from_distrosarr(classlabels,distros_emg)
+
+    
+    if get_distros:
+        return targets, predlist_emg,  distros_emg
+    else:
+        return targets, predlist_emg, None
+
+
+
+def only_EMG(emg_others,emg_ppt,args):
+    '''TRAINING ON NON-PPT DATA'''
+    emg_others.sort_values(['ID_pptID','ID_run','Label','ID_gestrep','ID_tend'],ascending=[True,True,True,True,True],inplace=True)
+ 
+    '''Train EMG model'''
+    emg_train=ml.drop_ID_cols(emg_others)
+    
+    emg_model = ml.train_optimise(emg_train, args['emg']['emg_model_type'], args['emg'])
+    classlabels=emg_model.classes_   
+ 
+    '''TESTING ON PPT DATA'''
+    emg_ppt.sort_values(['ID_pptID','ID_run','Label','ID_gestrep','ID_tend'],ascending=[True,True,True,True,True],inplace=True)
+    emg=emg_ppt
+ 
+    predlist_emg=[]
+    targets=emg['Label'].values.tolist()
+   
+    '''Get values from instances'''
+    IDs=list(emg.filter(regex='^ID_').keys())
+    emg=emg.drop(IDs,axis='columns')
+    emgvals=emg.drop(['Label'],axis='columns').values    
+    
+    '''Get EMG Predictions'''
+    distros_emg=ml.prob_dist(emg_model,emgvals)
+    for distro in distros_emg:
+        pred_emg=ml.pred_from_distro(classlabels,distro)
+        predlist_emg.append(pred_emg)
+    
+    if args['get_train_acc']:
+        predlist_emgtrain=[]
+        traintargs=emg_train['Label'].values.tolist()
+        emgtrainvals=emg_train.drop('Label',axis='columns') #why DOESNT this need to be .values?
+        distros_emgtrain=ml.prob_dist(emg_model,emgtrainvals)
+        for distro in distros_emgtrain:
+            pred_emgtrain=ml.pred_from_distro(classlabels,distro)
+            predlist_emgtrain.append(pred_emgtrain)
+        return targets, predlist_emg, classlabels, traintargs, predlist_emgtrain
+   
+    else:
+        return targets, predlist_emg, classlabels
+
+
+
+def function_fuse_withinppt(args):
+    start=time.time()
+    if not args['data_in_memory']:
+        emg_set_path=args['emg_set_path']
+    
+        emg_set=ml.pd.read_csv(emg_set_path,delimiter=',')
+    else:
+        emg_set=args['emg_set']
+
+    emg_masks=get_ppt_split_flexi(emg_set)
+    
+    emg_accs=[] #https://stackoverflow.com/questions/13520876/how-can-i-make-multiple-empty-lists-in-python   
+    train_accs=[]
+
+    for idx,emg_mask in enumerate(emg_masks):
+        
+        emg_ppt = emg_set[emg_mask]
+        #emg_others = emg_set[~emg_mask]
+
+        emg_ppt.sort_values(['ID_pptID','ID_run','Label','ID_gestrep','ID_tend'],ascending=[True,True,True,True,True],inplace=True)
+        emg_ppt['ID_stratID']=emg_ppt['ID_run'].astype(str)+emg_ppt['Label'].astype(str)+emg_ppt['ID_gestrep'].astype(str)
+        
+
+        random_split=random.randint(0,100)
+
+        gest_perfs=emg_ppt['ID_stratID'].unique()
+        gest_strat=pd.DataFrame([gest_perfs,[perf.split('.')[1][-1] for perf in gest_perfs]]).transpose()
+        train_split,test_split=train_test_split(gest_strat,test_size=0.33,random_state=random_split,stratify=gest_strat[1])
+
+        emg_train=emg_ppt[emg_ppt['ID_stratID'].isin(train_split[0])]
+        emg_test=emg_ppt[emg_ppt['ID_stratID'].isin(test_split[0])]
+
+     
+        if args['fusion_alg']=='just_emg':
+            
+            if not args['get_train_acc']:
+                targets, predlist_emg, classlabels=only_EMG(emg_train, emg_test, args)
+            else:
+                targets, predlist_emg, classlabels, traintargs, predlist_train=only_EMG(emg_train, emg_test, args)
+        
+        else:
+            
+            if args['get_train_acc']:
+                emg_trainacc=emg_train.copy()
+                emg_trainacc.sort_values(['ID_pptID','ID_run','Label','ID_gestrep','ID_tend'],ascending=[True,True,True,True,True],inplace=True)
+           
+            emg_train=ml.drop_ID_cols(emg_train)           
+            
+            emg_model=train_models_opt(emg_train,args)
+        
+            classlabels = emg_model.classes_
+            
+            emg_test.sort_values(['ID_pptID','ID_run','Label','ID_gestrep','ID_tend'],ascending=[True,True,True,True,True],inplace=True)
+                
+            targets, predlist_emg,_ = refactor_synced_predict(emg_test, emg_model, classlabels,args)
+
+            if args['get_train_acc']:
+                traintargs, predlist_emgtrain,_ = refactor_synced_predict(emg_trainacc, emg_model, classlabels, args)
+
+        
+        gest_truth,gest_pred_emg,gesturelabels=classes_from_preds(targets,predlist_emg,classlabels)
+
+        if args['plot_confmats']:
+            gesturelabels=[params.idx_to_gestures[label] for label in classlabels]
+            confmat(gest_truth,gest_pred_emg,gesturelabels,title='EMG')
+            
+        emg_accs.append(accuracy_score(gest_truth,gest_pred_emg))
+
+        
+        if args['get_train_acc']:
+            train_truth=[params.idx_to_gestures[gest] for gest in traintargs]
+            train_preds=[params.idx_to_gestures[pred] for pred in predlist_train]
+            train_accs.append(accuracy_score(train_truth,train_preds))
+        else:
+            train_accs.append(0)
+        
+    mean_acc=stats.mean(emg_accs)
+    mean_emg=stats.mean(emg_accs)
+    median_emg=stats.median(emg_accs)
+
+    mean_train_acc=stats.mean(train_accs)
+    end=time.time()
+    #return 1-mean_acc
+    return {
+        'loss': 1-mean_acc,
+        'status': STATUS_OK,
+        'emg_mean_acc':mean_emg,
+        'emg_median_acc':median_emg,
+        'emg_accs':emg_accs,
+        'mean_train_acc':mean_train_acc,
+        'elapsed_time':end-start,}
+
+
+
+def function_fuse_LOO(args):
+    start=time.time()
+
+    if not args['data_in_memory']:
+        emg_set_path=args['emg_set_path']
+    
+        emg_set=ml.pd.read_csv(emg_set_path,delimiter=',')
+    else:
+        emg_set=args['emg_set']
+
+    emg_masks=get_ppt_split_flexi(emg_set)
+    
+    emg_accs=[] #https://stackoverflow.com/questions/13520876/how-can-i-make-multiple-empty-lists-in-python    
+    train_accs=[]
+ 
+    for idx,emg_mask in enumerate(emg_masks):
+        
+        emg_ppt = emg_set[emg_mask]
+        emg_others = emg_set[~emg_mask]
+        
+        if args['fusion_alg']=='just_emg':
+
+            if not args['get_train_acc']:
+                targets, predlist_emg, classlabels=only_EMG(emg_others, emg_ppt, args)
+            else:
+                targets, predlist_emg, classlabels, traintargs, predlist_train=only_EMG(emg_others, emg_ppt, args)
+       
+        else:
+                        
+            emg_others=ml.drop_ID_cols(emg_others)
+
+            emg_model=train_models_opt(emg_others,args)
+        
+            classlabels = emg_model.classes_
+            
+            emg_ppt.sort_values(['ID_pptID','ID_run','Label','ID_gestrep','ID_tend'],ascending=[True,True,True,True,True],inplace=True)
+            emg_ppt['ID_stratID']=emg_ppt['ID_run'].astype(str)+emg_ppt['Label'].astype(str)+emg_ppt['ID_gestrep'].astype(str)
+                
+            targets, predlist_emg,_= refactor_synced_predict(emg_ppt, emg_model, classlabels,args)
+
+        gest_truth,gest_pred_emg,gesturelabels=classes_from_preds(targets,predlist_emg,classlabels)
+        
+        if args['plot_confmats']:
+            gesturelabels=[params.idx_to_gestures[label] for label in classlabels]
+            confmat(gest_truth,gest_pred_emg,gesturelabels,title='EMG')
+            
+        emg_accs.append(accuracy_score(gest_truth,gest_pred_emg))
+
+                
+        if args['get_train_acc']:
+            train_truth=[params.idx_to_gestures[gest] for gest in traintargs]
+            train_preds=[params.idx_to_gestures[pred] for pred in predlist_train]
+            train_accs.append(accuracy_score(train_truth,train_preds))
+        else:
+            train_accs.append(0)
+
+    mean_acc=stats.mean(emg_accs)
+    mean_emg=stats.mean(emg_accs)
+    median_emg=stats.median(emg_accs)
+    mean_train_acc=stats.mean(train_accs)
+    end=time.time()
+    #return 1-mean_acc
+    return {
+        'loss': 1-mean_acc,
+        'status': STATUS_OK,
+        'emg_mean_acc':mean_emg,
+        'emg_median_acc':median_emg,
+        'emg_accs':emg_accs,
+        'mean_train_acc':mean_train_acc,
+        'elapsed_time':end-start,}
+
+
+
+
 '''THE FOLLOWING ARE DEPRECATED FROM testFusion.py'''
 
 def deprecated_non_opt_pipeline():

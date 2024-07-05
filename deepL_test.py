@@ -291,105 +291,132 @@ def deep_bespoke(args):
         
 
 
-def function_fuse_withinppt(args):
+###########################################
+
+
+
+
+def deep_generalist(train_emg,emg_ppt,args):
     start=time.time()
-    if not args['data_in_memory']:
-        emg_set_path=args['emg_set_path']
+
+    emg_ppt.sort_values(['ID_pptID','ID_run','Label','ID_gestrep','ID_tend'],ascending=[True,True,True,True,True],inplace=True)
+    train_emg.sort_values(['ID_pptID','ID_run','Label','ID_gestrep','ID_tend'],ascending=[True,True,True,True,True],inplace=True)
     
-        emg_set=ml.pd.read_csv(emg_set_path,delimiter=',')
-    else:
-        emg_set=args['emg_set']
-
-    emg_masks=get_ppt_split_flexi(emg_set)
+    emg_train=ml.drop_ID_cols(train_emg)
+    emg_test=ml.drop_ID_cols(emg_ppt)
     
-    emg_accs=[] #https://stackoverflow.com/questions/13520876/how-can-i-make-multiple-empty-lists-in-python   
-    train_accs=[]
+    y_train=emg_train.pop('Label')
+    X_train=emg_train
+    
+    y_train=y_train.to_numpy()
+    X_train=X_train.to_numpy()
+    #shuffle
+    random_ids_train = list(range(y_train.shape[0]))
+    random.shuffle(random_ids_train)
+    X_train= X_train[random_ids_train]
+    y_train= y_train[random_ids_train]
+    
+    X_train=np.swapaxes(np.vstack([np.dstack(X_train[:,n]) for n in range(12)]),0,2)
+    # going from 2d array of lists to 3d array
+    
+    y_train = get_categorical(y_train)
+    # categorical_crossentropy requires a onehot encoding
+    
+    deep_model=build_model()
+    
+    early_stopping = tf.keras.callbacks.EarlyStopping(monitor='val_acc', 
+                                                  patience=10, 
+                                                  min_delta=0.001,
+                                                  mode='auto',
+                                                  restore_best_weights=True
+                                                  )
+    batchsize = 512
+    # both as per their github repo and paper section 3.3.4
+    
+    epochs = 150
+    epochs = 5 #temp, for code testing
+    
+    history = deep_model.fit(X_train, y_train, epochs=epochs ,validation_split=0.1,batch_size=batchsize, callbacks=[early_stopping])
+    
+    traintime = time.time()
+    
+    train_loss = history.history["loss"][-1]
+    val_loss = history.history["val_loss"][-1]
+    train_accuracy = history.history["acc"][-1]
+    # these need to be 'acc' and 'val_acc' not 'accuracy'. possibly related to https://www.codesofinterest.com/2020/01/fixing-keyerror-acc-valacc-keras.html
+    val_accuracy = history.history["val_acc"][-1]
+    nb_train_epochs = len(history.history['loss'])
+    
+    
+    y_test=emg_test.pop('Label')
+    X_test=emg_test
+    y_test=y_test.to_numpy()
+    X_test=X_test.to_numpy()
+    
+    X_test=np.swapaxes(np.vstack([np.dstack(X_test[:,n]) for n in range(12)]),0,2)
+    y_test = get_categorical(y_test)
+    
+    test_accuracy = deep_model.evaluate(X_test, y_test)[1]
+    
+    end = time.time()
+    
+    subject=str(emg_ppt['ID_pptID'].iloc[0])
+    if args['plot_confmats']:
+        y_pred = deep_model.predict(X_test)
+        y_pred = np.argmax (y_pred, axis = 1)
+        y_pred = [params.idx_to_gestures_deeplearn[pred] for pred in y_pred]
+        y_true = np.argmax(y_test, axis=1)
+        y_true = [params.idx_to_gestures_deeplearn[targ] for targ in y_true]
+        #Create confusion matrix and normalizes it over predicted (columns)
+        #result = confusion_matrix(y_testLabs, y_predLabs , normalize='pred')
+        labels=['Cyl','Lat','Rest','Sph']
+        labels=[0,1,2,3]
+        labels=['cylindrical','spherical','lumbrical','rest']
+        confmat(y_true,y_pred,labels,modelname="",testset="",title="")     
+    
+    
+    resultsdict={
+        'subject':subject,
+        'train_epochs':nb_train_epochs,
+        'train_loss':train_loss,
+        'val_loss':val_loss,
+        'train_accuracy':train_accuracy,
+        'val_accuracy':val_accuracy,
+        'test_accuracy':test_accuracy,
+        'elapsed_time':end-start,
+        'training_time':traintime-start,
+        }
+    
+    
+    return resultsdict, deep_model, history.history
 
-    for idx,emg_mask in enumerate(emg_masks):
-        
-        emg_ppt = emg_set[emg_mask]
-        #emg_others = emg_set[~emg_mask]
 
-        emg_ppt.sort_values(['ID_pptID','ID_run','Label','ID_gestrep','ID_tend'],ascending=[True,True,True,True,True],inplace=True)
-        emg_ppt['ID_stratID']=emg_ppt['ID_run'].astype(str)+emg_ppt['Label'].astype(str)+emg_ppt['ID_gestrep'].astype(str)
-        
-
-        random_split=random.randint(0,100)
-
-        gest_perfs=emg_ppt['ID_stratID'].unique()
-        gest_strat=pd.DataFrame([gest_perfs,[perf.split('.')[1][-1] for perf in gest_perfs]]).transpose()
-        train_split,test_split=train_test_split(gest_strat,test_size=0.33,random_state=random_split,stratify=gest_strat[1])
-
-        emg_train=emg_ppt[emg_ppt['ID_stratID'].isin(train_split[0])]
-        emg_test=emg_ppt[emg_ppt['ID_stratID'].isin(test_split[0])]
-
-     
-        if args['fusion_alg']=='just_emg':
-            
-            if not args['get_train_acc']:
-                targets, predlist_emg, classlabels=only_EMG(emg_train, emg_test, args)
-            else:
-                targets, predlist_emg, classlabels, traintargs, predlist_train=only_EMG(emg_train, emg_test, args)
-        
-        else:
-            
-            if args['get_train_acc']:
-                emg_trainacc=emg_train.copy()
-                emg_trainacc.sort_values(['ID_pptID','ID_run','Label','ID_gestrep','ID_tend'],ascending=[True,True,True,True,True],inplace=True)
-           
-            emg_train=ml.drop_ID_cols(emg_train)           
-            
-            emg_model=train_models_opt(emg_train,args)
-        
-            classlabels = emg_model.classes_
-            
-            emg_test.sort_values(['ID_pptID','ID_run','Label','ID_gestrep','ID_tend'],ascending=[True,True,True,True,True],inplace=True)
-                
-            targets, predlist_emg,_ = refactor_synced_predict(emg_test, emg_model, classlabels,args)
-
-            if args['get_train_acc']:
-                traintargs, predlist_emgtrain,_ = refactor_synced_predict(emg_trainacc, emg_model, classlabels, args)
-
-        
-        gest_truth,gest_pred_emg,gesturelabels=classes_from_preds(targets,predlist_emg,classlabels)
-
-        if args['plot_confmats']:
-            gesturelabels=[params.idx_to_gestures[label] for label in classlabels]
-            confmat(gest_truth,gest_pred_emg,gesturelabels,title='EMG')
-            
-        emg_accs.append(accuracy_score(gest_truth,gest_pred_emg))
-
-        
-        if args['get_train_acc']:
-            train_truth=[params.idx_to_gestures[gest] for gest in traintargs]
-            train_preds=[params.idx_to_gestures[pred] for pred in predlist_train]
-            train_accs.append(accuracy_score(train_truth,train_preds))
-        else:
-            train_accs.append(0)
-        
-    mean_acc=stats.mean(emg_accs)
-    mean_emg=stats.mean(emg_accs)
-    median_emg=stats.median(emg_accs)
-
-    mean_train_acc=stats.mean(train_accs)
-    end=time.time()
-    #return 1-mean_acc
-    return {
-        'loss': 1-mean_acc,
-        'status': STATUS_OK,
-        'emg_mean_acc':mean_emg,
-        'emg_median_acc':median_emg,
-        'emg_accs':emg_accs,
-        'mean_train_acc':mean_train_acc,
-        'elapsed_time':end-start,}
-
-
-
-        
-
+def deep_generalist_holdouts():
     trainEMGpath=r"H:\Jeong11tasks_data\deepLcompare\final_set\noHoldout_RawEMG.pkl"
     
+    ppt1={'emg_path':r"H:\Jeong11tasks_data\deepLcompare\final_set\ppt1_RawEMG.pkl",}
+    ppt6={'emg_path':r"H:\Jeong11tasks_data\deepLcompare\final_set\ppt6_RawEMG.pkl",}
+    ppt11={'emg_path':r"H:\Jeong11tasks_data\deepLcompare\final_set\ppt11_RawEMG.pkl",}
+    ppt16={'emg_path':r"H:\Jeong11tasks_data\deepLcompare\final_set\ppt16_RawEMG.pkl",}
+    ppt21={'emg_path':r"H:\Jeong11tasks_data\deepLcompare\final_set\ppt21_RawEMG.pkl",}
+    holdout_ppts=[ppt1,ppt6,ppt11,ppt16,ppt21]
     
+    trainEMG=ml.pd.read_pickle(trainEMGpath)
+    
+    ppt_scores=[]
+    for ppt in holdout_ppts:
+        args={'emg_set_path':ppt['emg_path'],
+              'data_in_memory':False,
+              'plot_confmats':False}
+        emg=ml.pd.read_pickle(ppt['emg_path'])
+        args.update({'emg_set':emg,'data_in_memory':True,'prebalanced':True,'trialmode':'LOO'})
+        results,_,_=deep_generalist(trainEMG,emg,args)
+        ppt_scores.append(results)
+        
+    ppt_scores=pd.DataFrame(ppt_scores, index=['ppt1','ppt6','ppt11','ppt16','ppt21'])
+    return ppt_scores
+
+
 ###########################################
 
 
@@ -430,6 +457,9 @@ def deep_holdouts(repcount=100):
     ppt_scores.index.names=['arch','ppt']
     
     return ppt_scores
+        
+        
+        
 def test_deep_once_devppt():
     trial_set_path=r"H:\Jeong11tasks_data\deepLcompare\final_set\dev_ppt_4_RawEMG.pkl"
         

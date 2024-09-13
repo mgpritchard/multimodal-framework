@@ -221,12 +221,15 @@ def deep_bespoke(args):
         # their code monitors val_accuracy, but my TF version does not match names to the declared 'accuracy' metric
         # and instead creates a metric called val_acc. if i try to monitor val_accuracy, it cannot.
         # based on their stated TF version, i *believe* their code did indeed stop early, and so mine should too (also because its their stated method in the paper).
-        early_stopping = tf.keras.callbacks.EarlyStopping(monitor='val_acc', 
+        early_stopping = tf.keras.callbacks.EarlyStopping(monitor='val_accuracy', 
                                                       patience=10, 
                                                       min_delta=0.001,
                                                       mode='auto',
                                                       restore_best_weights=True
                                                       )
+        
+        #TEMPOTARILY switched that to be val_accuracy so that it WONT early stop, to test without early stopping
+        
         batchsize = 512
         # both as per their github repo and paper section 3.3.4
         
@@ -334,7 +337,7 @@ def deep_generalist(train_emg,emg_ppt,args):
     # both as per their github repo and paper section 3.3.4
     
     epochs = 150
-    epochs = 5 #temp, for code testing
+    #epochs = 5 #temp, for code testing
     
     history = deep_model.fit(X_train, y_train, epochs=epochs ,validation_split=0.1,batch_size=batchsize, callbacks=[early_stopping])
     
@@ -417,6 +420,47 @@ def deep_generalist_holdouts():
     return ppt_scores
 
 
+def test_deep_generalist_devppt():
+    trial_set_path=r"H:\Jeong11tasks_data\deepLcompare\final_set\dev_ppt_4_RawEMG.pkl"
+    
+    trainEMGpath=r"H:\Jeong11tasks_data\deepLcompare\final_set\noHoldout_RawEMG.pkl"
+    
+    trainEMG=ml.pd.read_pickle(trainEMGpath)
+    
+        
+    args={'emg_set_path':trial_set_path,
+          'data_in_memory':False,
+          'plot_confmats':True}
+    
+    emg=ml.pd.read_pickle(trial_set_path)
+    args.update({'emg_set':emg,'data_in_memory':True,'prebalanced':True,'trialmode':'LOO'})
+    resultsdict,deep_model, history=deep_generalist(trainEMG,emg,args)
+        
+
+    #write results
+    subject=resultsdict['subject']
+    foldername=r"H:\Jeong11tasks_data\deepLcompare/"
+    deep_model.save_weights(foldername+"model_generalist_ppt{}".format(subject))
+    
+    with open(foldername+"results_generalist_ppt{}.csv".format(subject),"w") as wf:
+         #wf.write("subject,train_epochs,train_loss,val_loss,train_accuracy,val_accuracy,test_accuracy,elapsed_time,training_time")
+         wf.write(','.join(list(resultsdict.keys())))
+         wf.write("\n")
+    
+    #variable_list = [subject,nb_train_epochs,train_loss,val_loss,train_accuracy,val_accuracy,test_accuracy,end-start,traintime-start]
+    with open(foldername+"results_generalist_ppt{}.csv".format(subject),"a") as wf:
+        #wf.write(', '.join([str(measure) for measure in variable_list ]))
+        wf.write(', '.join([str(measure) for measure in resultsdict.values() ]))
+        wf.write("\n")
+        
+    with open(foldername+"history_generalist_ppt{}.pkl".format(subject),"wb") as logfile:
+        pickle.dump(history,logfile)
+    
+    logs=pickle.load(open(r"H:\Jeong11tasks_data\deepLcompare\history_generalist_ppt4.pkl",'rb'))
+    plt.plot(logs['acc'])
+    plt.plot(logs['val_acc'])
+
+
 ###########################################
 
 
@@ -496,6 +540,23 @@ def test_deep_once_devppt():
 
     
 if __name__ == '__main__':
+    
+    ppt_scores = deep_holdouts()
+    
+    ppt_scores.reset_index(drop=False)
+    ppt_scores.to_csv(r"H:\Jeong11tasks_data\deepLcompare\bespoke_NoEarlyStop_litDeep_100reps.csv")
+    
+    raise
+    
+    ppt_scores = deep_generalist_holdouts()
+    
+    ppt_scores.reset_index(drop=False)
+    ppt_scores.to_csv(r"H:\Jeong11tasks_data\deepLcompare\generalist_litDeep.csv")
+    
+    raise
+    
+    test_deep_generalist_devppt()
+    raise
     
 
     ppt_scores = deep_holdouts()

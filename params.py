@@ -87,6 +87,11 @@ if platform =='win32':
     emgLOOfeatpath=os.path.join(currentpath, 'lit_data_expts/jeong/datasets/emg_LOO_feats_15pct.csv')
     eegLOOfeatpath=os.path.join(currentpath, 'lit_data_expts/jeong/datasets/eeg_LOO_feats_L1_88.csv')
     jointemgeegLOOfeatpath=os.path.join(currentpath, 'lit_data_expts/jeong/datasets/joint_LOO_feats_L1_176.csv')
+    
+    
+    jeong_eeg_filtfilt_dir = 'H:/Jeong11tasks_data/FiltFilt_EEG/'
+    jeong_eeg_filtfilt_path = 'H:/Jeong11tasks_data/jeong_FiltFilt_EEG_feats.csv'
+    
 elif platform == 'darwin':
     #mac
     path='macpath'
@@ -147,3 +152,7 @@ elif platform == 'linux' or 'linux32':
     emgLOOfeatpath=os.path.join(currentpath, 'lit_data_expts/jeong/datasets/emg_LOO_feats_15pct.csv')
     eegLOOfeatpath=os.path.join(currentpath, 'lit_data_expts/jeong/datasets/eeg_LOO_feats_L1_88.csv')
     jointemgeegLOOfeatpath=os.path.join(currentpath, 'lit_data_expts/jeong/datasets/joint_LOO_feats_L1_176.csv')
+    
+    
+    jeong_eeg_filtfilt_dir = 'H:/Jeong11tasks_data/FiltFilt_EEG/'
+    jeong_eeg_filtfilt_path = 'H:/Jeong11tasks_data/jeong_FiltFilt_EEG_feats.csv'

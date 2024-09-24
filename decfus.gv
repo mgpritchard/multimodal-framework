@@ -1,0 +1,43 @@
+digraph decfus {
+	node [shape=box style=rounded]
+	edge [arrowhead=none]
+	dectop [label="Decision Fusion Algorithm"]
+	"dec.mean" [label=Mean]
+	"dec.EMG" [label="EMG-biased Average"]
+	"dec.EEG" [label="EEG-biased Average"]
+	"dec.tune" [label="Parameter-Weighted Average"]
+	"dec.tune.weight" [label="EEG weighting" style=solid]
+	"dec.tune.weight.vals" [label="0.0 - 100.0" style=solid]
+	"dec.max" [label=Maximum]
+	"dec.svm" [label="Linear SVM"]
+	"dec.svm.C" [label=C style=solid]
+	"dec.svm.C.vals" [label="0.1 - 100 (log)" style=solid]
+	"dec.lda" [label=LDA]
+	"dec.lda.solver" [label=solver style=solid]
+	"dec.lda.solver.vals" [label="SVD
+LSQR
+Eigen" style=solid]
+	"dec.lda.shrinkage" [label=shrinkage style=solid]
+	"dec.lda.shrinkage.vals" [label="0.0 - 1.0" style=solid]
+	"dec.rf" [label=RF]
+	"dec.rf.ntrees" [label=n_trees style=solid]
+	"dec.rf.ntrees.vals" [label="1 - 100 (steps 5)" style=solid]
+	dectop -> "dec.mean"
+	dectop -> "dec.EMG"
+	dectop -> "dec.EEG"
+	dectop -> "dec.tune"
+	"dec.tune" -> "dec.tune.weight"
+	"dec.tune.weight" -> "dec.tune.weight.vals"
+	dectop -> "dec.max"
+	dectop -> "dec.svm"
+	"dec.svm" -> "dec.svm.C"
+	"dec.svm.C" -> "dec.svm.C.vals"
+	dectop -> "dec.lda"
+	"dec.lda" -> "dec.lda.solver"
+	"dec.lda.solver" -> "dec.lda.solver.vals"
+	"dec.lda" -> "dec.lda.shrinkage"
+	"dec.lda.shrinkage" -> "dec.lda.shrinkage.vals"
+	dectop -> "dec.rf"
+	"dec.rf" -> "dec.rf.ntrees"
+	"dec.rf.ntrees" -> "dec.rf.ntrees.vals"
+}

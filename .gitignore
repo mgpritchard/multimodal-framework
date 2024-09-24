@@ -1,3 +1,57 @@
+# Ignore real data files within the testbench folders
+testbench/emg/data_with_dupes/
+testbench/emg/dupes_removed/
+testbench/eeg/data_from_brainflow/
+testbench/eeg/data_rearranged_cols/
+testbench/eeg/data_after_sigproc/
+
+#Ignore test data files within the testbench folders
+testbench/emg/emg_test_feats.csv
+testbench/emg/emg_test_feats_Labelled.csv
+
+#Ignore any dependency graphs made with pyan
+pyan*
+
+#Ignore any parameter graphs made with graphviz
+*.gv
+#Ignore any rendered graphs from graphviz
+*.pdf
+
+#Ignore scripts to learn onehot encoding, hyperopt, and call graphs
+attemptOnehot.py
+callGraph_attempt.py
+hyperopt_playground.py
+
+#Ignore ipython log
+ipython_history.md
+
+#Ignore anything in WAYGAL results dir, except a dummy to keep the dir itself tracked
+lit_data_expts/waygal/results/*
+!lit_data_expts/waygal/results/EEGOnly/
+lit_data_expts/waygal/results/EEGOnly/LOO/*
+!lit_data_expts/waygal/results/EEGOnly/LOO/dummy.txt
+lit_data_expts/waygal/results/EEGOnly/WithinPpt/*
+!lit_data_expts/waygal/results/EEGOnly/WithinPpt/dummy.txt
+
+#Ignore anything in Jeong and Jeong CSP results dir, except a dummy to keep the dir itself tracked
+lit_data_expts/jeong/results/*
+!lit_data_expts/jeong/results/EEGOnly/
+lit_data_expts/jeong/results/EEGOnly/LOO/*
+!lit_data_expts/jeong/results/EEGOnly/LOO/dummy.txt
+lit_data_expts/jeong/results/EEGOnly/WithinPpt/*
+!lit_data_expts/jeong/results/EEGOnly/WithinPpt/dummy.txt
+!lit_data_expts/jeong/results/EEGCSP/
+lit_data_expts/jeong/results/EEGCSP/LOO/*
+!lit_data_expts/jeong/results/EEGCSP/LOO/dummy.txt
+lit_data_expts/jeong/results/EEGCSP/WithinPpt/*
+!lit_data_expts/jeong/results/EEGCSP/WithinPpt/dummy.txt
+
+#Ignore datasets
+lit_data_expts/waygal/datasets/*
+!lit_data_expts/waygal/datasets/dummy.txt
+lit_data_expts/jeong/datasets/*
+!lit_data_expts/jeong/datasets/dummy.txt
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]

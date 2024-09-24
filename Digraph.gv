@@ -1,0 +1,25 @@
+digraph {
+	RF -> rf
+	"10 - 100, q5" -> rf
+	kNN -> knn
+	"1-25" -> knn
+	LDA -> lda
+	"0.0 - 1.0" -> lda
+	QDA -> qda
+	gaussNB -> gnb
+	"log 1e-9 - 1" -> gnb
+	rf
+	qda
+	RF
+	"1-25"
+	"0.0 - 1.0"
+	"10 - 100, q5"
+	gnb
+	"log 1e-9 - 1"
+	kNN
+	LDA
+	knn
+	QDA
+	lda
+	gaussNB
+}

@@ -2762,7 +2762,9 @@ def setup_search_space(architecture,include_svm):
             #'emg_set_path':params.jeong_EMGfeats,
             'emg_set_path':params.jeong_emg_noholdout,
             #'eeg_set_path':params.jeong_noCSP_WidebandFeats,
-            'eeg_set_path':params.jeong_eeg_noholdout,
+            ########################################################'eeg_set_path':params.jeong_eeg_noholdout,
+            #### ADDED THE BELOW FOR FILTFILT TEST
+            'eeg_set_path':r"H:\Jeong11tasks_data\jeong_FiltFilt_EEG_noHO.csv",
             #'eeg_set_path':'H:/Jeong11tasks_data/DUMMY_EEG.csv',
             'using_literature_data':True,
             'data_in_memory':False,
@@ -2992,10 +2994,10 @@ if __name__ == '__main__':
         else:
             showplots=None
     else:
-        architecture='featlevel'    
-        trialmode='LOO'
+        architecture='just_eeg'    
+        trialmode='WithinPpt' #LOO or WithinPpt
         platform='not server'
-        num_iters=1
+        num_iters=100
         showplots=None
         
     if architecture not in ['decision','featlevel','hierarchical','hierarchical_inv','just_emg','just_eeg']:
@@ -3066,11 +3068,17 @@ if __name__ == '__main__':
          pd.DataFrame(pd.DataFrame(table['misc'].tolist())['vals'].values.tolist())],
         axis=1,join='outer')
     
+    raise
+    
     '''SETTING RESULT PATH'''
     currentpath=os.path.dirname(__file__)
     result_dir=params.jeong_results_dir
     resultpath=os.path.join(currentpath,result_dir)    
-    resultpath=os.path.join(resultpath,'Fusion_CSP',trialmode)
+    ####################resultpath=os.path.join(resultpath,'Fusion_CSP',trialmode)
+    
+    #### ADDED THE BELOW FOR FILTFILT TEST
+    resultpath=os.path.join(resultpath,'FiltFilt_EEG_Tests',trialmode)
+    ####
     
     '''PICKLING THE TRIALS OBJECT'''
     trials_obj_path=os.path.join(resultpath,'trials_obj.p')

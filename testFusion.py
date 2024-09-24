@@ -3068,7 +3068,7 @@ if __name__ == '__main__':
          pd.DataFrame(pd.DataFrame(table['misc'].tolist())['vals'].values.tolist())],
         axis=1,join='outer')
     
-    raise
+    #raise
     
     '''SETTING RESULT PATH'''
     currentpath=os.path.dirname(__file__)
